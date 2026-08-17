@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Parcours Bâtisseur</title>
+<meta name="theme-color" content="#1F3B57">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ===== ÉCRAN DE CONNEXION ===== -->
+<div class="auth-screen" id="authScreen">
+  <div class="auth-box">
+    <img src="logo.png" alt="Logo ABBA" class="auth-logo">
+    <h1>Parcours Bâtisseur</h1>
+    <p class="auth-sub">Suivi de ta formation</p>
+
+    <form id="loginForm" class="auth-form">
+      <label class="field"><span>E-mail</span><input type="email" id="loginEmail" required autocomplete="email"></label>
+      <label class="field"><span>Mot de passe</span><input type="password" id="loginPassword" required autocomplete="current-password"></label>
+      <p class="auth-error" id="loginError"></p>
+      <button type="submit" class="btn-primary full">Se connecter</button>
+    </form>
+
+    <p class="auth-hint">Utilise le même e-mail et le même mot de passe que sur ABBA Life — c'est le même compte, aucune nouvelle inscription nécessaire.</p>
+  </div>
+</div>
+
+<div class="app" id="app" style="display:none;">
+  <header class="topbar">
+    <div class="brand">
+      <img src="logo.png" alt="Logo ABBA" class="brand-logo">
+      <div class="brand-text">
+        <span class="brand-name">Parcours Bâtisseur</span>
+        <span class="brand-sub">Suivi de ta formation</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="theme-toggle" id="themeToggle" aria-label="Changer d'apparence">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="content">
+
+    <!-- ================= MON PARCOURS ================= -->
+    <section class="panel active" id="panel-parcours">
+      <div class="panel-head">
+        <h1>Mon parcours</h1>
+      </div>
+
+      <div class="card" id="modulesCard" style="display:none;">
+        <p class="eyebrow">Mes modules</p>
+        <p class="settings-hint" id="modulesProgressHint"></p>
+        <div id="modulesList"></div>
+      </div>
+
+      <div class="card settings-card admin-only" id="modulesEditorCard" style="display:none;">
+        <p class="eyebrow">Modifier la liste des modules (visible par tous les Bâtisseurs)</p>
+        <div id="modulesEditor"></div>
+        <button class="btn-secondary" id="addModuleBtn" type="button">+ Ajouter un module</button>
+        <button class="btn-primary" id="saveModulesBtn" type="button" style="margin-top:10px;">Enregistrer les modules</button>
+      </div>
+
+      <div class="card admin-only" id="coordModulesCard" style="display:none;">
+        <div class="panel-head" style="margin-bottom:10px;">
+          <p class="eyebrow" style="margin:0;">Avancement des Bâtisseurs</p>
+          <button class="btn-secondary" id="refreshCoordModules">Actualiser</button>
+        </div>
+        <table class="tx-table" id="coordModulesTable">
+          <thead><tr><th>Bâtisseur</th><th>Téléphone</th><th>Modules</th></tr></thead>
+          <tbody id="coordModulesBody"></tbody>
+        </table>
+        <p class="empty-hint" id="coordModulesEmpty">Aucun Bâtisseur pour l'instant.</p>
+      </div>
+
+      <div class="card">
+        <p class="eyebrow">À venir dans Parcours Bâtisseur</p>
+        <p class="settings-hint">Plan de lecture biblique intégré, Fiche Binôme, zones de caractère — en construction, bientôt disponibles ici.</p>
+      </div>
+
+      <div class="card settings-card">
+        <p class="eyebrow">Mon compte</p>
+        <p class="settings-hint" id="accountEmailHint"></p>
+        <a class="link-btn" href="https://batisseursbibliques.org/abba-life/" style="display:block;margin-bottom:10px;">Ouvrir ABBA Life (checklist, finance, agenda) →</a>
+        <button class="btn-secondary" id="logoutBtn">Se déconnecter</button>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script type="module" src="sync.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
