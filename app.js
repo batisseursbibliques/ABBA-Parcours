@@ -40,8 +40,10 @@ let unsubParcours = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   setupTheme();
+  setupTabs();
   setupAuthScreen();
   setupModulesEditor();
+  setupCoordModules();
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
@@ -137,6 +139,20 @@ function pushModulesSummary() {
     modulesFaits: MODULES_TERMINES.length,
     modulesTotal: (MODULES_CONFIG && MODULES_CONFIG.length) || 0,
   }).catch(err => console.error("Résumé modules :", err));
+}
+
+/* ============================================================
+   NAVIGATION (onglets)
+   ============================================================ */
+function setupTabs() {
+  document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", () => goToTab(btn.dataset.tab)));
+}
+function goToTab(name) {
+  document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+  document.getElementById(`panel-${name}`).classList.add("active");
+  document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  if (name === "coordination") renderCoordModules();
+  window.scrollTo({ top: 0 });
 }
 
 /* ============================================================
@@ -267,4 +283,3 @@ async function renderCoordModules() {
     console.error(err);
   }
 }
-document.addEventListener("DOMContentLoaded", setupCoordModules);

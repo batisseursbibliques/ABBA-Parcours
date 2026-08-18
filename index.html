@@ -47,6 +47,13 @@
     </div>
   </header>
 
+  <!-- ===== NAVIGATION ===== -->
+  <nav class="tabs" id="tabs" aria-label="Navigation principale">
+    <button class="tab active" data-tab="parcours"><span class="tab-num">I</span>Mon Parcours</button>
+    <button class="tab admin-only" data-tab="coordination" id="tabCoordination" style="display:none;"><span class="tab-num">★</span>Coordination</button>
+    <button class="tab" data-tab="reglages"><span class="tab-num">II</span>Réglages</button>
+  </nav>
+
   <main class="content">
 
     <!-- ================= MON PARCOURS ================= -->
@@ -61,28 +68,39 @@
         <div id="modulesList"></div>
       </div>
 
-      <div class="card settings-card admin-only" id="modulesEditorCard" style="display:none;">
-        <p class="eyebrow">Modifier la liste des modules (visible par tous les Bâtisseurs)</p>
-        <div id="modulesEditor"></div>
-        <button class="btn-secondary" id="addModuleBtn" type="button">+ Ajouter un module</button>
-        <button class="btn-primary" id="saveModulesBtn" type="button" style="margin-top:10px;">Enregistrer les modules</button>
+      <div class="card">
+        <p class="eyebrow">À venir dans Parcours Bâtisseur</p>
+        <p class="settings-hint">Plan de lecture biblique intégré, Fiche Binôme, zones de caractère — chacun aura sa propre page ici, bientôt disponibles.</p>
       </div>
+    </section>
 
-      <div class="card admin-only" id="coordModulesCard" style="display:none;">
-        <div class="panel-head" style="margin-bottom:10px;">
-          <p class="eyebrow" style="margin:0;">Avancement des Bâtisseurs</p>
-          <button class="btn-secondary" id="refreshCoordModules">Actualiser</button>
-        </div>
+    <!-- ================= COORDINATION (coordinateurs) ================= -->
+    <section class="panel" id="panel-coordination">
+      <div class="panel-head">
+        <h1>Coordination</h1>
+        <button class="btn-secondary" id="refreshCoordModules">Actualiser</button>
+      </div>
+      <p class="settings-hint">Avancement des Bâtisseurs dans les modules du Parcours.</p>
+      <div class="card">
         <table class="tx-table" id="coordModulesTable">
           <thead><tr><th>Bâtisseur</th><th>Téléphone</th><th>Modules</th></tr></thead>
           <tbody id="coordModulesBody"></tbody>
         </table>
         <p class="empty-hint" id="coordModulesEmpty">Aucun Bâtisseur pour l'instant.</p>
       </div>
+    </section>
 
-      <div class="card">
-        <p class="eyebrow">À venir dans Parcours Bâtisseur</p>
-        <p class="settings-hint">Plan de lecture biblique intégré, Fiche Binôme, zones de caractère — en construction, bientôt disponibles ici.</p>
+    <!-- ================= RÉGLAGES ================= -->
+    <section class="panel" id="panel-reglages">
+      <div class="panel-head">
+        <h1>Réglages</h1>
+      </div>
+
+      <div class="card settings-card admin-only" id="modulesEditorCard" style="display:none;">
+        <p class="eyebrow">Modifier la liste des modules (visible par tous les Bâtisseurs)</p>
+        <div id="modulesEditor"></div>
+        <button class="btn-secondary" id="addModuleBtn" type="button">+ Ajouter un module</button>
+        <button class="btn-primary" id="saveModulesBtn" type="button" style="margin-top:10px;">Enregistrer les modules</button>
       </div>
 
       <div class="card settings-card">
