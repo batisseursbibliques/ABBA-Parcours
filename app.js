@@ -37,6 +37,8 @@ let EDIT_MODULES = [];
 let unsubAdmins = null;
 let unsubModulesConfig = null;
 let unsubParcours = null;
+let unsubBinome = null;
+let MY_BINOME = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   setupTheme();
@@ -44,6 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupAuthScreen();
   setupModulesEditor();
   setupCoordModules();
+  setupBinome();
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
@@ -86,6 +89,7 @@ async function onAuthChanged(user) {
   if (unsubAdmins) { unsubAdmins(); unsubAdmins = null; }
   if (unsubModulesConfig) { unsubModulesConfig(); unsubModulesConfig = null; }
   if (unsubParcours) { unsubParcours(); unsubParcours = null; }
+  if (unsubBinome) { unsubBinome(); unsubBinome = null; }
 
   if (!user) {
     CURRENT_USER = null;
@@ -115,7 +119,7 @@ async function onAuthChanged(user) {
     IS_ADMIN = isBootstrap || inList;
     document.querySelectorAll(".admin-only").forEach(el => { el.style.display = IS_ADMIN ? "" : "none"; });
     renderModulesEditor();
-    if (IS_ADMIN) renderCoordModules();
+    if (IS_ADMIN) { renderCoordModules(); loadBinomesManager(); }
   });
 
   unsubModulesConfig = window.AbbaSync.watchModulesConfig((list) => {
@@ -129,6 +133,22 @@ async function onAuthChanged(user) {
     renderModulesList();
     pushModulesSummary();
   });
+
+  // Cherche si je fais partie d'un binôme, puis écoute son contenu en direct
+  try {
+    const pair = await window.AbbaSync.findMyBinome(user.email);
+    if (pair) {
+      unsubBinome = window.AbbaSync.watchBinome(pair.id, (data) => {
+        MY_BINOME = data;
+        renderBinome();
+      });
+    } else {
+      MY_BINOME = null;
+      renderBinome();
+    }
+  } catch (err) {
+    console.error("Recherche binôme :", err);
+  }
 }
 
 function pushModulesSummary() {
@@ -286,4 +306,117 @@ async function renderCoordModules() {
     body.innerHTML = `<tr><td colspan="3">Erreur de chargement.</td></tr>`;
     console.error(err);
   }
+}
+
+/* ============================================================
+   FICHE BINÔME
+   ============================================================ */
+function setupBinome() {
+  document.getElementById("saveBinomeBtn").addEventListener("click", async () => {
+    if (!MY_BINOME) return;
+    const content = {
+      priereCible: document.getElementById("binomePriere").value,
+      gesteDuMois: document.getElementById("binomeGeste").value,
+      zoneCaractere: document.getElementById("binomeZone").value,
+      exerciceDuMois: document.getElementById("binomeExercice").value,
+    };
+    const btn = document.getElementById("saveBinomeBtn");
+    const original = btn.textContent;
+    try {
+      await window.AbbaSync.saveBinomeContent(MY_BINOME.id, content);
+      btn.textContent = "Enregistré ✓";
+      setTimeout(() => btn.textContent = original, 1400);
+    } catch (err) {
+      alert("Impossible d'enregistrer. Vérifie ta connexion.");
+      console.error(err);
+    }
+  });
+}
+function renderBinome() {
+  const noneCard = document.getElementById("binomeNoneCard");
+  const card = document.getElementById("binomeCard");
+  if (!MY_BINOME) {
+    noneCard.style.display = "";
+    card.style.display = "none";
+    return;
+  }
+  noneCard.style.display = "none";
+  card.style.display = "";
+
+  const myEmail = CURRENT_USER.email.toLowerCase();
+  const partnerEmail = MY_BINOME.membre1 === myEmail ? MY_BINOME.membre2 : MY_BINOME.membre1;
+  document.getElementById("binomePartnerHint").textContent = `Ton binôme : ${partnerEmail}`;
+  document.getElementById("binomePriere").value = MY_BINOME.priereCible || "";
+  document.getElementById("binomeGeste").value = MY_BINOME.gesteDuMois || "";
+  document.getElementById("binomeZone").value = MY_BINOME.zoneCaractere || "";
+  document.getElementById("binomeExercice").value = MY_BINOME.exerciceDuMois || "";
+  const updHint = document.getElementById("binomeUpdatedHint");
+  updHint.textContent = MY_BINOME.updatedAt ? "Dernière mise à jour récente" : "";
+}
+
+/* ---------- Gestion des binômes (coordinateurs uniquement) ---------- */
+async function loadBinomesManager() {
+  if (!IS_ADMIN) return;
+  try {
+    const [summaries, binomes] = await Promise.all([
+      window.AbbaSync.loadAllSummaries(),
+      window.AbbaSync.loadAllBinomes(),
+    ]);
+    const nameByEmail = {};
+    summaries.forEach(s => { if (s.email) nameByEmail[s.email.toLowerCase()] = s.nom || s.email; });
+
+    const sel1 = document.getElementById("binomeMembre1");
+    const sel2 = document.getElementById("binomeMembre2");
+    const options = summaries
+      .filter(s => s.email)
+      .map(s => `<option value="${escapeAttr(s.email)}">${escapeAttr(s.nom || s.email)}</option>`)
+      .join("");
+    sel1.innerHTML = `<option value="">— Choisir le 1er Bâtisseur —</option>` + options;
+    sel2.innerHTML = `<option value="">— Choisir le 2e Bâtisseur —</option>` + options;
+
+    const wrap = document.getElementById("binomesList");
+    wrap.innerHTML = "";
+    if (binomes.length === 0) {
+      wrap.innerHTML = `<p class="empty-hint" style="display:block;">Aucun binôme créé pour l'instant.</p>`;
+    }
+    binomes.forEach(b => {
+      const nom1 = nameByEmail[b.membre1] || b.membre1;
+      const nom2 = nameByEmail[b.membre2] || b.membre2;
+      const row = document.createElement("div");
+      row.className = "editor-item-row";
+      row.innerHTML = `
+        <span class="text-input" style="border:none;padding:8px 0;">${escapeAttr(nom1)} 🤝 ${escapeAttr(nom2)}</span>
+        <button type="button" class="editor-del-item" title="Délier">🗑</button>
+      `;
+      row.querySelector(".editor-del-item").addEventListener("click", async () => {
+        if (!confirm(`Délier ${nom1} et ${nom2} ?`)) return;
+        try {
+          await window.AbbaSync.deleteBinome(b.id);
+          loadBinomesManager();
+        } catch (err) {
+          alert("Impossible de délier ce binôme.");
+          console.error(err);
+        }
+      });
+      wrap.appendChild(row);
+    });
+  } catch (err) {
+    console.error("Chargement des binômes :", err);
+  }
+
+  document.getElementById("createBinomeBtn").onclick = async () => {
+    const e1 = document.getElementById("binomeMembre1").value;
+    const e2 = document.getElementById("binomeMembre2").value;
+    const errEl = document.getElementById("binomeManagerError");
+    errEl.textContent = "";
+    if (!e1 || !e2) { errEl.textContent = "Choisis les deux Bâtisseurs."; return; }
+    if (e1 === e2) { errEl.textContent = "Choisis deux Bâtisseurs différents."; return; }
+    try {
+      await window.AbbaSync.createBinome(e1, e2, CURRENT_USER.email);
+      loadBinomesManager();
+    } catch (err) {
+      errEl.textContent = "Impossible de créer ce binôme. Vérifie ta connexion.";
+      console.error(err);
+    }
+  };
 }

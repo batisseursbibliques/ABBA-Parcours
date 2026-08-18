@@ -9,8 +9,8 @@ import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp,
-  enableIndexedDbPersistence, collection, getDocs,
+  getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp,
+  enableIndexedDbPersistence, collection, getDocs, query, where,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig, ADMIN_EMAILS } from "./firebase-config.js";
 
@@ -72,6 +72,47 @@ async function saveModulesSummary(uid, summary) {
   await setDoc(doc(db, "summaries", uid), { ...summary, updatedAt: serverTimestamp() }, { merge: true });
 }
 
+/* ---------- BINÔMES (accountability) ----------
+   Le coordinateur relie deux Bâtisseurs (par e-mail) ; les deux membres
+   peuvent ensuite modifier librement le contenu de leur fiche partagée. */
+function binomeId(email1, email2) {
+  return [email1.trim().toLowerCase(), email2.trim().toLowerCase()].sort().join("__");
+}
+async function createBinome(email1, email2, createdByEmail) {
+  const id = binomeId(email1, email2);
+  await setDoc(doc(db, "binomes", id), {
+    membre1: email1.trim().toLowerCase(),
+    membre2: email2.trim().toLowerCase(),
+    createdBy: createdByEmail,
+    createdAt: serverTimestamp(),
+    priereCible: "", gesteDuMois: "", zoneCaractere: "", exerciceDuMois: "",
+  });
+}
+async function deleteBinome(pairId) {
+  await deleteDoc(doc(db, "binomes", pairId));
+}
+async function loadAllBinomes() {
+  const snap = await getDocs(collection(db, "binomes"));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+async function findMyBinome(myEmail) {
+  const email = myEmail.trim().toLowerCase();
+  const [snap1, snap2] = await Promise.all([
+    getDocs(query(collection(db, "binomes"), where("membre1", "==", email))),
+    getDocs(query(collection(db, "binomes"), where("membre2", "==", email))),
+  ]);
+  const docs = [...snap1.docs, ...snap2.docs];
+  return docs.length > 0 ? { id: docs[0].id, ...docs[0].data() } : null;
+}
+function watchBinome(pairId, callback) {
+  return onSnapshot(doc(db, "binomes", pairId), (snap) => {
+    callback(snap.exists() ? { id: snap.id, ...snap.data() } : null);
+  }, (err) => console.error("watchBinome:", err));
+}
+async function saveBinomeContent(pairId, content) {
+  await setDoc(doc(db, "binomes", pairId), { ...content, updatedAt: serverTimestamp() }, { merge: true });
+}
+
 window.AbbaSync = {
   isAdminEmail,
   logIn, logOut, watchAuth, getUserProfile,
@@ -79,4 +120,5 @@ window.AbbaSync = {
   watchModulesConfig, saveModulesConfig,
   watchParcours, saveParcours,
   loadAllSummaries, saveModulesSummary,
+  createBinome, deleteBinome, loadAllBinomes, findMyBinome, watchBinome, saveBinomeContent,
 };
