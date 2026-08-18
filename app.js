@@ -101,6 +101,7 @@ async function onAuthChanged(user) {
   document.getElementById("authScreen").style.display = "none";
   document.getElementById("app").style.display = "";
   document.getElementById("accountEmailHint").textContent = `Connecté(e) en tant que ${user.displayName || user.email} (${user.email})`;
+  document.getElementById("accountEmailHintAccueil").textContent = `Connecté(e) en tant que ${user.displayName || user.email} (${user.email})`;
 
   try {
     CURRENT_PROFILE = await window.AbbaSync.getUserProfile(user.uid) || {};
@@ -145,12 +146,15 @@ function pushModulesSummary() {
    NAVIGATION (onglets)
    ============================================================ */
 function setupTabs() {
-  document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", () => goToTab(btn.dataset.tab)));
+  document.querySelectorAll(".tab, .bnav-btn, [data-goto]").forEach(btn => {
+    const target = btn.dataset.tab || btn.dataset.goto;
+    if (target) btn.addEventListener("click", () => goToTab(target));
+  });
 }
 function goToTab(name) {
   document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
   document.getElementById(`panel-${name}`).classList.add("active");
-  document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  document.querySelectorAll(".tab, .bnav-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
   if (name === "coordination") renderCoordModules();
   window.scrollTo({ top: 0 });
 }

@@ -49,15 +49,52 @@
 
   <!-- ===== NAVIGATION ===== -->
   <nav class="tabs" id="tabs" aria-label="Navigation principale">
-    <button class="tab active" data-tab="parcours"><span class="tab-num">I</span>Mon Parcours</button>
+    <button class="tab active" data-tab="accueil"><span class="tab-num">I</span>Accueil</button>
+    <button class="tab" data-tab="parcours"><span class="tab-num">II</span>Mon Parcours</button>
     <button class="tab admin-only" data-tab="coordination" id="tabCoordination" style="display:none;"><span class="tab-num">★</span>Coordination</button>
-    <button class="tab" data-tab="reglages"><span class="tab-num">II</span>Réglages</button>
+    <button class="tab" data-tab="reglages"><span class="tab-num">III</span>Réglages</button>
   </nav>
 
   <main class="content">
 
+    <!-- ================= ACCUEIL ================= -->
+    <section class="panel active" id="panel-accueil">
+      <div class="panel-head">
+        <h1>Parcours Bâtisseur</h1>
+      </div>
+      <p class="settings-hint" style="margin:-8px 0 16px;">Ton compagnon pour suivre ta formation, en plus d'ABBA Life.</p>
+
+      <div class="card">
+        <p class="eyebrow">📘 Mon parcours</p>
+        <p class="settings-hint" id="accueilModulesHint">Suis l'avancement de tes modules.</p>
+        <button class="link-btn" data-goto="parcours">Ouvrir Mon parcours →</button>
+      </div>
+
+      <div class="card admin-only" id="accueilCoordCard" style="display:none;">
+        <p class="eyebrow">★ Coordination</p>
+        <p class="settings-hint">Avancement de tous les Bâtisseurs dans les modules.</p>
+        <button class="link-btn" data-goto="coordination">Ouvrir Coordination →</button>
+      </div>
+
+      <div class="card">
+        <p class="eyebrow">🤝 Fiche Binôme</p>
+        <p class="settings-hint">Bientôt disponible — suivi de ton binôme d'accountability.</p>
+      </div>
+
+      <div class="card">
+        <p class="eyebrow">🧭 Zones de caractère</p>
+        <p class="settings-hint">Bientôt disponible — auto-évaluation mensuelle des 6 zones.</p>
+      </div>
+
+      <div class="card settings-card">
+        <p class="eyebrow">Mon compte</p>
+        <p class="settings-hint" id="accountEmailHintAccueil"></p>
+        <a class="link-btn" href="https://batisseursbibliques.org/abba-life/" style="display:block;">Ouvrir ABBA Life (checklist, finance, agenda) →</a>
+      </div>
+    </section>
+
     <!-- ================= MON PARCOURS ================= -->
-    <section class="panel active" id="panel-parcours">
+    <section class="panel" id="panel-parcours">
       <div class="panel-head">
         <h1>Mon parcours</h1>
       </div>
@@ -112,6 +149,27 @@
     </section>
 
   </main>
+
+  <!-- ===== NAVIGATION BASSE (mobile) ===== -->
+  <nav class="bottom-nav" aria-hidden="true">
+    <button class="bnav-btn active" data-tab="accueil">
+      <svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 11 L12 4 L20 11 M6 10 V20 H18 V10" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+      <span>Accueil</span>
+    </button>
+    <button class="bnav-btn" data-tab="parcours">
+      <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 4 H18 V20 L12 17 L6 20 Z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+      <span>Parcours</span>
+    </button>
+    <button class="bnav-btn admin-only" data-tab="coordination" id="bnavCoordination" style="display:none;">
+      <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 2 L14.5 9 L22 9 L16 13.5 L18 21 L12 16.5 L6 21 L8 13.5 L2 9 L9.5 9 Z" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+      <span>Coord.</span>
+    </button>
+    <button class="bnav-btn" data-tab="reglages">
+      <svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3 V6 M12 18 V21 M3 12 H6 M18 12 H21 M5.6 5.6 L7.8 7.8 M16.2 16.2 L18.4 18.4 M18.4 5.6 L16.2 7.8 M7.8 16.2 L5.6 18.4" stroke="currentColor" stroke-width="1.6"/></svg>
+      <span>Réglages</span>
+    </button>
+  </nav>
+
 </div>
 
 <script type="module" src="sync.js"></script>
