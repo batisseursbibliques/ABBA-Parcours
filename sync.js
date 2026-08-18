@@ -73,8 +73,9 @@ async function saveModulesSummary(uid, summary) {
 }
 
 /* ---------- BINÔMES (accountability) ----------
-   Le coordinateur relie deux Bâtisseurs (par e-mail) ; les deux membres
-   peuvent ensuite modifier librement le contenu de leur fiche partagée. */
+   Le coordinateur relie deux Bâtisseurs (par e-mail). Chacun tient SA fiche
+   (visible en lecture seule par l'autre) — sauf le "geste du mois", qui reste
+   strictement privé (stocké ailleurs, jamais lisible par le binôme). */
 function binomeId(email1, email2) {
   return [email1.trim().toLowerCase(), email2.trim().toLowerCase()].sort().join("__");
 }
@@ -85,7 +86,7 @@ async function createBinome(email1, email2, createdByEmail) {
     membre2: email2.trim().toLowerCase(),
     createdBy: createdByEmail,
     createdAt: serverTimestamp(),
-    priereCible: "", gesteDuMois: "", zoneCaractere: "", exerciceDuMois: "",
+    fiches: {},
   });
 }
 async function deleteBinome(pairId) {
@@ -109,8 +110,22 @@ function watchBinome(pairId, callback) {
     callback(snap.exists() ? { id: snap.id, ...snap.data() } : null);
   }, (err) => console.error("watchBinome:", err));
 }
-async function saveBinomeContent(pairId, content) {
-  await setDoc(doc(db, "binomes", pairId), { ...content, updatedAt: serverTimestamp() }, { merge: true });
+// Chacun n'écrit que dans SA propre clé — la fusion Firestore préserve la fiche de l'autre.
+async function saveMyFiche(pairId, myEmail, content) {
+  const key = myEmail.trim().toLowerCase();
+  await setDoc(doc(db, "binomes", pairId), {
+    fiches: { [key]: { ...content, updatedAt: serverTimestamp() } },
+  }, { merge: true });
+}
+
+/* ---------- GESTE DU MOIS (strictement privé — jamais visible par le binôme) ---------- */
+function watchMyGeste(uid, callback) {
+  return onSnapshot(doc(db, "users", uid, "priv", "binomeGeste"), (snap) => {
+    callback(snap.exists() ? (snap.data().gesteDuMois || "") : "");
+  }, (err) => console.error("watchMyGeste:", err));
+}
+async function saveMyGeste(uid, gesteDuMois) {
+  await setDoc(doc(db, "users", uid, "priv", "binomeGeste"), { gesteDuMois });
 }
 
 window.AbbaSync = {
@@ -120,5 +135,6 @@ window.AbbaSync = {
   watchModulesConfig, saveModulesConfig,
   watchParcours, saveParcours,
   loadAllSummaries, saveModulesSummary,
-  createBinome, deleteBinome, loadAllBinomes, findMyBinome, watchBinome, saveBinomeContent,
+  createBinome, deleteBinome, loadAllBinomes, findMyBinome, watchBinome, saveMyFiche,
+  watchMyGeste, saveMyGeste,
 };

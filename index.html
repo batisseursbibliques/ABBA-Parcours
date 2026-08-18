@@ -125,27 +125,35 @@
       </div>
 
       <div class="card" id="binomeCard" style="display:none;">
-        <p class="eyebrow">Mon binôme</p>
-        <p class="settings-hint" id="binomePartnerHint"></p>
+        <p class="eyebrow">Ma fiche <span id="binomePartnerHint" style="font-weight:400;"></span></p>
+        <p class="settings-hint">Visible par ton binôme, pour qu'il/elle sache pour quoi prier et t'accompagner.</p>
 
-        <label class="field"><span>Prière ciblée pour mon binôme</span>
+        <label class="field"><span>Ce pour quoi j'ai besoin de prière</span>
           <textarea id="binomePriere" class="text-input" rows="2"></textarea>
         </label>
 
-        <label class="field" style="margin-top:12px;"><span>Geste concret du mois</span>
-          <textarea id="binomeGeste" class="text-input" rows="2"></textarea>
-        </label>
-
-        <label class="field" style="margin-top:12px;"><span>Zone de caractère partagée</span>
+        <label class="field" style="margin-top:12px;"><span>Zone de caractère sur laquelle je travaille</span>
           <input type="text" id="binomeZone" class="text-input" placeholder="Ex. émotions, parole, habitudes…">
         </label>
 
-        <label class="field" style="margin-top:12px;"><span>Exercice du mois</span>
+        <label class="field" style="margin-top:12px;"><span>Exercice que je fais ce mois-ci</span>
           <textarea id="binomeExercice" class="text-input" rows="2"></textarea>
         </label>
 
-        <button class="btn-primary" id="saveBinomeBtn" type="button" style="margin-top:14px;">Enregistrer</button>
-        <p class="settings-hint" id="binomeUpdatedHint" style="margin-top:8px;"></p>
+        <button class="btn-primary" id="saveBinomeBtn" type="button" style="margin-top:14px;">Enregistrer ma fiche</button>
+      </div>
+
+      <div class="card" id="binomeGesteCard" style="display:none;">
+        <p class="eyebrow">🤫 Mon geste — reste secret pour <span id="binomeGestePartnerName"></span></p>
+        <p class="settings-hint">Visible par toi seul(e), pour te rappeler ta surprise du mois. Ton binôme ne le voit jamais.</p>
+        <textarea id="binomeGeste" class="text-input" rows="2"></textarea>
+        <button class="btn-secondary" id="saveGesteBtn" type="button" style="margin-top:10px;">Enregistrer mon geste</button>
+      </div>
+
+      <div class="card" id="binomePartnerCard" style="display:none;">
+        <p class="eyebrow">Fiche de <span id="binomePartnerName"></span></p>
+        <p class="settings-hint">Lecture seule — pour prier pour lui/elle et l'accompagner.</p>
+        <div id="binomePartnerDisplay"></div>
       </div>
     </section>
 

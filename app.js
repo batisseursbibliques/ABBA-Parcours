@@ -38,7 +38,9 @@ let unsubAdmins = null;
 let unsubModulesConfig = null;
 let unsubParcours = null;
 let unsubBinome = null;
+let unsubGeste = null;
 let MY_BINOME = null;
+let MY_GESTE = "";
 
 document.addEventListener("DOMContentLoaded", () => {
   setupTheme();
@@ -90,6 +92,7 @@ async function onAuthChanged(user) {
   if (unsubModulesConfig) { unsubModulesConfig(); unsubModulesConfig = null; }
   if (unsubParcours) { unsubParcours(); unsubParcours = null; }
   if (unsubBinome) { unsubBinome(); unsubBinome = null; }
+  if (unsubGeste) { unsubGeste(); unsubGeste = null; }
 
   if (!user) {
     CURRENT_USER = null;
@@ -132,6 +135,12 @@ async function onAuthChanged(user) {
     MODULES_TERMINES = modulesTermines || [];
     renderModulesList();
     pushModulesSummary();
+  });
+
+  // Mon geste du mois (strictement privé)
+  unsubGeste = window.AbbaSync.watchMyGeste(user.uid, (geste) => {
+    MY_GESTE = geste || "";
+    renderGeste();
   });
 
   // Cherche si je fais partie d'un binôme, puis écoute son contenu en direct
@@ -313,17 +322,31 @@ async function renderCoordModules() {
    ============================================================ */
 function setupBinome() {
   document.getElementById("saveBinomeBtn").addEventListener("click", async () => {
-    if (!MY_BINOME) return;
+    if (!MY_BINOME || !CURRENT_USER) return;
     const content = {
       priereCible: document.getElementById("binomePriere").value,
-      gesteDuMois: document.getElementById("binomeGeste").value,
       zoneCaractere: document.getElementById("binomeZone").value,
       exerciceDuMois: document.getElementById("binomeExercice").value,
     };
     const btn = document.getElementById("saveBinomeBtn");
     const original = btn.textContent;
     try {
-      await window.AbbaSync.saveBinomeContent(MY_BINOME.id, content);
+      await window.AbbaSync.saveMyFiche(MY_BINOME.id, CURRENT_USER.email, content);
+      btn.textContent = "Enregistré ✓";
+      setTimeout(() => btn.textContent = original, 1400);
+    } catch (err) {
+      alert("Impossible d'enregistrer. Vérifie ta connexion.");
+      console.error(err);
+    }
+  });
+
+  document.getElementById("saveGesteBtn").addEventListener("click", async () => {
+    if (!CURRENT_USER) return;
+    const geste = document.getElementById("binomeGeste").value;
+    const btn = document.getElementById("saveGesteBtn");
+    const original = btn.textContent;
+    try {
+      await window.AbbaSync.saveMyGeste(CURRENT_USER.uid, geste);
       btn.textContent = "Enregistré ✓";
       setTimeout(() => btn.textContent = original, 1400);
     } catch (err) {
@@ -332,26 +355,55 @@ function setupBinome() {
     }
   });
 }
+
+function partnerEmailOf(binome, myEmail) {
+  return binome.membre1 === myEmail ? binome.membre2 : binome.membre1;
+}
+
 function renderBinome() {
   const noneCard = document.getElementById("binomeNoneCard");
   const card = document.getElementById("binomeCard");
+  const gesteCard = document.getElementById("binomeGesteCard");
+  const partnerCard = document.getElementById("binomePartnerCard");
+
   if (!MY_BINOME) {
     noneCard.style.display = "";
     card.style.display = "none";
+    gesteCard.style.display = "none";
+    partnerCard.style.display = "none";
     return;
   }
   noneCard.style.display = "none";
   card.style.display = "";
+  gesteCard.style.display = "";
+  partnerCard.style.display = "";
 
   const myEmail = CURRENT_USER.email.toLowerCase();
-  const partnerEmail = MY_BINOME.membre1 === myEmail ? MY_BINOME.membre2 : MY_BINOME.membre1;
-  document.getElementById("binomePartnerHint").textContent = `Ton binôme : ${partnerEmail}`;
-  document.getElementById("binomePriere").value = MY_BINOME.priereCible || "";
-  document.getElementById("binomeGeste").value = MY_BINOME.gesteDuMois || "";
-  document.getElementById("binomeZone").value = MY_BINOME.zoneCaractere || "";
-  document.getElementById("binomeExercice").value = MY_BINOME.exerciceDuMois || "";
-  const updHint = document.getElementById("binomeUpdatedHint");
-  updHint.textContent = MY_BINOME.updatedAt ? "Dernière mise à jour récente" : "";
+  const partnerEmail = partnerEmailOf(MY_BINOME, myEmail);
+  const fiches = MY_BINOME.fiches || {};
+  const myFiche = fiches[myEmail] || {};
+  const partnerFiche = fiches[partnerEmail] || {};
+
+  document.getElementById("binomePartnerHint").textContent = `(visible par ${partnerEmail})`;
+  document.getElementById("binomePriere").value = myFiche.priereCible || "";
+  document.getElementById("binomeZone").value = myFiche.zoneCaractere || "";
+  document.getElementById("binomeExercice").value = myFiche.exerciceDuMois || "";
+
+  document.getElementById("binomeGestePartnerName").textContent = partnerEmail;
+
+  document.getElementById("binomePartnerName").textContent = partnerEmail;
+  const disp = document.getElementById("binomePartnerDisplay");
+  const hasContent = partnerFiche.priereCible || partnerFiche.zoneCaractere || partnerFiche.exerciceDuMois;
+  disp.innerHTML = hasContent ? `
+    <p class="settings-hint"><strong>Prière :</strong> ${escapeAttr(partnerFiche.priereCible || "—")}</p>
+    <p class="settings-hint"><strong>Zone de caractère :</strong> ${escapeAttr(partnerFiche.zoneCaractere || "—")}</p>
+    <p class="settings-hint"><strong>Exercice du mois :</strong> ${escapeAttr(partnerFiche.exerciceDuMois || "—")}</p>
+  ` : `<p class="empty-hint" style="display:block;">${escapeAttr(partnerEmail)} n'a pas encore rempli sa fiche.</p>`;
+}
+
+function renderGeste() {
+  const input = document.getElementById("binomeGeste");
+  if (input) input.value = MY_GESTE;
 }
 
 /* ---------- Gestion des binômes (coordinateurs uniquement) ---------- */
