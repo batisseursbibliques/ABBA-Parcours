@@ -145,7 +145,7 @@ async function onAuthChanged(user) {
 
   // Cherche si je fais partie d'un binôme, puis écoute son contenu en direct
   try {
-    const pair = await window.AbbaSync.findMyBinome(user.email);
+    const pair = await window.AbbaSync.findMyBinome(user.uid);
     if (pair) {
       unsubBinome = window.AbbaSync.watchBinome(pair.id, (data) => {
         MY_BINOME = data;
@@ -419,7 +419,13 @@ async function loadBinomesManager() {
       window.AbbaSync.loadAllBinomes(),
     ]);
     const nameByEmail = {};
-    summaries.forEach(s => { if (s.email) nameByEmail[s.email.toLowerCase()] = s.nom || s.email; });
+    const uidByEmail = {};
+    summaries.forEach(s => {
+      if (s.email) {
+        nameByEmail[s.email.toLowerCase()] = s.nom || s.email;
+        uidByEmail[s.email.toLowerCase()] = s.uid;
+      }
+    });
 
     const sel1 = document.getElementById("binomeMembre1");
     const sel2 = document.getElementById("binomeMembre2");
@@ -447,7 +453,7 @@ async function loadBinomesManager() {
       row.querySelector(".editor-del-item").addEventListener("click", async () => {
         if (!confirm(`Délier ${nom1} et ${nom2} ?`)) return;
         try {
-          await window.AbbaSync.deleteBinome(b.id);
+          await window.AbbaSync.deleteBinome(b.id, uidByEmail[b.membre1], uidByEmail[b.membre2]);
           loadBinomesManager();
         } catch (err) {
           alert("Impossible de délier ce binôme.");
@@ -468,7 +474,11 @@ async function loadBinomesManager() {
     if (!e1 || !e2) { errEl.textContent = "Choisis les deux Bâtisseurs."; return; }
     if (e1 === e2) { errEl.textContent = "Choisis deux Bâtisseurs différents."; return; }
     try {
-      await window.AbbaSync.createBinome(e1, e2, CURRENT_USER.email);
+      const summaries = await window.AbbaSync.loadAllSummaries();
+      const s1 = summaries.find(s => (s.email || "").toLowerCase() === e1.toLowerCase());
+      const s2 = summaries.find(s => (s.email || "").toLowerCase() === e2.toLowerCase());
+      if (!s1 || !s2) { errEl.textContent = "Bâtisseur introuvable — réessaie."; return; }
+      await window.AbbaSync.createBinome({ email: s1.email, uid: s1.uid }, { email: s2.email, uid: s2.uid }, CURRENT_USER.email);
       loadBinomesManager();
     } catch (err) {
       errEl.textContent = "Impossible de créer ce binôme. Vérifie ta connexion.";

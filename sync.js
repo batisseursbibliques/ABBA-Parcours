@@ -10,7 +10,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp,
-  enableIndexedDbPersistence, collection, getDocs, query, where,
+  enableIndexedDbPersistence, collection, getDocs,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig, ADMIN_EMAILS } from "./firebase-config.js";
 
@@ -75,35 +75,44 @@ async function saveModulesSummary(uid, summary) {
 /* ---------- BINÔMES (accountability) ----------
    Le coordinateur relie deux Bâtisseurs (par e-mail). Chacun tient SA fiche
    (visible en lecture seule par l'autre) — sauf le "geste du mois", qui reste
-   strictement privé (stocké ailleurs, jamais lisible par le binôme). */
+   strictement privé (stocké ailleurs, jamais lisible par le binôme).
+   Chaque membre garde un pointeur vers son binôme dans son espace privé —
+   plus simple et plus fiable qu'une recherche dans toute la collection. */
 function binomeId(email1, email2) {
   return [email1.trim().toLowerCase(), email2.trim().toLowerCase()].sort().join("__");
 }
-async function createBinome(email1, email2, createdByEmail) {
-  const id = binomeId(email1, email2);
+async function createBinome(m1, m2, createdByEmail) {
+  // m1/m2 = { email, uid }
+  const id = binomeId(m1.email, m2.email);
   await setDoc(doc(db, "binomes", id), {
-    membre1: email1.trim().toLowerCase(),
-    membre2: email2.trim().toLowerCase(),
+    membre1: m1.email.trim().toLowerCase(),
+    membre2: m2.email.trim().toLowerCase(),
     createdBy: createdByEmail,
     createdAt: serverTimestamp(),
     fiches: {},
   });
+  await Promise.all([
+    setDoc(doc(db, "users", m1.uid, "priv", "binome"), { pairId: id }),
+    setDoc(doc(db, "users", m2.uid, "priv", "binome"), { pairId: id }),
+  ]);
 }
-async function deleteBinome(pairId) {
+async function deleteBinome(pairId, uid1, uid2) {
   await deleteDoc(doc(db, "binomes", pairId));
+  const cleanups = [];
+  if (uid1) cleanups.push(deleteDoc(doc(db, "users", uid1, "priv", "binome")).catch(() => {}));
+  if (uid2) cleanups.push(deleteDoc(doc(db, "users", uid2, "priv", "binome")).catch(() => {}));
+  await Promise.all(cleanups);
 }
 async function loadAllBinomes() {
   const snap = await getDocs(collection(db, "binomes"));
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
-async function findMyBinome(myEmail) {
-  const email = myEmail.trim().toLowerCase();
-  const [snap1, snap2] = await Promise.all([
-    getDocs(query(collection(db, "binomes"), where("membre1", "==", email))),
-    getDocs(query(collection(db, "binomes"), where("membre2", "==", email))),
-  ]);
-  const docs = [...snap1.docs, ...snap2.docs];
-  return docs.length > 0 ? { id: docs[0].id, ...docs[0].data() } : null;
+async function findMyBinome(myUid) {
+  const ptrSnap = await getDoc(doc(db, "users", myUid, "priv", "binome"));
+  if (!ptrSnap.exists() || !ptrSnap.data().pairId) return null;
+  const pairId = ptrSnap.data().pairId;
+  const pairSnap = await getDoc(doc(db, "binomes", pairId));
+  return pairSnap.exists() ? { id: pairSnap.id, ...pairSnap.data() } : null;
 }
 function watchBinome(pairId, callback) {
   return onSnapshot(doc(db, "binomes", pairId), (snap) => {

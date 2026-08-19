@@ -26,6 +26,9 @@ service cloud.firestore {
 
       match /priv/{doc} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
+        // Le coordinateur a besoin d'écrire ce repère précis quand il relie deux Bâtisseurs —
+        // il ne touche à rien d'autre dans l'espace privé de la personne.
+        allow write: if isAdmin() && doc == "binome";
       }
 
       // Données mensuelles (spirituel + bilans + finance), un document par mois AAAA-MM
