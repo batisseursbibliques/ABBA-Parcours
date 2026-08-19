@@ -153,10 +153,14 @@ async function onAuthChanged(user) {
       });
     } else {
       MY_BINOME = null;
-      renderBinome();
     }
+    renderBinome();
   } catch (err) {
     console.error("Recherche binôme :", err);
+    MY_BINOME = null;
+    renderBinome();
+    const errEl = document.getElementById("binomeErrorHint");
+    if (errEl) errEl.textContent = "Erreur technique : " + (err && err.message ? err.message : String(err));
   }
 }
 
