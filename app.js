@@ -340,23 +340,25 @@ async function renderCoordModules() {
   if (!IS_ADMIN) return;
   const body = document.getElementById("coordModulesBody");
   const emptyHint = document.getElementById("coordModulesEmpty");
-  body.innerHTML = `<tr><td colspan="3">Chargement…</td></tr>`;
+  body.innerHTML = `<tr><td colspan="4">Chargement…</td></tr>`;
   try {
     const rows = await window.AbbaSync.loadAllSummaries();
     rows.sort((a, b) => (b.modulesFaits || 0) - (a.modulesFaits || 0));
     body.innerHTML = "";
     emptyHint.style.display = rows.length === 0 ? "block" : "none";
+    const mk = currentMonthKey();
     rows.forEach(r => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${r.nom || r.email || "—"}</td>
         <td>${r.telephone || "—"}</td>
         <td>${r.modulesTotal ? `${r.modulesFaits || 0}/${r.modulesTotal}` : "—"}</td>
+        <td>${r.zonesMoisFait === mk ? "✓ Fait" : "—"}</td>
       `;
       body.appendChild(tr);
     });
   } catch (err) {
-    body.innerHTML = `<tr><td colspan="3">Erreur de chargement.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="4">Erreur de chargement.</td></tr>`;
     console.error(err);
   }
 }
@@ -550,6 +552,7 @@ function setupZones() {
     const original = btn.textContent;
     try {
       await window.AbbaSync.saveMyZonesMonth(CURRENT_USER.uid, mk, evaluation);
+      window.AbbaSync.saveModulesSummary(CURRENT_USER.uid, { zonesMoisFait: mk }).catch(() => {});
       btn.textContent = "Enregistré ✓";
       setTimeout(() => btn.textContent = original, 1400);
     } catch (err) {
