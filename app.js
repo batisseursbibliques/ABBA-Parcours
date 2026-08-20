@@ -34,6 +34,29 @@ let IS_ADMIN = false;
 let MODULES_CONFIG = [];
 let MODULES_TERMINES = [];
 let EDIT_MODULES = [];
+let ZONES_CONFIG = [];
+let MY_ZONES = {};
+let EDIT_ZONES = [];
+let unsubZonesConfig = null;
+let unsubMyZones = null;
+
+const DEFAULT_ZONES = [
+  { id: "z1", titre: "Émotions" },
+  { id: "z2", titre: "Personnalité" },
+  { id: "z3", titre: "Pensée" },
+  { id: "z4", titre: "Décision" },
+  { id: "z5", titre: "Habitudes" },
+  { id: "z6", titre: "Parole" },
+];
+function currentMonthKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+function fmtMonthLabel(mk) {
+  const MOIS = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+  const [y, m] = mk.split("-").map(Number);
+  return `${MOIS[m-1]} ${y}`;
+}
 let unsubAdmins = null;
 let unsubModulesConfig = null;
 let unsubParcours = null;
@@ -49,6 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupModulesEditor();
   setupCoordModules();
   setupBinome();
+  setupZones();
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
@@ -93,12 +117,16 @@ async function onAuthChanged(user) {
   if (unsubParcours) { unsubParcours(); unsubParcours = null; }
   if (unsubBinome) { unsubBinome(); unsubBinome = null; }
   if (unsubGeste) { unsubGeste(); unsubGeste = null; }
+  if (unsubZonesConfig) { unsubZonesConfig(); unsubZonesConfig = null; }
+  if (unsubMyZones) { unsubMyZones(); unsubMyZones = null; }
 
   if (!user) {
     CURRENT_USER = null;
     IS_ADMIN = false;
     MODULES_CONFIG = [];
     MODULES_TERMINES = [];
+    ZONES_CONFIG = [];
+    MY_ZONES = {};
     document.getElementById("authScreen").style.display = "flex";
     document.getElementById("app").style.display = "none";
     return;
@@ -122,6 +150,7 @@ async function onAuthChanged(user) {
     IS_ADMIN = isBootstrap || inList;
     document.querySelectorAll(".admin-only").forEach(el => { el.style.display = IS_ADMIN ? "" : "none"; });
     renderModulesEditor();
+    renderZonesEditor();
     if (IS_ADMIN) { renderCoordModules(); loadBinomesManager(); }
   });
 
@@ -129,6 +158,17 @@ async function onAuthChanged(user) {
     MODULES_CONFIG = (list && list.length) ? list : deepClone(DEFAULT_MODULES);
     renderModulesList();
     renderModulesEditor();
+  });
+
+  unsubZonesConfig = window.AbbaSync.watchZonesConfig((list) => {
+    ZONES_CONFIG = (list && list.length) ? list : deepClone(DEFAULT_ZONES);
+    renderZones();
+    renderZonesEditor();
+  });
+
+  unsubMyZones = window.AbbaSync.watchMyZones(user.uid, (parMois) => {
+    MY_ZONES = parMois || {};
+    renderZones();
   });
 
   unsubParcours = window.AbbaSync.watchParcours(user.uid, (modulesTermines) => {
@@ -485,4 +525,134 @@ async function loadBinomesManager() {
       console.error(err);
     }
   };
+}
+
+/* ============================================================
+   ZONES DE CARACTÈRE
+   ============================================================ */
+const NIVEAUX_ZONE = [
+  { valeur: "difficulte", label: "En difficulté" },
+  { valeur: "progresse", label: "Je progresse" },
+  { valeur: "maitrisee", label: "Maîtrisée" },
+];
+
+function setupZones() {
+  document.getElementById("saveZonesBtn").addEventListener("click", async () => {
+    if (!CURRENT_USER) return;
+    const mk = currentMonthKey();
+    const evaluation = {};
+    ZONES_CONFIG.forEach(z => {
+      const niveau = document.querySelector(`input[name="zoneNiveau_${z.id}"]:checked`);
+      const note = document.getElementById(`zoneNote_${z.id}`);
+      evaluation[z.id] = { niveau: niveau ? niveau.value : "", note: note ? note.value : "" };
+    });
+    const btn = document.getElementById("saveZonesBtn");
+    const original = btn.textContent;
+    try {
+      await window.AbbaSync.saveMyZonesMonth(CURRENT_USER.uid, mk, evaluation);
+      btn.textContent = "Enregistré ✓";
+      setTimeout(() => btn.textContent = original, 1400);
+    } catch (err) {
+      alert("Impossible d'enregistrer. Vérifie ta connexion.");
+      console.error(err);
+    }
+  });
+
+  document.getElementById("addZoneBtn").addEventListener("click", () => {
+    EDIT_ZONES.push({ id: "zone_" + Date.now(), titre: "Nouvelle zone" });
+    renderZonesEditorDom();
+  });
+  document.getElementById("saveZonesConfigBtn").addEventListener("click", async () => {
+    const clean = EDIT_ZONES.map(z => ({ ...z, titre: z.titre.trim() })).filter(z => z.titre !== "");
+    if (clean.length === 0) { alert("Ajoute au moins une zone."); return; }
+    const btn = document.getElementById("saveZonesConfigBtn");
+    const original = btn.textContent;
+    try {
+      await window.AbbaSync.saveZonesConfig(clean);
+      btn.textContent = "Enregistré ✓";
+      setTimeout(() => btn.textContent = original, 1400);
+    } catch (err) {
+      alert("Impossible d'enregistrer. Vérifie ta connexion.");
+      console.error(err);
+    }
+  });
+}
+
+function renderZones() {
+  const card = document.getElementById("zonesCard");
+  const wrap = document.getElementById("zonesList");
+  if (!ZONES_CONFIG || ZONES_CONFIG.length === 0) { card.style.display = "none"; return; }
+  card.style.display = "";
+
+  const mk = currentMonthKey();
+  document.getElementById("zonesMonthLabel").textContent = fmtMonthLabel(mk);
+  const monthData = MY_ZONES[mk] || {};
+
+  wrap.innerHTML = "";
+  ZONES_CONFIG.forEach(z => {
+    const current = monthData[z.id] || {};
+    const row = document.createElement("div");
+    row.className = "editor-category";
+    const niveauxHtml = NIVEAUX_ZONE.map(n => `
+      <label style="display:inline-flex;align-items:center;gap:5px;margin-right:14px;font-size:13px;">
+        <input type="radio" name="zoneNiveau_${z.id}" value="${n.valeur}" ${current.niveau === n.valeur ? "checked" : ""}>
+        ${n.label}
+      </label>
+    `).join("");
+    row.innerHTML = `
+      <p style="font-weight:600;font-size:13.5px;margin:0 0 8px;">${escapeAttr(z.titre)}</p>
+      <div style="margin-bottom:8px;">${niveauxHtml}</div>
+      <input type="text" id="zoneNote_${z.id}" class="text-input" placeholder="Note (facultatif)" value="${escapeAttr(current.note || "")}">
+    `;
+    wrap.appendChild(row);
+  });
+
+  renderZonesHistory();
+}
+
+function renderZonesHistory() {
+  const wrap = document.getElementById("zonesHistory");
+  const emptyEl = document.getElementById("zonesHistoryEmpty");
+  const months = Object.keys(MY_ZONES).sort((a, b) => b.localeCompare(a)).slice(0, 12);
+  wrap.innerHTML = "";
+  emptyEl.style.display = months.length === 0 ? "block" : "none";
+  months.forEach(mk => {
+    const data = MY_ZONES[mk];
+    const row = document.createElement("div");
+    row.className = "editor-category";
+    const lignes = ZONES_CONFIG.map(z => {
+      const d = data[z.id];
+      if (!d || !d.niveau) return "";
+      const label = (NIVEAUX_ZONE.find(n => n.valeur === d.niveau) || {}).label || d.niveau;
+      return `<p class="settings-hint" style="margin:2px 0;">${escapeAttr(z.titre)} — ${escapeAttr(label)}${d.note ? " · " + escapeAttr(d.note) : ""}</p>`;
+    }).join("");
+    row.innerHTML = `<p style="font-weight:600;font-size:13px;margin:0 0 4px;">${fmtMonthLabel(mk)}</p>${lignes}`;
+    wrap.appendChild(row);
+  });
+}
+
+/* ---------- Éditeur des zones (coordinateurs uniquement) ---------- */
+function renderZonesEditor() {
+  if (!IS_ADMIN) return;
+  EDIT_ZONES = deepClone(ZONES_CONFIG);
+  renderZonesEditorDom();
+}
+function renderZonesEditorDom() {
+  const wrap = document.getElementById("zonesEditor");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+  EDIT_ZONES.forEach((z, i) => {
+    const row = document.createElement("div");
+    row.className = "editor-item-row";
+    row.innerHTML = `
+      <input type="text" class="text-input editor-item-label" value="${escapeAttr(z.titre)}">
+      <button type="button" class="editor-del-item" title="Supprimer">🗑</button>
+    `;
+    row.querySelector(".editor-item-label").addEventListener("input", (e) => { EDIT_ZONES[i].titre = e.target.value; });
+    row.querySelector(".editor-del-item").addEventListener("click", () => {
+      EDIT_ZONES.splice(i, 1);
+      renderZonesEditorDom();
+    });
+    wrap.appendChild(row);
+  });
 }

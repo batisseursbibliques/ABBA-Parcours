@@ -137,6 +137,28 @@ async function saveMyGeste(uid, gesteDuMois) {
   await setDoc(doc(db, "users", uid, "priv", "binomeGeste"), { gesteDuMois });
 }
 
+/* ---------- ZONES DE CARACTÈRE (auto-évaluation mensuelle) ---------- */
+// Liste partagée des 6 zones (comme les modules), modifiable par les coordinateurs
+function watchZonesConfig(callback) {
+  return onSnapshot(doc(db, "config", "zones"), (snap) => {
+    callback(snap.exists() ? snap.data().list : null);
+  }, (err) => console.error("watchZonesConfig:", err));
+}
+async function saveZonesConfig(list) {
+  await setDoc(doc(db, "config", "zones"), { list, updatedAt: serverTimestamp() });
+}
+// Mon évaluation personnelle, un objet par mois (AAAA-MM) — strictement privé
+function watchMyZones(uid, callback) {
+  return onSnapshot(doc(db, "users", uid, "priv", "zones"), (snap) => {
+    callback(snap.exists() ? (snap.data().parMois || {}) : {});
+  }, (err) => console.error("watchMyZones:", err));
+}
+async function saveMyZonesMonth(uid, monthKey, evaluation) {
+  await setDoc(doc(db, "users", uid, "priv", "zones"), {
+    parMois: { [monthKey]: { ...evaluation, updatedAt: serverTimestamp() } },
+  }, { merge: true });
+}
+
 window.AbbaSync = {
   isAdminEmail,
   logIn, logOut, watchAuth, getUserProfile,
@@ -146,4 +168,5 @@ window.AbbaSync = {
   loadAllSummaries, saveModulesSummary,
   createBinome, deleteBinome, loadAllBinomes, findMyBinome, watchBinome, saveMyFiche,
   watchMyGeste, saveMyGeste,
+  watchZonesConfig, saveZonesConfig, watchMyZones, saveMyZonesMonth,
 };
