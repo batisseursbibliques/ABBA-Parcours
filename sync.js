@@ -159,6 +159,19 @@ async function saveMyZonesMonth(uid, monthKey, evaluation) {
   }, { merge: true });
 }
 
+/* ---------- DIMENSIONS (Physique, Profession) — objectif libre du mois ---------- */
+// docKey = "physique" ou "profession"
+function watchMyDimension(uid, docKey, callback) {
+  return onSnapshot(doc(db, "users", uid, "priv", docKey), (snap) => {
+    callback(snap.exists() ? (snap.data().parMois || {}) : {});
+  }, (err) => console.error("watchMyDimension:" + docKey, err));
+}
+async function saveMyDimensionMonth(uid, docKey, monthKey, data) {
+  await setDoc(doc(db, "users", uid, "priv", docKey), {
+    parMois: { [monthKey]: { ...data, updatedAt: serverTimestamp() } },
+  }, { merge: true });
+}
+
 window.AbbaSync = {
   isAdminEmail,
   logIn, logOut, watchAuth, getUserProfile,
@@ -169,4 +182,5 @@ window.AbbaSync = {
   createBinome, deleteBinome, loadAllBinomes, findMyBinome, watchBinome, saveMyFiche,
   watchMyGeste, saveMyGeste,
   watchZonesConfig, saveZonesConfig, watchMyZones, saveMyZonesMonth,
+  watchMyDimension, saveMyDimensionMonth,
 };

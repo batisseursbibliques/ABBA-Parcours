@@ -39,6 +39,16 @@ let MY_ZONES = {};
 let EDIT_ZONES = [];
 let unsubZonesConfig = null;
 let unsubMyZones = null;
+let unsubPhysique = null;
+let unsubProfession = null;
+let MY_PHYSIQUE = {};
+let MY_PROFESSION = {};
+
+const STATUTS_OBJECTIF = [
+  { valeur: "pas_commence", label: "Pas commencé" },
+  { valeur: "en_cours", label: "En cours" },
+  { valeur: "atteint", label: "Atteint" },
+];
 
 const DEFAULT_ZONES = [
   { id: "z1", titre: "Émotions" },
@@ -73,6 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupCoordModules();
   setupBinome();
   setupZones();
+  setupDimensions();
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
@@ -119,6 +130,8 @@ async function onAuthChanged(user) {
   if (unsubGeste) { unsubGeste(); unsubGeste = null; }
   if (unsubZonesConfig) { unsubZonesConfig(); unsubZonesConfig = null; }
   if (unsubMyZones) { unsubMyZones(); unsubMyZones = null; }
+  if (unsubPhysique) { unsubPhysique(); unsubPhysique = null; }
+  if (unsubProfession) { unsubProfession(); unsubProfession = null; }
 
   if (!user) {
     CURRENT_USER = null;
@@ -127,6 +140,8 @@ async function onAuthChanged(user) {
     MODULES_TERMINES = [];
     ZONES_CONFIG = [];
     MY_ZONES = {};
+    MY_PHYSIQUE = {};
+    MY_PROFESSION = {};
     document.getElementById("authScreen").style.display = "flex";
     document.getElementById("app").style.display = "none";
     return;
@@ -169,6 +184,15 @@ async function onAuthChanged(user) {
   unsubMyZones = window.AbbaSync.watchMyZones(user.uid, (parMois) => {
     MY_ZONES = parMois || {};
     renderZones();
+  });
+
+  unsubPhysique = window.AbbaSync.watchMyDimension(user.uid, "physique", (parMois) => {
+    MY_PHYSIQUE = parMois || {};
+    renderDimensions();
+  });
+  unsubProfession = window.AbbaSync.watchMyDimension(user.uid, "profession", (parMois) => {
+    MY_PROFESSION = parMois || {};
+    renderDimensions();
   });
 
   unsubParcours = window.AbbaSync.watchParcours(user.uid, (modulesTermines) => {
@@ -340,7 +364,7 @@ async function renderCoordModules() {
   if (!IS_ADMIN) return;
   const body = document.getElementById("coordModulesBody");
   const emptyHint = document.getElementById("coordModulesEmpty");
-  body.innerHTML = `<tr><td colspan="4">Chargement…</td></tr>`;
+  body.innerHTML = `<tr><td colspan="6">Chargement…</td></tr>`;
   try {
     const rows = await window.AbbaSync.loadAllSummaries();
     rows.sort((a, b) => (b.modulesFaits || 0) - (a.modulesFaits || 0));
@@ -353,12 +377,14 @@ async function renderCoordModules() {
         <td>${r.nom || r.email || "—"}</td>
         <td>${r.telephone || "—"}</td>
         <td>${r.modulesTotal ? `${r.modulesFaits || 0}/${r.modulesTotal}` : "—"}</td>
-        <td>${r.zonesMoisFait === mk ? "✓ Fait" : "—"}</td>
+        <td>${r.zonesMoisFait === mk ? "✓" : "—"}</td>
+        <td>${r.physiqueMoisFait === mk ? "✓" : "—"}</td>
+        <td>${r.professionMoisFait === mk ? "✓" : "—"}</td>
       `;
       body.appendChild(tr);
     });
   } catch (err) {
-    body.innerHTML = `<tr><td colspan="4">Erreur de chargement.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="6">Erreur de chargement.</td></tr>`;
     console.error(err);
   }
 }
@@ -656,6 +682,84 @@ function renderZonesEditorDom() {
       EDIT_ZONES.splice(i, 1);
       renderZonesEditorDom();
     });
+    wrap.appendChild(row);
+  });
+}
+
+/* ============================================================
+   DIMENSIONS (Physique, Profession) — objectif libre du mois
+   ============================================================ */
+function renderStatutRadios(containerId, name, current) {
+  const wrap = document.getElementById(containerId);
+  wrap.innerHTML = STATUTS_OBJECTIF.map(s => `
+    <label style="display:inline-flex;align-items:center;gap:5px;margin-right:14px;font-size:13px;">
+      <input type="radio" name="${name}" value="${s.valeur}" ${current === s.valeur ? "checked" : ""}>
+      ${s.label}
+    </label>
+  `).join("");
+}
+
+function setupDimensions() {
+  document.getElementById("savePhysiqueBtn").addEventListener("click", () => saveDimension("physique"));
+  document.getElementById("saveProfessionBtn").addEventListener("click", () => saveDimension("profession"));
+}
+
+async function saveDimension(key) {
+  if (!CURRENT_USER) return;
+  const mk = currentMonthKey();
+  const objectif = document.getElementById(key + "Objectif").value.trim();
+  const statutInput = document.querySelector(`input[name="${key}Statut"]:checked`);
+  const note = document.getElementById(key + "Note").value.trim();
+  const data = { objectif, statut: statutInput ? statutInput.value : "", note };
+
+  const btn = document.getElementById(key === "physique" ? "savePhysiqueBtn" : "saveProfessionBtn");
+  const original = btn.textContent;
+  try {
+    await window.AbbaSync.saveMyDimensionMonth(CURRENT_USER.uid, key, mk, data);
+    window.AbbaSync.saveModulesSummary(CURRENT_USER.uid, { [key + "MoisFait"]: mk }).catch(() => {});
+    btn.textContent = "Enregistré ✓";
+    setTimeout(() => btn.textContent = original, 1400);
+  } catch (err) {
+    alert("Impossible d'enregistrer. Vérifie ta connexion.");
+    console.error(err);
+  }
+}
+
+function renderDimensions() {
+  const mk = currentMonthKey();
+  document.getElementById("physiqueMonthLabel").textContent = fmtMonthLabel(mk);
+  document.getElementById("professionMonthLabel").textContent = fmtMonthLabel(mk);
+
+  const physiqueNow = MY_PHYSIQUE[mk] || {};
+  document.getElementById("physiqueObjectif").value = physiqueNow.objectif || "";
+  document.getElementById("physiqueNote").value = physiqueNow.note || "";
+  renderStatutRadios("physiqueStatutRadios", "physiqueStatut", physiqueNow.statut || "");
+
+  const professionNow = MY_PROFESSION[mk] || {};
+  document.getElementById("professionObjectif").value = professionNow.objectif || "";
+  document.getElementById("professionNote").value = professionNow.note || "";
+  renderStatutRadios("professionStatutRadios", "professionStatut", professionNow.statut || "");
+
+  renderDimensionsHistory();
+}
+
+function renderDimensionsHistory() {
+  const wrap = document.getElementById("dimensionsHistory");
+  const emptyEl = document.getElementById("dimensionsHistoryEmpty");
+  const months = Array.from(new Set([...Object.keys(MY_PHYSIQUE), ...Object.keys(MY_PROFESSION)]))
+    .sort((a, b) => b.localeCompare(a)).slice(0, 12);
+  wrap.innerHTML = "";
+  emptyEl.style.display = months.length === 0 ? "block" : "none";
+  months.forEach(mk => {
+    const p = MY_PHYSIQUE[mk];
+    const pro = MY_PROFESSION[mk];
+    const statutLabel = (v) => (STATUTS_OBJECTIF.find(s => s.valeur === v) || {}).label || v;
+    const row = document.createElement("div");
+    row.className = "editor-category";
+    let html = `<p style="font-weight:600;font-size:13px;margin:0 0 4px;">${fmtMonthLabel(mk)}</p>`;
+    if (p && p.objectif) html += `<p class="settings-hint" style="margin:2px 0;">💪 ${escapeAttr(p.objectif)} — ${escapeAttr(statutLabel(p.statut))}</p>`;
+    if (pro && pro.objectif) html += `<p class="settings-hint" style="margin:2px 0;">💼 ${escapeAttr(pro.objectif)} — ${escapeAttr(statutLabel(pro.statut))}</p>`;
+    row.innerHTML = html;
     wrap.appendChild(row);
   });
 }
