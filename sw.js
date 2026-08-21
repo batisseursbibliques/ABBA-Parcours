@@ -1,4 +1,4 @@
-const CACHE_NAME = "parcours-batisseur-v11";
+const CACHE_NAME = "parcours-batisseur-v12";
 const ASSETS = [
   "./", "./index.html", "./style.css", "./app.js", "./sync.js", "./firebase-config.js",
   "./manifest.json", "./logo.png", "./icon-192.png", "./icon-512.png",

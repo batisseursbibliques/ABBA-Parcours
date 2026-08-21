@@ -39,15 +39,24 @@ let MY_ZONES = {};
 let EDIT_ZONES = [];
 let unsubZonesConfig = null;
 let unsubMyZones = null;
-let unsubPhysique = null;
-let unsubProfession = null;
-let MY_PHYSIQUE = {};
-let MY_PROFESSION = {};
+let unsubDimensions = {};
+let MY_DIMENSIONS = {};
 
 const STATUTS_OBJECTIF = [
   { valeur: "pas_commence", label: "Pas commencé" },
   { valeur: "en_cours", label: "En cours" },
   { valeur: "atteint", label: "Atteint" },
+];
+
+const DIMENSIONS_KEYS = [
+  { key: "esprit", titre: "Esprit", icone: "🙏" },
+  { key: "psychologie", titre: "Psychologie", icone: "🧠" },
+  { key: "physique", titre: "Physique", icone: "💪" },
+  { key: "subsistance", titre: "Subsistance", icone: "🏠" },
+  { key: "education", titre: "Éducation", icone: "📚" },
+  { key: "profession", titre: "Profession", icone: "💼" },
+  { key: "finance", titre: "Finance", icone: "💰" },
+  { key: "societe", titre: "Société", icone: "🤝" },
 ];
 
 const DEFAULT_ZONES = [
@@ -83,7 +92,6 @@ document.addEventListener("DOMContentLoaded", () => {
   setupCoordModules();
   setupBinome();
   setupZones();
-  setupDimensions();
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
@@ -130,8 +138,8 @@ async function onAuthChanged(user) {
   if (unsubGeste) { unsubGeste(); unsubGeste = null; }
   if (unsubZonesConfig) { unsubZonesConfig(); unsubZonesConfig = null; }
   if (unsubMyZones) { unsubMyZones(); unsubMyZones = null; }
-  if (unsubPhysique) { unsubPhysique(); unsubPhysique = null; }
-  if (unsubProfession) { unsubProfession(); unsubProfession = null; }
+  Object.values(unsubDimensions).forEach(fn => fn && fn());
+  unsubDimensions = {};
 
   if (!user) {
     CURRENT_USER = null;
@@ -140,8 +148,7 @@ async function onAuthChanged(user) {
     MODULES_TERMINES = [];
     ZONES_CONFIG = [];
     MY_ZONES = {};
-    MY_PHYSIQUE = {};
-    MY_PROFESSION = {};
+    MY_DIMENSIONS = {};
     document.getElementById("authScreen").style.display = "flex";
     document.getElementById("app").style.display = "none";
     return;
@@ -186,13 +193,11 @@ async function onAuthChanged(user) {
     renderZones();
   });
 
-  unsubPhysique = window.AbbaSync.watchMyDimension(user.uid, "physique", (parMois) => {
-    MY_PHYSIQUE = parMois || {};
-    renderDimensions();
-  });
-  unsubProfession = window.AbbaSync.watchMyDimension(user.uid, "profession", (parMois) => {
-    MY_PROFESSION = parMois || {};
-    renderDimensions();
+  DIMENSIONS_KEYS.forEach(d => {
+    unsubDimensions[d.key] = window.AbbaSync.watchMyDimension(user.uid, d.key, (parMois) => {
+      MY_DIMENSIONS[d.key] = parMois || {};
+      renderDimensions();
+    });
   });
 
   unsubParcours = window.AbbaSync.watchParcours(user.uid, (modulesTermines) => {
@@ -364,7 +369,7 @@ async function renderCoordModules() {
   if (!IS_ADMIN) return;
   const body = document.getElementById("coordModulesBody");
   const emptyHint = document.getElementById("coordModulesEmpty");
-  body.innerHTML = `<tr><td colspan="6">Chargement…</td></tr>`;
+  body.innerHTML = `<tr><td colspan="5">Chargement…</td></tr>`;
   try {
     const rows = await window.AbbaSync.loadAllSummaries();
     rows.sort((a, b) => (b.modulesFaits || 0) - (a.modulesFaits || 0));
@@ -373,18 +378,18 @@ async function renderCoordModules() {
     const mk = currentMonthKey();
     rows.forEach(r => {
       const tr = document.createElement("tr");
+      const dimPct = r.dimensionsMoisRef === mk ? `${r.dimensionsPct || 0}%` : "—";
       tr.innerHTML = `
         <td>${r.nom || r.email || "—"}</td>
         <td>${r.telephone || "—"}</td>
         <td>${r.modulesTotal ? `${r.modulesFaits || 0}/${r.modulesTotal}` : "—"}</td>
         <td>${r.zonesMoisFait === mk ? "✓" : "—"}</td>
-        <td>${r.physiqueMoisFait === mk ? "✓" : "—"}</td>
-        <td>${r.professionMoisFait === mk ? "✓" : "—"}</td>
+        <td>${dimPct}</td>
       `;
       body.appendChild(tr);
     });
   } catch (err) {
-    body.innerHTML = `<tr><td colspan="6">Erreur de chargement.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="5">Erreur de chargement.</td></tr>`;
     console.error(err);
   }
 }
@@ -686,37 +691,36 @@ function renderZonesEditorDom() {
   });
 }
 
-/* ============================================================
-   DIMENSIONS (Physique, Profession) — objectif libre du mois
-   ============================================================ */
-function renderStatutRadios(containerId, name, current) {
-  const wrap = document.getElementById(containerId);
-  wrap.innerHTML = STATUTS_OBJECTIF.map(s => `
-    <label style="display:inline-flex;align-items:center;gap:5px;margin-right:14px;font-size:13px;">
-      <input type="radio" name="${name}" value="${s.valeur}" ${current === s.valeur ? "checked" : ""}>
-      ${s.label}
-    </label>
-  `).join("");
-}
 
-function setupDimensions() {
-  document.getElementById("savePhysiqueBtn").addEventListener("click", () => saveDimension("physique"));
-  document.getElementById("saveProfessionBtn").addEventListener("click", () => saveDimension("profession"));
+/* ============================================================
+   DIMENSIONS — les 8 dimensions de l'Homme Fait, objectif libre du mois
+   ============================================================ */
+function computeDimensionsPct(mk) {
+  const total = DIMENSIONS_KEYS.length;
+  let atteintes = 0;
+  DIMENSIONS_KEYS.forEach(d => {
+    const rec = (MY_DIMENSIONS[d.key] || {})[mk];
+    if (rec && rec.statut === "atteint") atteintes++;
+  });
+  return Math.round((atteintes / total) * 100);
 }
 
 async function saveDimension(key) {
   if (!CURRENT_USER) return;
   const mk = currentMonthKey();
-  const objectif = document.getElementById(key + "Objectif").value.trim();
-  const statutInput = document.querySelector(`input[name="${key}Statut"]:checked`);
-  const note = document.getElementById(key + "Note").value.trim();
+  const objectif = document.getElementById("dim_" + key + "_objectif").value.trim();
+  const statutInput = document.querySelector(`input[name="dimStatut_${key}"]:checked`);
+  const note = document.getElementById("dim_" + key + "_note").value.trim();
   const data = { objectif, statut: statutInput ? statutInput.value : "", note };
 
-  const btn = document.getElementById(key === "physique" ? "savePhysiqueBtn" : "saveProfessionBtn");
+  const btn = document.getElementById("dim_" + key + "_save");
   const original = btn.textContent;
   try {
     await window.AbbaSync.saveMyDimensionMonth(CURRENT_USER.uid, key, mk, data);
-    window.AbbaSync.saveModulesSummary(CURRENT_USER.uid, { [key + "MoisFait"]: mk }).catch(() => {});
+    if (!MY_DIMENSIONS[key]) MY_DIMENSIONS[key] = {};
+    MY_DIMENSIONS[key][mk] = data;
+    const pct = computeDimensionsPct(mk);
+    window.AbbaSync.saveModulesSummary(CURRENT_USER.uid, { dimensionsPct: pct, dimensionsMoisRef: mk }).catch(() => {});
     btn.textContent = "Enregistré ✓";
     setTimeout(() => btn.textContent = original, 1400);
   } catch (err) {
@@ -726,19 +730,35 @@ async function saveDimension(key) {
 }
 
 function renderDimensions() {
+  const wrap = document.getElementById("dimensionsCards");
+  if (!wrap) return;
   const mk = currentMonthKey();
-  document.getElementById("physiqueMonthLabel").textContent = fmtMonthLabel(mk);
-  document.getElementById("professionMonthLabel").textContent = fmtMonthLabel(mk);
 
-  const physiqueNow = MY_PHYSIQUE[mk] || {};
-  document.getElementById("physiqueObjectif").value = physiqueNow.objectif || "";
-  document.getElementById("physiqueNote").value = physiqueNow.note || "";
-  renderStatutRadios("physiqueStatutRadios", "physiqueStatut", physiqueNow.statut || "");
-
-  const professionNow = MY_PROFESSION[mk] || {};
-  document.getElementById("professionObjectif").value = professionNow.objectif || "";
-  document.getElementById("professionNote").value = professionNow.note || "";
-  renderStatutRadios("professionStatutRadios", "professionStatut", professionNow.statut || "");
+  wrap.innerHTML = "";
+  DIMENSIONS_KEYS.forEach(d => {
+    const rec = (MY_DIMENSIONS[d.key] || {})[mk] || {};
+    const card = document.createElement("div");
+    card.className = "card";
+    const radios = STATUTS_OBJECTIF.map(s => `
+      <label style="display:inline-flex;align-items:center;gap:5px;margin-right:14px;font-size:13px;">
+        <input type="radio" name="dimStatut_${d.key}" value="${s.valeur}" ${rec.statut === s.valeur ? "checked" : ""}>
+        ${s.label}
+      </label>
+    `).join("");
+    card.innerHTML = `
+      <p class="eyebrow">${d.icone} ${escapeAttr(d.titre)} — ${fmtMonthLabel(mk)}</p>
+      <label class="field"><span>Mon objectif ce mois-ci</span>
+        <input type="text" id="dim_${d.key}_objectif" class="text-input" value="${escapeAttr(rec.objectif || "")}">
+      </label>
+      <div style="margin:10px 0;">${radios}</div>
+      <label class="field"><span>Note (facultatif)</span>
+        <input type="text" id="dim_${d.key}_note" class="text-input" value="${escapeAttr(rec.note || "")}">
+      </label>
+      <button class="btn-primary" id="dim_${d.key}_save" type="button" style="margin-top:10px;">Enregistrer</button>
+    `;
+    card.querySelector(`#dim_${d.key}_save`).addEventListener("click", () => saveDimension(d.key));
+    wrap.appendChild(card);
+  });
 
   renderDimensionsHistory();
 }
@@ -746,19 +766,22 @@ function renderDimensions() {
 function renderDimensionsHistory() {
   const wrap = document.getElementById("dimensionsHistory");
   const emptyEl = document.getElementById("dimensionsHistoryEmpty");
-  const months = Array.from(new Set([...Object.keys(MY_PHYSIQUE), ...Object.keys(MY_PROFESSION)]))
-    .sort((a, b) => b.localeCompare(a)).slice(0, 12);
+  const allMonths = new Set();
+  DIMENSIONS_KEYS.forEach(d => Object.keys(MY_DIMENSIONS[d.key] || {}).forEach(mk => allMonths.add(mk)));
+  const months = Array.from(allMonths).sort((a, b) => b.localeCompare(a)).slice(0, 12);
   wrap.innerHTML = "";
   emptyEl.style.display = months.length === 0 ? "block" : "none";
+  const statutLabel = (v) => (STATUTS_OBJECTIF.find(s => s.valeur === v) || {}).label || v;
   months.forEach(mk => {
-    const p = MY_PHYSIQUE[mk];
-    const pro = MY_PROFESSION[mk];
-    const statutLabel = (v) => (STATUTS_OBJECTIF.find(s => s.valeur === v) || {}).label || v;
     const row = document.createElement("div");
     row.className = "editor-category";
-    let html = `<p style="font-weight:600;font-size:13px;margin:0 0 4px;">${fmtMonthLabel(mk)}</p>`;
-    if (p && p.objectif) html += `<p class="settings-hint" style="margin:2px 0;">💪 ${escapeAttr(p.objectif)} — ${escapeAttr(statutLabel(p.statut))}</p>`;
-    if (pro && pro.objectif) html += `<p class="settings-hint" style="margin:2px 0;">💼 ${escapeAttr(pro.objectif)} — ${escapeAttr(statutLabel(pro.statut))}</p>`;
+    let html = `<p style="font-weight:600;font-size:13px;margin:0 0 4px;">${fmtMonthLabel(mk)} — ${computeDimensionsPct(mk)}%</p>`;
+    DIMENSIONS_KEYS.forEach(d => {
+      const rec = (MY_DIMENSIONS[d.key] || {})[mk];
+      if (rec && rec.objectif) {
+        html += `<p class="settings-hint" style="margin:2px 0;">${d.icone} ${escapeAttr(rec.objectif)} — ${escapeAttr(statutLabel(rec.statut))}</p>`;
+      }
+    });
     row.innerHTML = html;
     wrap.appendChild(row);
   });

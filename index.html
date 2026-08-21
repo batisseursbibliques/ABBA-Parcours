@@ -189,35 +189,14 @@
       </div>
     </section>
 
-    <!-- ================= DIMENSIONS (Physique / Profession) ================= -->
+    <!-- ================= DIMENSIONS (les 8 dimensions de l'Homme Fait) ================= -->
     <section class="panel" id="panel-dimensions">
       <div class="panel-head">
         <h1>Dimensions</h1>
       </div>
+      <p class="settings-hint" style="margin:-8px 0 12px;">Un objectif du mois pour chacune des 8 dimensions de l'Homme Fait.</p>
 
-      <div class="card">
-        <p class="eyebrow">💪 Physique — <span id="physiqueMonthLabel"></span></p>
-        <label class="field"><span>Mon objectif ce mois-ci</span>
-          <input type="text" id="physiqueObjectif" class="text-input" placeholder="Ex. Marcher 30 min, 3 fois par semaine">
-        </label>
-        <div id="physiqueStatutRadios" style="margin:10px 0;"></div>
-        <label class="field"><span>Note (facultatif)</span>
-          <input type="text" id="physiqueNote" class="text-input">
-        </label>
-        <button class="btn-primary" id="savePhysiqueBtn" type="button" style="margin-top:10px;">Enregistrer</button>
-      </div>
-
-      <div class="card">
-        <p class="eyebrow">💼 Profession — <span id="professionMonthLabel"></span></p>
-        <label class="field"><span>Mon objectif ce mois-ci</span>
-          <input type="text" id="professionObjectif" class="text-input" placeholder="Ex. Terminer ma formation en comptabilité">
-        </label>
-        <div id="professionStatutRadios" style="margin:10px 0;"></div>
-        <label class="field"><span>Note (facultatif)</span>
-          <input type="text" id="professionNote" class="text-input">
-        </label>
-        <button class="btn-primary" id="saveProfessionBtn" type="button" style="margin-top:10px;">Enregistrer</button>
-      </div>
+      <div id="dimensionsCards"></div>
 
       <div class="card">
         <p class="eyebrow">Mon historique</p>
@@ -235,7 +214,7 @@
       <p class="settings-hint">Avancement des Bâtisseurs dans les modules du Parcours.</p>
       <div class="card">
         <table class="tx-table" id="coordModulesTable">
-          <thead><tr><th>Bâtisseur</th><th>Téléphone</th><th>Modules</th><th>Caractère</th><th>Physique</th><th>Profession</th></tr></thead>
+          <thead><tr><th>Bât.</th><th>Tél.</th><th>Mod.</th><th>Car.</th><th>Dim.</th></tr></thead>
           <tbody id="coordModulesBody"></tbody>
         </table>
         <p class="empty-hint" id="coordModulesEmpty">Aucun Bâtisseur pour l'instant.</p>
