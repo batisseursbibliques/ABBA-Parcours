@@ -61,5 +61,11 @@ service cloud.firestore {
       allow create, delete: if isAdmin();
       allow update: if isAdmin() || (request.auth != null && request.auth.token.email.lower() in [resource.data.membre1, resource.data.membre2]);
     }
+
+    // Séances et présence — chacun voit son propre suivi, seul le coordinateur marque la présence.
+    match /seances/{seanceId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
   }
 }

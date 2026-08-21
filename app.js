@@ -41,6 +41,8 @@ let unsubZonesConfig = null;
 let unsubMyZones = null;
 let unsubDimensions = {};
 let MY_DIMENSIONS = {};
+let unsubSeances = null;
+let SEANCES = [];
 
 const STATUTS_OBJECTIF = [
   { valeur: "pas_commence", label: "Pas commencé" },
@@ -92,6 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupCoordModules();
   setupBinome();
   setupZones();
+  setupSeances();
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
@@ -140,6 +143,7 @@ async function onAuthChanged(user) {
   if (unsubMyZones) { unsubMyZones(); unsubMyZones = null; }
   Object.values(unsubDimensions).forEach(fn => fn && fn());
   unsubDimensions = {};
+  if (unsubSeances) { unsubSeances(); unsubSeances = null; }
 
   if (!user) {
     CURRENT_USER = null;
@@ -149,6 +153,7 @@ async function onAuthChanged(user) {
     ZONES_CONFIG = [];
     MY_ZONES = {};
     MY_DIMENSIONS = {};
+    SEANCES = [];
     document.getElementById("authScreen").style.display = "flex";
     document.getElementById("app").style.display = "none";
     return;
@@ -173,7 +178,7 @@ async function onAuthChanged(user) {
     document.querySelectorAll(".admin-only").forEach(el => { el.style.display = IS_ADMIN ? "" : "none"; });
     renderModulesEditor();
     renderZonesEditor();
-    if (IS_ADMIN) { renderCoordModules(); loadBinomesManager(); }
+    if (IS_ADMIN) { renderCoordModules(); loadBinomesManager(); renderSeancesAdmin(); }
   });
 
   unsubModulesConfig = window.AbbaSync.watchModulesConfig((list) => {
@@ -198,6 +203,12 @@ async function onAuthChanged(user) {
       MY_DIMENSIONS[d.key] = parMois || {};
       renderDimensions();
     });
+  });
+
+  unsubSeances = window.AbbaSync.watchSeances((list) => {
+    SEANCES = list || [];
+    renderPresence();
+    if (IS_ADMIN) renderSeancesAdmin();
   });
 
   unsubParcours = window.AbbaSync.watchParcours(user.uid, (modulesTermines) => {
@@ -369,7 +380,7 @@ async function renderCoordModules() {
   if (!IS_ADMIN) return;
   const body = document.getElementById("coordModulesBody");
   const emptyHint = document.getElementById("coordModulesEmpty");
-  body.innerHTML = `<tr><td colspan="5">Chargement…</td></tr>`;
+  body.innerHTML = `<tr><td colspan="6">Chargement…</td></tr>`;
   try {
     const rows = await window.AbbaSync.loadAllSummaries();
     rows.sort((a, b) => (b.modulesFaits || 0) - (a.modulesFaits || 0));
@@ -379,17 +390,24 @@ async function renderCoordModules() {
     rows.forEach(r => {
       const tr = document.createElement("tr");
       const dimPct = r.dimensionsMoisRef === mk ? `${r.dimensionsPct || 0}%` : "—";
+      let marquees = 0, presentes = 0;
+      SEANCES.forEach(s => {
+        const rec = (s.presences || {})[r.uid];
+        if (rec) { marquees++; if (rec.present) presentes++; }
+      });
+      const presPct = marquees > 0 ? `${Math.round((presentes / marquees) * 100)}%` : "—";
       tr.innerHTML = `
         <td>${r.nom || r.email || "—"}</td>
         <td>${r.telephone || "—"}</td>
         <td>${r.modulesTotal ? `${r.modulesFaits || 0}/${r.modulesTotal}` : "—"}</td>
         <td>${r.zonesMoisFait === mk ? "✓" : "—"}</td>
         <td>${dimPct}</td>
+        <td>${presPct}</td>
       `;
       body.appendChild(tr);
     });
   } catch (err) {
-    body.innerHTML = `<tr><td colspan="5">Erreur de chargement.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="6">Erreur de chargement.</td></tr>`;
     console.error(err);
   }
 }
@@ -784,5 +802,112 @@ function renderDimensionsHistory() {
     });
     row.innerHTML = html;
     wrap.appendChild(row);
+  });
+}
+
+/* ============================================================
+   PRÉSENCE AUX SÉANCES (marquée par le coordinateur)
+   ============================================================ */
+function setupSeances() {
+  document.getElementById("addSeanceForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const titre = document.getElementById("seanceTitre").value.trim();
+    const date = document.getElementById("seanceDate").value;
+    if (!titre || !date) return;
+    try {
+      await window.AbbaSync.createSeance(titre, date, CURRENT_USER.email);
+      document.getElementById("addSeanceForm").reset();
+    } catch (err) {
+      alert("Impossible de créer la séance. Vérifie ta connexion.");
+      console.error(err);
+    }
+  });
+}
+
+/* ---------- Vue personnelle : mon suivi de présence ---------- */
+function renderPresence() {
+  const wrap = document.getElementById("presenceList");
+  const emptyEl = document.getElementById("presenceEmpty");
+  const tauxHint = document.getElementById("presenceTauxHint");
+  if (!wrap || !CURRENT_USER) return;
+
+  wrap.innerHTML = "";
+  emptyEl.style.display = SEANCES.length === 0 ? "block" : "none";
+
+  let marquees = 0, presentes = 0;
+  const myUid = CURRENT_USER.uid;
+  SEANCES.forEach(s => {
+    const rec = (s.presences || {})[myUid];
+    if (rec) { marquees++; if (rec.present) presentes++; }
+    const row = document.createElement("div");
+    row.className = "agenda-item";
+    let statutTxt = "Non marqué", statutColor = "var(--ink-soft)";
+    if (rec) {
+      statutTxt = rec.present ? "✓ Présent" : "✗ Absent";
+      statutColor = rec.present ? "var(--sage)" : "var(--brick)";
+    }
+    row.innerHTML = `
+      <div class="agenda-item-body">
+        <div class="agenda-item-title">${escapeAttr(s.titre)}</div>
+        <div class="agenda-item-meta">${s.date ? fmtMonthLabel(s.date.slice(0,7)) + " · " + s.date.slice(8,10) : ""} — <span style="color:${statutColor};font-weight:600;">${statutTxt}</span></div>
+      </div>
+    `;
+    wrap.appendChild(row);
+  });
+
+  tauxHint.textContent = marquees > 0
+    ? `${presentes}/${marquees} séances marquées présent (${Math.round((presentes / marquees) * 100)}%)`
+    : "Aucune séance marquée pour l'instant.";
+}
+
+/* ---------- Gestion des séances (coordinateurs uniquement) ---------- */
+async function renderSeancesAdmin() {
+  if (!IS_ADMIN) return;
+  const wrap = document.getElementById("seancesAdminList");
+  if (!wrap) return;
+
+  let summaries = [];
+  try { summaries = await window.AbbaSync.loadAllSummaries(); } catch (err) { console.error(err); }
+  const membres = summaries.filter(s => s.email).map(s => ({ uid: s.uid, nom: s.nom || s.email }));
+
+  wrap.innerHTML = "";
+  SEANCES.forEach(s => {
+    const card = document.createElement("div");
+    card.className = "editor-category";
+    card.innerHTML = `
+      <div class="editor-cat-head">
+        <span style="font-weight:600;font-size:13.5px;flex:1;">${escapeAttr(s.titre)} — ${s.date || ""}</span>
+        <button type="button" class="editor-del-cat" title="Supprimer la séance">🗑</button>
+      </div>
+      <div class="seance-membres"></div>
+    `;
+    card.querySelector(".editor-del-cat").addEventListener("click", async () => {
+      if (!confirm(`Supprimer la séance "${s.titre}" ?`)) return;
+      try { await window.AbbaSync.deleteSeance(s.id); } catch (err) { alert("Impossible de supprimer."); console.error(err); }
+    });
+    const membresWrap = card.querySelector(".seance-membres");
+    membres.forEach(m => {
+      const rec = (s.presences || {})[m.uid];
+      const row = document.createElement("div");
+      row.className = "editor-item-row";
+      row.innerHTML = `
+        <span class="text-input" style="border:none;padding:6px 0;flex:1;">${escapeAttr(m.nom)}</span>
+        <button type="button" class="btn-secondary presence-btn" data-present="true" style="${rec && rec.present ? 'background:var(--sage);color:#fff;' : ''}">Présent</button>
+        <button type="button" class="btn-secondary presence-btn" data-present="false" style="${rec && !rec.present ? 'background:var(--brick);color:#fff;' : ''}">Absent</button>
+      `;
+      row.querySelectorAll(".presence-btn").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const present = btn.dataset.present === "true";
+          try {
+            await window.AbbaSync.markPresence(s.id, m.uid, m.nom, present);
+          } catch (err) {
+            alert("Impossible d'enregistrer la présence.");
+            console.error(err);
+          }
+        });
+      });
+      membresWrap.appendChild(row);
+    });
+    wrap.appendChild(card);
   });
 }

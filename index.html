@@ -54,6 +54,7 @@
     <button class="tab" data-tab="binome"><span class="tab-num">III</span>Binôme</button>
     <button class="tab" data-tab="caractere"><span class="tab-num">V</span>Caractère</button>
     <button class="tab" data-tab="dimensions"><span class="tab-num">VI</span>Dimensions</button>
+    <button class="tab" data-tab="presence"><span class="tab-num">VII</span>Présence</button>
     <button class="tab admin-only" data-tab="coordination" id="tabCoordination" style="display:none;"><span class="tab-num">★</span>Coordination</button>
     <button class="tab" data-tab="reglages"><span class="tab-num">IV</span>Réglages</button>
   </nav>
@@ -95,6 +96,12 @@
         <p class="eyebrow">💪 Physique &amp; 💼 Profession</p>
         <p class="settings-hint">Ton objectif du mois pour ta forme physique et ton parcours professionnel.</p>
         <button class="link-btn" data-goto="dimensions">Ouvrir Dimensions →</button>
+      </div>
+
+      <div class="card">
+        <p class="eyebrow">📋 Présence aux séances</p>
+        <p class="settings-hint">Ton suivi de présence, marqué par ton coordinateur.</p>
+        <button class="link-btn" data-goto="presence">Ouvrir Présence →</button>
       </div>
 
       <div class="card settings-card">
@@ -205,6 +212,30 @@
       </div>
     </section>
 
+    <!-- ================= PRÉSENCE AUX SÉANCES ================= -->
+    <section class="panel" id="panel-presence">
+      <div class="panel-head">
+        <h1>Présence</h1>
+      </div>
+
+      <div class="card">
+        <p class="eyebrow">Mon taux de présence</p>
+        <p class="settings-hint" id="presenceTauxHint"></p>
+        <div id="presenceList"></div>
+        <p class="empty-hint" id="presenceEmpty">Aucune séance enregistrée pour l'instant.</p>
+      </div>
+
+      <div class="card admin-only" id="presenceAdminCard" style="display:none;">
+        <p class="eyebrow">Gérer les séances (coordinateurs)</p>
+        <form id="addSeanceForm" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">
+          <input type="text" id="seanceTitre" class="text-input" placeholder="Ex. P2 — Modules M4 à M6" required>
+          <input type="date" id="seanceDate" class="text-input" required>
+          <button class="btn-primary" type="submit">Créer cette séance</button>
+        </form>
+        <div id="seancesAdminList"></div>
+      </div>
+    </section>
+
     <!-- ================= COORDINATION (coordinateurs) ================= -->
     <section class="panel" id="panel-coordination">
       <div class="panel-head">
@@ -214,7 +245,7 @@
       <p class="settings-hint">Avancement des Bâtisseurs dans les modules du Parcours.</p>
       <div class="card">
         <table class="tx-table" id="coordModulesTable">
-          <thead><tr><th>Bât.</th><th>Tél.</th><th>Mod.</th><th>Car.</th><th>Dim.</th></tr></thead>
+          <thead><tr><th>Bât.</th><th>Tél.</th><th>Mod.</th><th>Car.</th><th>Dim.</th><th>Prés.</th></tr></thead>
           <tbody id="coordModulesBody"></tbody>
         </table>
         <p class="empty-hint" id="coordModulesEmpty">Aucun Bâtisseur pour l'instant.</p>
@@ -284,6 +315,10 @@
     <button class="bnav-btn" data-tab="dimensions">
       <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 20 V10 M12 20 V4 M18 20 V13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
       <span>Dimensions</span>
+    </button>
+    <button class="bnav-btn" data-tab="presence">
+      <svg viewBox="0 0 24 24" width="20" height="20"><rect x="4" y="4" width="16" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 12 L11 15 L16 9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Présence</span>
     </button>
     <button class="bnav-btn admin-only" data-tab="coordination" id="bnavCoordination" style="display:none;">
       <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 2 L14.5 9 L22 9 L16 13.5 L18 21 L12 16.5 L6 21 L8 13.5 L2 9 L9.5 9 Z" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>

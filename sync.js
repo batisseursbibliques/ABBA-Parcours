@@ -172,6 +172,27 @@ async function saveMyDimensionMonth(uid, docKey, monthKey, data) {
   }, { merge: true });
 }
 
+/* ---------- PRÉSENCE AUX SÉANCES (marquée par le coordinateur uniquement) ---------- */
+function watchSeances(callback) {
+  return onSnapshot(collection(db, "seances"), (snap) => {
+    const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    list.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+    callback(list);
+  }, (err) => console.error("watchSeances:", err));
+}
+async function createSeance(titre, date, createdByEmail) {
+  const ref = doc(collection(db, "seances"));
+  await setDoc(ref, { titre, date, createdBy: createdByEmail, createdAt: serverTimestamp(), presences: {} });
+}
+async function deleteSeance(seanceId) {
+  await deleteDoc(doc(db, "seances", seanceId));
+}
+async function markPresence(seanceId, uid, nom, present) {
+  await setDoc(doc(db, "seances", seanceId), {
+    presences: { [uid]: { present, nom } },
+  }, { merge: true });
+}
+
 window.AbbaSync = {
   isAdminEmail,
   logIn, logOut, watchAuth, getUserProfile,
@@ -183,4 +204,6 @@ window.AbbaSync = {
   watchMyGeste, saveMyGeste,
   watchZonesConfig, saveZonesConfig, watchMyZones, saveMyZonesMonth,
   watchMyDimension, saveMyDimensionMonth,
+  watchSeances, createSeance, deleteSeance, markPresence,
+  watchSeances, createSeance, deleteSeance, markPresence,
 };
