@@ -364,6 +364,7 @@ function renderModulesEditorDom() {
     `;
     row.querySelector(".editor-item-label").addEventListener("input", (e) => { EDIT_MODULES[i].titre = e.target.value; });
     row.querySelector(".editor-del-item").addEventListener("click", () => {
+      if (!confirm(`Supprimer le module "${EDIT_MODULES[i].titre}" ?`)) return;
       EDIT_MODULES.splice(i, 1);
       renderModulesEditorDom();
     });
@@ -702,6 +703,7 @@ function renderZonesEditorDom() {
     `;
     row.querySelector(".editor-item-label").addEventListener("input", (e) => { EDIT_ZONES[i].titre = e.target.value; });
     row.querySelector(".editor-del-item").addEventListener("click", () => {
+      if (!confirm(`Supprimer la zone "${EDIT_ZONES[i].titre}" ?`)) return;
       EDIT_ZONES.splice(i, 1);
       renderZonesEditorDom();
     });
@@ -728,8 +730,15 @@ async function saveDimension(key) {
   const mk = currentMonthKey();
   const objectif = document.getElementById("dim_" + key + "_objectif").value.trim();
   const statutInput = document.querySelector(`input[name="dimStatut_${key}"]:checked`);
-  const note = document.getElementById("dim_" + key + "_note").value.trim();
-  const data = { objectif, statut: statutInput ? statutInput.value : "", note };
+  const noteInput = document.getElementById("dim_" + key + "_note").value.trim();
+
+  const existing = (MY_DIMENSIONS[key] || {})[mk] || {};
+  const notes = Array.isArray(existing.notes) ? [...existing.notes] : [];
+  if (noteInput) {
+    const jour = new Date().toISOString().slice(0, 10);
+    notes.push({ text: noteInput, date: jour });
+  }
+  const data = { objectif, statut: statutInput ? statutInput.value : "", notes };
 
   const btn = document.getElementById("dim_" + key + "_save");
   const original = btn.textContent;
@@ -739,8 +748,10 @@ async function saveDimension(key) {
     MY_DIMENSIONS[key][mk] = data;
     const pct = computeDimensionsPct(mk);
     window.AbbaSync.saveModulesSummary(CURRENT_USER.uid, { dimensionsPct: pct, dimensionsMoisRef: mk }).catch(() => {});
+    document.getElementById("dim_" + key + "_note").value = ""; // prêt pour la prochaine note
     btn.textContent = "Enregistré ✓";
     setTimeout(() => btn.textContent = original, 1400);
+    renderDimensions();
   } catch (err) {
     alert("Impossible d'enregistrer. Vérifie ta connexion.");
     console.error(err);
@@ -763,14 +774,19 @@ function renderDimensions() {
         ${s.label}
       </label>
     `).join("");
+    const notesExistantes = Array.isArray(rec.notes) ? rec.notes : [];
+    const notesHtml = notesExistantes.length > 0
+      ? `<div style="margin:8px 0;">${notesExistantes.map(n => `<p class="settings-hint" style="margin:2px 0;">📝 ${escapeAttr(n.date)} — ${escapeAttr(n.text)}</p>`).join("")}</div>`
+      : "";
     card.innerHTML = `
       <p class="eyebrow">${d.icone} ${escapeAttr(d.titre)} — ${fmtMonthLabel(mk)}</p>
       <label class="field"><span>Mon objectif ce mois-ci</span>
         <input type="text" id="dim_${d.key}_objectif" class="text-input" value="${escapeAttr(rec.objectif || "")}">
       </label>
       <div style="margin:10px 0;">${radios}</div>
-      <label class="field"><span>Note (facultatif)</span>
-        <input type="text" id="dim_${d.key}_note" class="text-input" value="${escapeAttr(rec.note || "")}">
+      ${notesHtml}
+      <label class="field"><span>Ajouter une note</span>
+        <input type="text" id="dim_${d.key}_note" class="text-input" placeholder="S'ajoute à la suite des notes précédentes">
       </label>
       <button class="btn-primary" id="dim_${d.key}_save" type="button" style="margin-top:10px;">Enregistrer</button>
     `;
@@ -797,7 +813,11 @@ function renderDimensionsHistory() {
     DIMENSIONS_KEYS.forEach(d => {
       const rec = (MY_DIMENSIONS[d.key] || {})[mk];
       if (rec && rec.objectif) {
-        html += `<p class="settings-hint" style="margin:2px 0;">${d.icone} ${escapeAttr(rec.objectif)} — ${escapeAttr(statutLabel(rec.statut))}</p>`;
+        html += `<p class="settings-hint" style="margin:6px 0 0;"><strong>${d.icone} ${escapeAttr(rec.objectif)}</strong> — ${escapeAttr(statutLabel(rec.statut))}</p>`;
+        const notes = Array.isArray(rec.notes) ? rec.notes : [];
+        notes.forEach(n => {
+          html += `<p class="settings-hint" style="margin:1px 0 0 20px;font-size:12px;">📝 ${escapeAttr(n.date)} — ${escapeAttr(n.text)}</p>`;
+        });
       }
     });
     row.innerHTML = html;

@@ -258,18 +258,11 @@
         <h1>Réglages</h1>
       </div>
 
-      <div class="card settings-card admin-only" id="modulesEditorCard" style="display:none;">
-        <p class="eyebrow">Modifier la liste des modules (visible par tous les Bâtisseurs)</p>
-        <div id="modulesEditor"></div>
-        <button class="btn-secondary" id="addModuleBtn" type="button">+ Ajouter un module</button>
-        <button class="btn-primary" id="saveModulesBtn" type="button" style="margin-top:10px;">Enregistrer les modules</button>
-      </div>
-
-      <div class="card settings-card admin-only" id="zonesEditorCard" style="display:none;">
-        <p class="eyebrow">Modifier les zones de caractère (visible par tous les Bâtisseurs)</p>
-        <div id="zonesEditor"></div>
-        <button class="btn-secondary" id="addZoneBtn" type="button">+ Ajouter une zone</button>
-        <button class="btn-primary" id="saveZonesConfigBtn" type="button" style="margin-top:10px;">Enregistrer les zones</button>
+      <div class="card settings-card">
+        <p class="eyebrow">Mon compte</p>
+        <p class="settings-hint" id="accountEmailHint"></p>
+        <a class="link-btn" href="https://batisseursbibliques.org/abba-life/" style="display:block;margin-bottom:10px;">Ouvrir ABBA Life (checklist, finance, agenda) →</a>
+        <button class="btn-secondary" id="logoutBtn">Se déconnecter</button>
       </div>
 
       <div class="card settings-card admin-only" id="binomesManagerCard" style="display:none;">
@@ -284,11 +277,18 @@
         <p class="auth-error" id="binomeManagerError"></p>
       </div>
 
-      <div class="card settings-card">
-        <p class="eyebrow">Mon compte</p>
-        <p class="settings-hint" id="accountEmailHint"></p>
-        <a class="link-btn" href="https://batisseursbibliques.org/abba-life/" style="display:block;margin-bottom:10px;">Ouvrir ABBA Life (checklist, finance, agenda) →</a>
-        <button class="btn-secondary" id="logoutBtn">Se déconnecter</button>
+      <div class="card settings-card admin-only" id="modulesEditorCard" style="display:none;">
+        <p class="eyebrow">Modifier la liste des modules (visible par tous les Bâtisseurs)</p>
+        <div id="modulesEditor"></div>
+        <button class="btn-secondary" id="addModuleBtn" type="button">+ Ajouter un module</button>
+        <button class="btn-primary" id="saveModulesBtn" type="button" style="margin-top:10px;">Enregistrer les modules</button>
+      </div>
+
+      <div class="card settings-card admin-only" id="zonesEditorCard" style="display:none;">
+        <p class="eyebrow">Modifier les zones de caractère (visible par tous les Bâtisseurs)</p>
+        <div id="zonesEditor"></div>
+        <button class="btn-secondary" id="addZoneBtn" type="button">+ Ajouter une zone</button>
+        <button class="btn-primary" id="saveZonesConfigBtn" type="button" style="margin-top:10px;">Enregistrer les zones</button>
       </div>
     </section>
 
