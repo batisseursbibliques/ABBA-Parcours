@@ -193,6 +193,18 @@ async function markPresence(seanceId, uid, nom, present) {
   }, { merge: true });
 }
 
+/* ---------- MON PROFIL DE FORMATION (MBTI, dons spirituels) ----------
+   Visible par le coordinateur (comme c'était déjà le cas par WhatsApp) —
+   contrairement aux zones/dimensions, ce n'est pas une lutte personnelle. */
+function watchMyProfilFormation(uid, callback) {
+  return onSnapshot(doc(db, "users", uid, "priv", "profilFormation"), (snap) => {
+    callback(snap.exists() ? snap.data() : {});
+  }, (err) => console.error("watchMyProfilFormation:", err));
+}
+async function saveMyProfilFormation(uid, data) {
+  await setDoc(doc(db, "users", uid, "priv", "profilFormation"), data, { merge: true });
+}
+
 window.AbbaSync = {
   isAdminEmail,
   logIn, logOut, watchAuth, getUserProfile,
@@ -205,5 +217,5 @@ window.AbbaSync = {
   watchZonesConfig, saveZonesConfig, watchMyZones, saveMyZonesMonth,
   watchMyDimension, saveMyDimensionMonth,
   watchSeances, createSeance, deleteSeance, markPresence,
-  watchSeances, createSeance, deleteSeance, markPresence,
+  watchMyProfilFormation, saveMyProfilFormation,
 };
