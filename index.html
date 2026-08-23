@@ -124,8 +124,21 @@
       </div>
 
       <div class="card">
-        <p class="eyebrow">À venir dans Parcours Bâtisseur</p>
-        <p class="settings-hint">Plan de lecture biblique intégré, Fiche Binôme, zones de caractère — chacun aura sa propre page ici, bientôt disponibles.</p>
+        <p class="eyebrow">Mon profil</p>
+        <p class="settings-hint">Visible par ton coordinateur — utile pour mieux t'accompagner.</p>
+        <label class="field"><span>Mon type MBTI</span>
+          <select id="profilMbti" class="text-input">
+            <option value="">— Pas encore fait —</option>
+            <option>ISTJ</option><option>ISFJ</option><option>INFJ</option><option>INTJ</option>
+            <option>ISTP</option><option>ISFP</option><option>INFP</option><option>INTP</option>
+            <option>ESTP</option><option>ESFP</option><option>ENFP</option><option>ENTP</option>
+            <option>ESTJ</option><option>ESFJ</option><option>ENFJ</option><option>ENTJ</option>
+          </select>
+        </label>
+        <label class="field" style="margin-top:12px;"><span>Mes dons spirituels</span>
+          <textarea id="profilDons" class="text-input" rows="2" placeholder="Ex. Enseignement, encouragement, service…"></textarea>
+        </label>
+        <button class="btn-primary" id="saveProfilBtn" type="button" style="margin-top:10px;">Enregistrer mon profil</button>
       </div>
     </section>
 
@@ -242,13 +255,19 @@
         <h1>Coordination</h1>
         <button class="btn-secondary" id="refreshCoordModules">Actualiser</button>
       </div>
-      <p class="settings-hint">Avancement des Bâtisseurs dans les modules du Parcours.</p>
+      <p class="settings-hint">Avancement des Bâtisseurs — modules du Parcours et régularité spirituelle (ABBA Life).</p>
       <div class="card">
         <table class="tx-table" id="coordModulesTable">
-          <thead><tr><th>Bât.</th><th>Tél.</th><th>Mod.</th><th>Car.</th><th>Dim.</th><th>Prés.</th></tr></thead>
+          <thead><tr><th>Bât.</th><th>Tél.</th><th>Mod.</th><th>Car.</th><th>Dim.</th><th>Prés.</th><th>Esprit</th><th>Série</th></tr></thead>
           <tbody id="coordModulesBody"></tbody>
         </table>
         <p class="empty-hint" id="coordModulesEmpty">Aucun Bâtisseur pour l'instant.</p>
+      </div>
+
+      <div class="card">
+        <p class="eyebrow">Profils (MBTI, dons spirituels)</p>
+        <div id="coordProfilsList"></div>
+        <p class="empty-hint" id="coordProfilsEmpty">Aucun profil renseigné pour l'instant.</p>
       </div>
     </section>
 

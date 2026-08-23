@@ -43,6 +43,8 @@ let unsubDimensions = {};
 let MY_DIMENSIONS = {};
 let unsubSeances = null;
 let SEANCES = [];
+let unsubProfilFormation = null;
+let MY_PROFIL = {};
 
 const STATUTS_OBJECTIF = [
   { valeur: "pas_commence", label: "Pas commencé" },
@@ -95,6 +97,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupBinome();
   setupZones();
   setupSeances();
+  setupProfilFormation();
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
@@ -144,6 +147,7 @@ async function onAuthChanged(user) {
   Object.values(unsubDimensions).forEach(fn => fn && fn());
   unsubDimensions = {};
   if (unsubSeances) { unsubSeances(); unsubSeances = null; }
+  if (unsubProfilFormation) { unsubProfilFormation(); unsubProfilFormation = null; }
 
   if (!user) {
     CURRENT_USER = null;
@@ -154,6 +158,7 @@ async function onAuthChanged(user) {
     MY_ZONES = {};
     MY_DIMENSIONS = {};
     SEANCES = [];
+    MY_PROFIL = {};
     document.getElementById("authScreen").style.display = "flex";
     document.getElementById("app").style.display = "none";
     return;
@@ -209,6 +214,11 @@ async function onAuthChanged(user) {
     SEANCES = list || [];
     renderPresence();
     if (IS_ADMIN) renderSeancesAdmin();
+  });
+
+  unsubProfilFormation = window.AbbaSync.watchMyProfilFormation(user.uid, (data) => {
+    MY_PROFIL = data || {};
+    renderProfilFormation();
   });
 
   unsubParcours = window.AbbaSync.watchParcours(user.uid, (modulesTermines) => {
@@ -381,7 +391,7 @@ async function renderCoordModules() {
   if (!IS_ADMIN) return;
   const body = document.getElementById("coordModulesBody");
   const emptyHint = document.getElementById("coordModulesEmpty");
-  body.innerHTML = `<tr><td colspan="6">Chargement…</td></tr>`;
+  body.innerHTML = `<tr><td colspan="8">Chargement…</td></tr>`;
   try {
     const rows = await window.AbbaSync.loadAllSummaries();
     rows.sort((a, b) => (b.modulesFaits || 0) - (a.modulesFaits || 0));
@@ -404,13 +414,65 @@ async function renderCoordModules() {
         <td>${r.zonesMoisFait === mk ? "✓" : "—"}</td>
         <td>${dimPct}</td>
         <td>${presPct}</td>
+        <td>${r.pctToday !== undefined ? r.pctToday + "%" : "—"}</td>
+        <td>${r.streak !== undefined ? r.streak + "j" : "—"}</td>
       `;
       body.appendChild(tr);
     });
+    renderCoordProfils(rows);
   } catch (err) {
-    body.innerHTML = `<tr><td colspan="6">Erreur de chargement.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="8">Erreur de chargement.</td></tr>`;
     console.error(err);
   }
+}
+
+function renderCoordProfils(rows) {
+  const wrap = document.getElementById("coordProfilsList");
+  const emptyEl = document.getElementById("coordProfilsEmpty");
+  if (!wrap) return;
+  const avecProfil = rows.filter(r => r.mbti || r.donsSpirituels);
+  wrap.innerHTML = "";
+  emptyEl.style.display = avecProfil.length === 0 ? "block" : "none";
+  avecProfil.forEach(r => {
+    const row = document.createElement("div");
+    row.className = "editor-category";
+    row.innerHTML = `
+      <p style="font-weight:600;font-size:13px;margin:0 0 4px;">${escapeAttr(r.nom || r.email)}</p>
+      ${r.mbti ? `<p class="settings-hint" style="margin:2px 0;">Type MBTI : <strong>${escapeAttr(r.mbti)}</strong></p>` : ""}
+      ${r.donsSpirituels ? `<p class="settings-hint" style="margin:2px 0;">Dons : ${escapeAttr(r.donsSpirituels)}</p>` : ""}
+    `;
+    wrap.appendChild(row);
+  });
+}
+
+/* ============================================================
+   MON PROFIL (MBTI, dons spirituels)
+   ============================================================ */
+function setupProfilFormation() {
+  document.getElementById("saveProfilBtn").addEventListener("click", async () => {
+    if (!CURRENT_USER) return;
+    const mbti = document.getElementById("profilMbti").value;
+    const donsSpirituels = document.getElementById("profilDons").value.trim();
+    const btn = document.getElementById("saveProfilBtn");
+    const original = btn.textContent;
+    try {
+      await window.AbbaSync.saveMyProfilFormation(CURRENT_USER.uid, { mbti, donsSpirituels });
+      // Poussé aussi dans le résumé partagé pour que le coordinateur le voie
+      window.AbbaSync.saveModulesSummary(CURRENT_USER.uid, { mbti, donsSpirituels }).catch(() => {});
+      btn.textContent = "Enregistré ✓";
+      setTimeout(() => btn.textContent = original, 1400);
+    } catch (err) {
+      alert("Impossible d'enregistrer. Vérifie ta connexion.");
+      console.error(err);
+    }
+  });
+}
+function renderProfilFormation() {
+  const mbtiSel = document.getElementById("profilMbti");
+  const donsInput = document.getElementById("profilDons");
+  if (!mbtiSel || !donsInput) return;
+  mbtiSel.value = MY_PROFIL.mbti || "";
+  donsInput.value = MY_PROFIL.donsSpirituels || "";
 }
 
 /* ============================================================
