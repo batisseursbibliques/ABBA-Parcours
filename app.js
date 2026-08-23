@@ -462,7 +462,7 @@ function setupProfilFormation() {
       btn.textContent = "Enregistré ✓";
       setTimeout(() => btn.textContent = original, 1400);
     } catch (err) {
-      alert("Impossible d'enregistrer. Vérifie ta connexion.");
+      alert("Erreur technique : " + (err && err.message ? err.message : String(err)));
       console.error(err);
     }
   });
