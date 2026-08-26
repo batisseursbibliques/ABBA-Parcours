@@ -45,6 +45,7 @@ let unsubSeances = null;
 let SEANCES = [];
 let unsubProfilFormation = null;
 let MY_PROFIL = {};
+let LAST_COORD_ROWS = [];
 
 const STATUTS_OBJECTIF = [
   { valeur: "pas_commence", label: "Pas commencé" },
@@ -98,6 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupZones();
   setupSeances();
   setupProfilFormation();
+  setupResume();
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
@@ -395,6 +397,7 @@ async function renderCoordModules() {
   try {
     const rows = await window.AbbaSync.loadAllSummaries();
     rows.sort((a, b) => (b.modulesFaits || 0) - (a.modulesFaits || 0));
+    LAST_COORD_ROWS = rows;
     body.innerHTML = "";
     emptyHint.style.display = rows.length === 0 ? "block" : "none";
     const mk = currentMonthKey();
@@ -992,4 +995,77 @@ async function renderSeancesAdmin() {
     });
     wrap.appendChild(card);
   });
+}
+
+/* ============================================================
+   RÉSUMÉ POUR RAPPORT SEMESTRIEL (coordinateurs)
+   ============================================================ */
+function setupResume() {
+  document.getElementById("genResumeBtn").addEventListener("click", generateResume);
+  document.getElementById("copyResumeBtn").addEventListener("click", () => {
+    const ta = document.getElementById("resumeOutput");
+    ta.select();
+    navigator.clipboard && navigator.clipboard.writeText(ta.value).catch(() => {});
+    document.execCommand && document.execCommand("copy");
+    const btn = document.getElementById("copyResumeBtn");
+    const original = btn.textContent;
+    btn.textContent = "Copié ✓";
+    setTimeout(() => btn.textContent = original, 1400);
+  });
+}
+
+function moyenne(nums) {
+  const valid = nums.filter(n => typeof n === "number" && !isNaN(n));
+  if (valid.length === 0) return 0;
+  return Math.round(valid.reduce((s, n) => s + n, 0) / valid.length);
+}
+
+function generateResume() {
+  const rows = LAST_COORD_ROWS;
+  const total = rows.length;
+  const mk = currentMonthKey();
+
+  const modulesPctParPersonne = rows.map(r => r.modulesTotal ? (r.modulesFaits / r.modulesTotal) * 100 : null);
+  const moyModules = moyenne(modulesPctParPersonne.filter(v => v !== null));
+
+  const dimPctParPersonne = rows.filter(r => r.dimensionsMoisRef === mk).map(r => r.dimensionsPct || 0);
+  const moyDim = moyenne(dimPctParPersonne);
+
+  const espritPctParPersonne = rows.map(r => r.pctToday);
+  const moyEsprit = moyenne(espritPctParPersonne);
+
+  let presencesParPersonne = [];
+  rows.forEach(r => {
+    let marquees = 0, presentes = 0;
+    SEANCES.forEach(s => {
+      const rec = (s.presences || {})[r.uid];
+      if (rec) { marquees++; if (rec.present) presentes++; }
+    });
+    if (marquees > 0) presencesParPersonne.push((presentes / marquees) * 100);
+  });
+  const moyPresence = moyenne(presencesParPersonne);
+  const sous80 = presencesParPersonne.filter(p => p < 80).length;
+
+  const avecMbti = rows.filter(r => r.mbti).length;
+
+  const today = new Date();
+  const dateStr = `${String(today.getDate()).padStart(2,"0")}/${String(today.getMonth()+1).padStart(2,"0")}/${today.getFullYear()}`;
+
+  const texte = `RÉSUMÉ PARCOURS BÂTISSEUR — au ${dateStr}
+———————————————————————————
+Nombre de Bâtisseurs inscrits : ${total}
+Nombre de séances enregistrées : ${SEANCES.length}
+
+Avancement modules (moyenne) : ${moyModules}%
+Régularité spirituelle du jour (moyenne) : ${moyEsprit}%
+Taux de présence moyen aux séances : ${moyPresence}%
+  dont ${sous80} Bâtisseur(s) sous le seuil de 80% exigé par la charte
+Dimensions de l'Homme Fait — objectifs atteints ce mois-ci (moyenne) : ${moyDim}%
+Bâtisseurs ayant renseigné leur profil (MBTI) : ${avecMbti}/${total}
+———————————————————————————`;
+
+  const ta = document.getElementById("resumeOutput");
+  ta.value = texte;
+  ta.style.display = "block";
+  document.getElementById("copyResumeBtn").style.display = "inline-block";
 }
