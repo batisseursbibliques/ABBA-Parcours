@@ -839,19 +839,14 @@ function renderDimensions() {
         ${s.label}
       </label>
     `).join("");
-    const notesExistantes = Array.isArray(rec.notes) ? rec.notes : [];
-    const notesHtml = notesExistantes.length > 0
-      ? `<div style="margin:8px 0;">${notesExistantes.map(n => `<p class="settings-hint" style="margin:2px 0;">📝 ${escapeAttr(n.date)} — ${escapeAttr(n.text)}</p>`).join("")}</div>`
-      : "";
     card.innerHTML = `
       <p class="eyebrow">${d.icone} ${escapeAttr(d.titre)} — ${fmtMonthLabel(mk)}</p>
       <label class="field"><span>Mon objectif ce mois-ci</span>
         <input type="text" id="dim_${d.key}_objectif" class="text-input" value="${escapeAttr(rec.objectif || "")}">
       </label>
       <div style="margin:10px 0;">${radios}</div>
-      ${notesHtml}
       <label class="field"><span>Ajouter une note</span>
-        <input type="text" id="dim_${d.key}_note" class="text-input" placeholder="S'ajoute à la suite des notes précédentes">
+        <input type="text" id="dim_${d.key}_note" class="text-input" placeholder="S'ajoute à la suite des notes précédentes — visible dans Mon historique en bas">
       </label>
       <button class="btn-primary" id="dim_${d.key}_save" type="button" style="margin-top:10px;">Enregistrer</button>
     `;
@@ -1025,6 +1020,14 @@ function generateResume() {
   const total = rows.length;
   const mk = currentMonthKey();
 
+  const dateDebut = document.getElementById("resumeDateDebut").value;
+  const dateFin = document.getElementById("resumeDateFin").value;
+  const seancesPeriode = SEANCES.filter(s => {
+    if (dateDebut && s.date < dateDebut) return false;
+    if (dateFin && s.date > dateFin) return false;
+    return true;
+  });
+
   const modulesPctParPersonne = rows.map(r => r.modulesTotal ? (r.modulesFaits / r.modulesTotal) * 100 : null);
   const moyModules = moyenne(modulesPctParPersonne.filter(v => v !== null));
 
@@ -1037,7 +1040,7 @@ function generateResume() {
   let presencesParPersonne = [];
   rows.forEach(r => {
     let marquees = 0, presentes = 0;
-    SEANCES.forEach(s => {
+    seancesPeriode.forEach(s => {
       const rec = (s.presences || {})[r.uid];
       if (rec) { marquees++; if (rec.present) presentes++; }
     });
@@ -1050,16 +1053,22 @@ function generateResume() {
 
   const today = new Date();
   const dateStr = `${String(today.getDate()).padStart(2,"0")}/${String(today.getMonth()+1).padStart(2,"0")}/${today.getFullYear()}`;
+  const periodeLabel = (dateDebut || dateFin)
+    ? `${dateDebut || "début"} → ${dateFin || "aujourd'hui"}`
+    : "toutes les séances enregistrées";
 
-  const texte = `RÉSUMÉ PARCOURS BÂTISSEUR — au ${dateStr}
+  const texte = `RÉSUMÉ PARCOURS BÂTISSEUR — généré le ${dateStr}
 ———————————————————————————
 Nombre de Bâtisseurs inscrits : ${total}
-Nombre de séances enregistrées : ${SEANCES.length}
 
+PRÉSENCE — période : ${periodeLabel}
+Nombre de séances sur cette période : ${seancesPeriode.length}
+Taux de présence moyen : ${moyPresence}%
+  dont ${sous80} Bâtisseur(s) sous le seuil de 80% exigé par la charte
+
+ÉTAT ACTUEL (au ${dateStr}, non rattaché à la période ci-dessus) :
 Avancement modules (moyenne) : ${moyModules}%
 Régularité spirituelle du jour (moyenne) : ${moyEsprit}%
-Taux de présence moyen aux séances : ${moyPresence}%
-  dont ${sous80} Bâtisseur(s) sous le seuil de 80% exigé par la charte
 Dimensions de l'Homme Fait — objectifs atteints ce mois-ci (moyenne) : ${moyDim}%
 Bâtisseurs ayant renseigné leur profil (MBTI) : ${avecMbti}/${total}
 ———————————————————————————`;
