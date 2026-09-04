@@ -113,6 +113,90 @@ document.addEventListener("DOMContentLoaded", () => {
 /* ============================================================
    AUTHENTIFICATION (connexion seule — le compte se crée sur ABBA Life)
    ============================================================ */
+/* ============================================================
+   ENROLLMENT — écran d'attente et gestion admin
+   ============================================================ */
+function showEnrollmentScreen(status) {
+  document.getElementById("authScreen").style.display = "none";
+  document.getElementById("app").style.display = "none";
+  const screen = document.getElementById("enrollmentScreen");
+  screen.style.display = "flex";
+
+  const msg = status === "refused"
+    ? { titre: "Accès refusé", texte: "Le coordinateur n'a pas pu valider ton accès au Parcours Bâtisseur. Contacte-le directement pour plus d'informations.", icone: "❌" }
+    : { titre: "Accès en attente", texte: "Ta demande d'accès au Parcours Bâtisseur a bien été enregistrée. Le coordinateur doit la valider avant que tu puisses entrer. Tu recevras un accès dès qu'il aura approuvé ta demande.", icone: "⏳" };
+
+  document.getElementById("enrollmentTitle").textContent = msg.titre;
+  document.getElementById("enrollmentText").textContent = msg.texte;
+  document.getElementById("enrollmentIcon").textContent = msg.icone;
+}
+
+// Gestion admin des enrollments — appelée dans renderCoordModules
+let ALL_ENROLLMENTS = [];
+let unsubEnrollments = null;
+
+function setupEnrollmentsAdmin() {
+  if (!IS_ADMIN) return;
+  if (unsubEnrollments) return; // déjà actif
+  unsubEnrollments = window.AbbaSync.watchPendingEnrollments("parcours", (list) => {
+    ALL_ENROLLMENTS = list;
+    renderEnrollmentsAdmin();
+  });
+}
+
+function renderEnrollmentsAdmin() {
+  const container = document.getElementById("enrollmentsContainer");
+  if (!container) return;
+
+  const pending  = ALL_ENROLLMENTS.filter(e => e.status === "pending");
+  const active   = ALL_ENROLLMENTS.filter(e => e.status === "active");
+  const refused  = ALL_ENROLLMENTS.filter(e => e.status === "refused");
+
+  const rowHtml = (e, showActions) => {
+    const nom = `${e.prenom || ""} ${e.nom || ""}`.trim() || e.email;
+    const date = e.requestedAt?.toDate ? e.requestedAt.toDate().toLocaleDateString("fr-FR") : "—";
+    return `<div class="enrollment-row">
+      <div class="enrollment-info">
+        <span class="enrollment-name">${nom}</span>
+        <span class="enrollment-email">${e.email}</span>
+        <span class="enrollment-date">Demande : ${date}</span>
+      </div>
+      ${showActions ? `
+        <div class="enrollment-actions">
+          <button class="btn-small btn-approve" onclick="approveEnrollment('${e.uid}')">✓ Approuver</button>
+          <button class="btn-small btn-refuse"  onclick="refuseEnrollment('${e.uid}')">✕ Refuser</button>
+        </div>` : `<span class="enrollment-status-badge ${e.status}">${e.status === "active" ? "✓ Actif" : "✕ Refusé"}</span>`}
+    </div>`;
+  };
+
+  container.innerHTML = `
+    ${pending.length ? `
+      <p class="eyebrow" style="color:var(--gold);">En attente (${pending.length})</p>
+      ${pending.map(e => rowHtml(e, true)).join("")}
+    ` : `<p class="settings-hint">Aucune demande en attente.</p>`}
+    ${active.length ? `
+      <p class="eyebrow" style="margin-top:16px;">Accès actifs (${active.length})</p>
+      ${active.map(e => rowHtml(e, false)).join("")}
+    ` : ""}
+    ${refused.length ? `
+      <p class="eyebrow" style="margin-top:16px;color:var(--brick);">Refusés (${refused.length})</p>
+      ${refused.map(e => rowHtml(e, false)).join("")}
+    ` : ""}
+  `;
+}
+
+window.approveEnrollment = async function(uid) {
+  await window.AbbaSync.reviewEnrollment(uid, "parcours", "active", CURRENT_USER.email);
+};
+window.refuseEnrollment = async function(uid) {
+  if (!confirm("Refuser l'accès à ce Bâtisseur ?")) return;
+  await window.AbbaSync.reviewEnrollment(uid, "parcours", "refused", CURRENT_USER.email);
+};
+
+/* ============================================================
+   FIN ENROLLMENT
+   ============================================================ */
+
 function setupAuthScreen() {
   document.getElementById("loginForm").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -167,13 +251,48 @@ async function onAuthChanged(user) {
   }
 
   CURRENT_USER = user;
+
+  // ── Vérification enrollment ──────────────────────────────────
+  // Les admins passent directement — ils n'ont pas besoin d'enrollment
+  const isBootstrapAdmin = window.AbbaSync.isAdminEmail(user.email);
+  if (!isBootstrapAdmin) {
+    try {
+      CURRENT_PROFILE = await window.AbbaSync.getUserProfile(user.uid) || {};
+    } catch (e) { CURRENT_PROFILE = {}; }
+
+    const enrollment = await window.AbbaSync.getMyEnrollment(user.uid, "parcours");
+
+    if (!enrollment) {
+      // Première connexion → créer la demande automatiquement
+      await window.AbbaSync.requestEnrollment(
+        user.uid, "parcours",
+        CURRENT_PROFILE.nom || "", CURRENT_PROFILE.prenom || "", user.email
+      );
+      showEnrollmentScreen("pending");
+      return;
+    }
+    if (enrollment.status === "pending") {
+      showEnrollmentScreen("pending");
+      return;
+    }
+    if (enrollment.status === "refused") {
+      showEnrollmentScreen("refused");
+      return;
+    }
+    // status === "active" → on continue normalement
+  }
+  // ── Fin vérification enrollment ──────────────────────────────
+
   document.getElementById("authScreen").style.display = "none";
+  document.getElementById("enrollmentScreen").style.display = "none";
   document.getElementById("app").style.display = "";
   document.getElementById("accountEmailHint").textContent = `Connecté(e) en tant que ${user.displayName || user.email} (${user.email})`;
   document.getElementById("accountEmailHintAccueil").textContent = `Connecté(e) en tant que ${user.displayName || user.email} (${user.email})`;
 
   try {
-    CURRENT_PROFILE = await window.AbbaSync.getUserProfile(user.uid) || {};
+    if (!CURRENT_PROFILE || !Object.keys(CURRENT_PROFILE).length) {
+      CURRENT_PROFILE = await window.AbbaSync.getUserProfile(user.uid) || {};
+    }
   } catch (err) {
     CURRENT_PROFILE = {};
   }
@@ -185,7 +304,7 @@ async function onAuthChanged(user) {
     document.querySelectorAll(".admin-only").forEach(el => { el.style.display = IS_ADMIN ? "" : "none"; });
     renderModulesEditor();
     renderZonesEditor();
-    if (IS_ADMIN) { renderCoordModules(); loadBinomesManager(); renderSeancesAdmin(); }
+    if (IS_ADMIN) { renderCoordModules(); loadBinomesManager(); renderSeancesAdmin(); setupEnrollmentsAdmin(); }
   });
 
   unsubModulesConfig = window.AbbaSync.watchModulesConfig((list) => {
@@ -395,7 +514,15 @@ async function renderCoordModules() {
   const emptyHint = document.getElementById("coordModulesEmpty");
   body.innerHTML = `<tr><td colspan="8">Chargement…</td></tr>`;
   try {
-    const rows = await window.AbbaSync.loadAllSummaries();
+    // Charger uniquement les UIDs avec enrollment actif pour "parcours"
+    const activeEnrollments = await window.AbbaSync.loadActiveEnrollments("parcours");
+    const activeUids = new Set(activeEnrollments.map(e => e.uid));
+
+    const allRows = await window.AbbaSync.loadAllSummaries();
+    // Admin bootstrap voit tout ; sinon filtrer par enrollment actif
+    const rows = window.AbbaSync.isAdminEmail(CURRENT_USER?.email)
+      ? allRows  // Paul voit tout même sans enrollment
+      : allRows.filter(r => activeUids.has(r.uid));
     rows.sort((a, b) => (b.modulesFaits || 0) - (a.modulesFaits || 0));
     LAST_COORD_ROWS = rows;
     body.innerHTML = "";
