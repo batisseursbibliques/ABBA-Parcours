@@ -68,17 +68,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // ── Enrollments — accès contrôlé ──────────────────────────
-    // Clé : {uid}_{app}  (ex. "abc123_parcours")
     match /enrollments/{enrollId} {
-      // Le Bâtisseur peut lire son propre enrollment (pour voir son statut)
       allow read: if isAdmin()
         || (request.auth != null && enrollId.matches(request.auth.uid + '_.*'));
-      // Création : le Bâtisseur crée lui-même sa demande (status: "pending")
       allow create: if request.auth != null
         && enrollId.matches(request.auth.uid + '_.*')
         && request.resource.data.status == "pending";
-      // Mise à jour du statut (approve/refuse) : admin uniquement
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }

@@ -30,6 +30,7 @@
   </div>
 </div>
 
+<!-- ===== ÉCRAN ENROLLMENT ===== -->
 <div class="auth-screen" id="enrollmentScreen" style="display:none;">
   <div class="auth-box" style="text-align:center;">
     <div id="enrollmentIcon" style="font-size:48px;margin-bottom:12px;">⏳</div>
@@ -41,7 +42,7 @@
   </div>
 </div>
 
-
+<div class="app" id="app" style="display:none;">
   <header class="topbar">
     <div class="brand">
       <img src="logo.png" alt="Logo ABBA" class="brand-logo">
@@ -271,11 +272,11 @@
       <!-- Demandes d'accès -->
       <div class="card">
         <p class="eyebrow">Demandes d'accès au Parcours</p>
-        <p class="settings-hint">Approuve ou refuse les demandes des Bâtisseurs qui veulent rejoindre le Parcours Bâtisseur.</p>
-        <div id="enrollmentsContainer">
-          <p class="settings-hint">Chargement…</p>
-        </div>
+        <p class="settings-hint">Approuve ou refuse les demandes des Bâtisseurs qui veulent rejoindre le Parcours.</p>
+        <div id="enrollmentsContainer"><p class="settings-hint">Chargement…</p></div>
       </div>
+
+      <div class="card">
         <table class="tx-table" id="coordModulesTable">
           <thead><tr><th>Bât.</th><th>Tél.</th><th>Mod.</th><th>Car.</th><th>Dim.</th><th>Prés.</th><th>Esprit</th><th>Série</th></tr></thead>
           <tbody id="coordModulesBody"></tbody>

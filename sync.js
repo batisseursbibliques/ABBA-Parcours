@@ -205,53 +205,32 @@ async function saveMyProfilFormation(uid, data) {
   await setDoc(doc(db, "users", uid, "priv", "profilFormation"), data, { merge: true });
 }
 
-/* ---------- ENROLLMENT — accès contrôlé par le coordinateur ----------
-   /enrollments/{uid} : { app, status, nom, prenom, email,
-                          requestedAt, reviewedBy, reviewedAt }
-   status : "pending" | "active" | "refused"
-   app    : "parcours" | "mea"                                         */
-
+/* ── Enrollment — accès contrôlé ──────────────────────────────
+   Clé Firestore : /enrollments/{uid}_{app}
+   status : "pending" | "active" | "refused"             */
 async function getMyEnrollment(uid, app) {
   const snap = await getDoc(doc(db, "enrollments", uid + "_" + app));
   return snap.exists() ? snap.data() : null;
 }
-
 async function requestEnrollment(uid, app, nom, prenom, email) {
   const key = uid + "_" + app;
   const existing = await getDoc(doc(db, "enrollments", key));
-  if (existing.exists()) return; // déjà demandé — ne pas écraser
+  if (existing.exists()) return;
   await setDoc(doc(db, "enrollments", key), {
     uid, app, nom: nom || "", prenom: prenom || "", email: email || "",
-    status: "pending",
-    requestedAt: serverTimestamp(),
+    status: "pending", requestedAt: serverTimestamp(),
     reviewedBy: null, reviewedAt: null,
   });
 }
-
-function watchPendingEnrollments(app, callback) {
-  // Admin uniquement — surveille les demandes en attente pour une app
+function watchAllEnrollments(app, callback) {
   return onSnapshot(collection(db, "enrollments"), (snap) => {
-    const list = snap.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .filter(e => e.app === app);
-    callback(list);
-  }, (err) => console.error("watchPendingEnrollments:", err));
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(e => e.app === app));
+  }, (err) => console.error("watchAllEnrollments:", err));
 }
-
 async function reviewEnrollment(uid, app, status, reviewerEmail) {
-  const key = uid + "_" + app;
-  await setDoc(doc(db, "enrollments", key), {
-    status,
-    reviewedBy: reviewerEmail,
-    reviewedAt: serverTimestamp(),
-  }, { merge: true });
-}
-
-async function loadActiveEnrollments(app) {
-  const snap = await getDocs(collection(db, "enrollments"));
-  return snap.docs
-    .map(d => ({ id: d.id, ...d.data() }))
-    .filter(e => e.app === app && e.status === "active");
+  await setDoc(doc(db, "enrollments", uid + "_" + app),
+    { status, reviewedBy: reviewerEmail, reviewedAt: serverTimestamp() },
+    { merge: true });
 }
 
 window.AbbaSync = {
@@ -267,6 +246,5 @@ window.AbbaSync = {
   watchMyDimension, saveMyDimensionMonth,
   watchSeances, createSeance, deleteSeance, markPresence,
   watchMyProfilFormation, saveMyProfilFormation,
-  getMyEnrollment, requestEnrollment, watchPendingEnrollments,
-  reviewEnrollment, loadActiveEnrollments,
+  getMyEnrollment, requestEnrollment, watchAllEnrollments, reviewEnrollment,
 };
