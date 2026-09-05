@@ -491,3 +491,21 @@ button,input,select{font-family:inherit;}
 .enrollment-status-badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:10px;}
 .enrollment-status-badge.active{background:#DCE6DA;color:#4C7A5E;}
 .enrollment-status-badge.refused{background:#F2DFDA;color:#A6483A;}
+
+/* ===== ACCORDÉON GÉNÉRIQUE ===== */
+.accord-item{
+  border-bottom:1px dashed var(--line);
+  padding:8px 0;
+}
+.accord-item:last-child{border-bottom:none;}
+.accord-head{
+  width:100%;display:flex;align-items:center;gap:8px;
+  background:none;border:none;cursor:pointer;padding:4px 0;
+  font-family:inherit;text-align:left;
+}
+.accord-head:hover{opacity:.8;}
+.accord-arrow{
+  flex:0 0 auto;font-size:13px;
+  color:var(--ink-soft);margin-left:auto;
+}
+.seance-membres-wrap{padding:8px 0 4px;}

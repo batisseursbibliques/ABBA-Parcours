@@ -456,14 +456,21 @@ function renderCoordProfils(rows) {
   wrap.innerHTML = "";
   emptyEl.style.display = avecProfil.length === 0 ? "block" : "none";
   avecProfil.forEach(r => {
-    const row = document.createElement("div");
-    row.className = "editor-category";
-    row.innerHTML = `
-      <p style="font-weight:600;font-size:13px;margin:0 0 4px;">${escapeAttr(r.nom || r.email)}</p>
-      ${r.mbti ? `<p class="settings-hint" style="margin:2px 0;">Type MBTI : <strong>${escapeAttr(r.mbti)}</strong></p>` : ""}
-      ${r.donsSpirituels ? `<p class="settings-hint" style="margin:2px 0;">Dons : ${escapeAttr(r.donsSpirituels)}</p>` : ""}
-    `;
-    wrap.appendChild(row);
+    const uid = r.uid || r.email;
+    const bodyId = "profil-body-" + uid;
+    const arrowId = "profil-arrow-" + uid;
+    const wrapper = document.createElement("div");
+    wrapper.className = "accord-item";
+    wrapper.innerHTML = `
+      <button class="accord-head" onclick="toggleAccord('${bodyId}','${arrowId}')">
+        <span style="font-weight:600;font-size:13px;">${escapeAttr(r.nom || r.email)}</span>
+        <span id="${arrowId}" class="accord-arrow">▸</span>
+      </button>
+      <div id="${bodyId}" style="display:none;padding:8px 0 4px;">
+        ${r.mbti ? `<p class="settings-hint" style="margin:2px 0;">Type MBTI : <strong>${escapeAttr(r.mbti)}</strong></p>` : ""}
+        ${r.donsSpirituels ? `<p class="settings-hint" style="margin:2px 0;">Dons : ${escapeAttr(r.donsSpirituels)}</p>` : ""}
+      </div>`;
+    wrap.appendChild(wrapper);
   });
 }
 
@@ -971,42 +978,66 @@ async function renderSeancesAdmin() {
 
   wrap.innerHTML = "";
   SEANCES.forEach(s => {
+    const bodyId = "seance-body-" + s.id;
+    const arrowId = "seance-arrow-" + s.id;
     const card = document.createElement("div");
-    card.className = "editor-category";
+    card.className = "accord-item";
+
+    // Générer les lignes membres
+    const lignesMembres = membres.map(m => {
+      const rec = (s.presences || {})[m.uid];
+      return { uid: m.uid, nom: m.nom, present: rec ? rec.present : null };
+    });
+
     card.innerHTML = `
-      <div class="editor-cat-head">
-        <span style="font-weight:600;font-size:13.5px;flex:1;">${escapeAttr(s.titre)} — ${s.date || ""}</span>
-        <button type="button" class="editor-del-cat" title="Supprimer la séance">🗑</button>
+      <div class="accord-head" style="display:flex;align-items:center;gap:8px;">
+        <button type="button" style="flex:1;background:none;border:none;text-align:left;cursor:pointer;padding:0;font-family:inherit;"
+          onclick="toggleAccord('${bodyId}','${arrowId}')">
+          <span style="font-weight:600;font-size:13.5px;">${escapeAttr(s.titre)} — ${s.date || ""}</span>
+        </button>
+        <span id="${arrowId}" class="accord-arrow" onclick="toggleAccord('${bodyId}','${arrowId}')" style="cursor:pointer;">▸</span>
+        <button type="button" class="editor-del-cat" title="Supprimer la séance" data-seance-id="${s.id}">🗑</button>
       </div>
-      <div class="seance-membres"></div>
-    `;
+      <div id="${bodyId}" style="display:none;" class="seance-membres-wrap">
+        ${lignesMembres.map(m => `
+          <div class="editor-item-row" id="seance-row-${s.id}-${m.uid}">
+            <span class="text-input" style="border:none;padding:6px 0;flex:1;">${escapeAttr(m.nom)}</span>
+            <button type="button" class="btn-secondary presence-btn" data-present="true"
+              data-sid="${s.id}" data-uid="${m.uid}" data-nom="${escapeAttr(m.nom)}"
+              style="${m.present === true ? 'background:var(--sage);color:#fff;' : ''}">Présent</button>
+            <button type="button" class="btn-secondary presence-btn" data-present="false"
+              data-sid="${s.id}" data-uid="${m.uid}" data-nom="${escapeAttr(m.nom)}"
+              style="${m.present === false ? 'background:var(--brick);color:#fff;' : ''}">Absent</button>
+          </div>`).join("")}
+      </div>`;
+
     card.querySelector(".editor-del-cat").addEventListener("click", async () => {
       if (!confirm(`Supprimer la séance "${s.titre}" ?`)) return;
       try { await window.AbbaSync.deleteSeance(s.id); } catch (err) { alert("Impossible de supprimer."); console.error(err); }
     });
-    const membresWrap = card.querySelector(".seance-membres");
-    membres.forEach(m => {
-      const rec = (s.presences || {})[m.uid];
-      const row = document.createElement("div");
-      row.className = "editor-item-row";
-      row.innerHTML = `
-        <span class="text-input" style="border:none;padding:6px 0;flex:1;">${escapeAttr(m.nom)}</span>
-        <button type="button" class="btn-secondary presence-btn" data-present="true" style="${rec && rec.present ? 'background:var(--sage);color:#fff;' : ''}">Présent</button>
-        <button type="button" class="btn-secondary presence-btn" data-present="false" style="${rec && !rec.present ? 'background:var(--brick);color:#fff;' : ''}">Absent</button>
-      `;
-      row.querySelectorAll(".presence-btn").forEach(btn => {
-        btn.addEventListener("click", async () => {
-          const present = btn.dataset.present === "true";
-          try {
-            await window.AbbaSync.markPresence(s.id, m.uid, m.nom, present);
-          } catch (err) {
-            alert("Impossible d'enregistrer la présence.");
-            console.error(err);
+
+    card.querySelectorAll(".presence-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const present = btn.dataset.present === "true";
+        const sid = btn.dataset.sid;
+        const uid = btn.dataset.uid;
+        const nom = btn.dataset.nom;
+        try {
+          await window.AbbaSync.markPresence(sid, uid, nom, present);
+          // Mettre à jour le style sans rechargement
+          const row = document.getElementById(`seance-row-${sid}-${uid}`);
+          if (row) {
+            row.querySelectorAll(".presence-btn").forEach(b => b.style = "");
+            btn.style.background = present ? "var(--sage)" : "var(--brick)";
+            btn.style.color = "#fff";
           }
-        });
+        } catch (err) {
+          alert("Impossible d'enregistrer la présence.");
+          console.error(err);
+        }
       });
-      membresWrap.appendChild(row);
     });
+
     wrap.appendChild(card);
   });
 }
@@ -1136,35 +1167,53 @@ function renderEnrollmentsAdmin() {
   const active  = ALL_ENROLLMENTS.filter(e => e.status === "active");
   const refused = ALL_ENROLLMENTS.filter(e => e.status === "refused");
 
-  const row = (e, actions) => {
+  const row = (e, mode) => {
     const nom  = `${e.prenom || ""} ${e.nom || ""}`.trim() || e.email;
     const date = e.requestedAt?.toDate ? e.requestedAt.toDate().toLocaleDateString("fr-FR") : "—";
+    const actions = mode === "pending"
+      ? `<div class="enrollment-actions">
+           <button class="btn-small btn-approve" onclick="approveEnrollment('${e.uid}')">✓ Approuver</button>
+           <button class="btn-small btn-refuse"  onclick="refuseEnrollment('${e.uid}')">✕ Refuser</button>
+         </div>`
+      : mode === "refused"
+      ? `<div class="enrollment-actions">
+           <span class="enrollment-status-badge refused">✕ Refusé</span>
+           <button class="btn-small btn-approve" onclick="approveEnrollment('${e.uid}')" title="Réactiver">↩ Réactiver</button>
+           <button class="btn-small btn-refuse" onclick="radierEnrollment('${e.uid}')" title="Radier définitivement">⊗ Radier</button>
+         </div>`
+      : `<div class="enrollment-actions">
+           <span class="enrollment-status-badge active">✓ Actif</span>
+           <button class="btn-small btn-refuse" onclick="radierEnrollment('${e.uid}')" title="Sortir du parcours">⊗ Sortir</button>
+         </div>`;
     return `<div class="enrollment-row">
       <div class="enrollment-info">
         <span class="enrollment-name">${nom}</span>
         <span class="enrollment-email">${e.email}</span>
         <span class="enrollment-date">Demande : ${date}</span>
       </div>
-      ${actions
-        ? `<div class="enrollment-actions">
-             <button class="btn-small btn-approve" onclick="approveEnrollment('${e.uid}')">✓ Approuver</button>
-             <button class="btn-small btn-refuse"  onclick="refuseEnrollment('${e.uid}')">✕ Refuser</button>
-           </div>`
-        : `<span class="enrollment-status-badge ${e.status}">${e.status === "active" ? "✓ Actif" : "✕ Refusé"}</span>`}
+      ${actions}
     </div>`;
   };
 
-  container.innerHTML = [
-    pending.length
-      ? `<p class="eyebrow" style="color:var(--gold);">En attente (${pending.length})</p>${pending.map(e => row(e, true)).join("")}`
-      : `<p class="settings-hint">Aucune demande en attente.</p>`,
-    active.length
-      ? `<p class="eyebrow" style="margin-top:16px;">Actifs (${active.length})</p>${active.map(e => row(e, false)).join("")}`
-      : "",
-    refused.length
-      ? `<p class="eyebrow" style="margin-top:16px;color:var(--brick);">Refusés (${refused.length})</p>${refused.map(e => row(e, false)).join("")}`
-      : "",
-  ].join("");
+  // Accordéon par groupe
+  const groupHtml = (id, label, color, items, mode, defaultOpen) => {
+    if (!items.length && mode !== "pending") return "";
+    const bodyId = "enroll-body-" + id;
+    const arrowId = "enroll-arrow-" + id;
+    return `
+      <button class="accord-head" onclick="toggleAccord('${bodyId}','${arrowId}')">
+        <span style="color:${color};font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;">${label} (${items.length})</span>
+        <span id="${arrowId}" class="accord-arrow">${defaultOpen ? "▾" : "▸"}</span>
+      </button>
+      <div id="${bodyId}" style="${defaultOpen ? "" : "display:none;"}padding-top:4px;">
+        ${items.length ? items.map(e => row(e, mode)).join("") : '<p class="settings-hint">Aucune demande en attente.</p>'}
+      </div>`;
+  };
+
+  container.innerHTML =
+    groupHtml("pending", "En attente", "var(--gold)",   pending, "pending", true) +
+    groupHtml("active",  "Actifs",     "#4C7A5E",       active,  "active",  false) +
+    groupHtml("refused", "Refusés",    "var(--brick)",   refused, "refused", false);
 }
 
 window.approveEnrollment = async (uid) => {
@@ -1173,4 +1222,22 @@ window.approveEnrollment = async (uid) => {
 window.refuseEnrollment = async (uid) => {
   if (!confirm("Refuser l'accès à ce Bâtisseur ?")) return;
   await window.AbbaSync.reviewEnrollment(uid, "parcours", "refused", CURRENT_USER.email);
+};
+window.radierEnrollment = async (uid) => {
+  if (!confirm("Sortir définitivement ce Bâtisseur du Parcours ? Son nom disparaîtra des listes.")) return;
+  await window.AbbaSync.reviewEnrollment(uid, "parcours", "radie", CURRENT_USER.email);
+};
+
+/* ============================================================
+   ACCORDÉON GÉNÉRIQUE
+   ============================================================ */
+window.toggleAccord = function(bodyId, arrowId) {
+  const body  = document.getElementById(bodyId);
+  const arrow = document.getElementById(arrowId);
+  if (!body) return;
+  const open = body.style.display === "none" || body.style.display === "";
+  // Si pas encore affiché (display none par défaut via style attr)
+  const isHidden = body.style.display === "none" || body.style.display === "";
+  body.style.display = isHidden ? "block" : "none";
+  if (arrow) arrow.textContent = isHidden ? "▾" : "▸";
 };
