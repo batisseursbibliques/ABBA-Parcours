@@ -456,21 +456,14 @@ function renderCoordProfils(rows) {
   wrap.innerHTML = "";
   emptyEl.style.display = avecProfil.length === 0 ? "block" : "none";
   avecProfil.forEach(r => {
-    const uid = r.uid || r.email;
-    const bodyId = "profil-body-" + uid;
-    const arrowId = "profil-arrow-" + uid;
-    const wrapper = document.createElement("div");
-    wrapper.className = "accord-item";
-    wrapper.innerHTML = `
-      <button class="accord-head" onclick="toggleAccord('${bodyId}','${arrowId}')">
-        <span style="font-weight:600;font-size:13px;">${escapeAttr(r.nom || r.email)}</span>
-        <span id="${arrowId}" class="accord-arrow">▸</span>
-      </button>
-      <div id="${bodyId}" style="display:none;padding:8px 0 4px;">
-        ${r.mbti ? `<p class="settings-hint" style="margin:2px 0;">Type MBTI : <strong>${escapeAttr(r.mbti)}</strong></p>` : ""}
-        ${r.donsSpirituels ? `<p class="settings-hint" style="margin:2px 0;">Dons : ${escapeAttr(r.donsSpirituels)}</p>` : ""}
-      </div>`;
-    wrap.appendChild(wrapper);
+    const item = document.createElement("div");
+    item.className = "accord-item";
+    item.innerHTML = `
+      <p style="font-weight:600;font-size:13px;margin:0 0 4px;">${escapeAttr(r.nom || r.email)}</p>
+      ${r.mbti ? `<p class="settings-hint" style="margin:2px 0;">Type MBTI : <strong>${escapeAttr(r.mbti)}</strong></p>` : ""}
+      ${r.donsSpirituels ? `<p class="settings-hint" style="margin:2px 0;">Dons : ${escapeAttr(r.donsSpirituels)}</p>` : ""}
+    `;
+    wrap.appendChild(item);
   });
 }
 

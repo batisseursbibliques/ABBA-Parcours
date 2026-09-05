@@ -276,30 +276,43 @@
         <div id="enrollmentsContainer"><p class="settings-hint">Chargement…</p></div>
       </div>
 
+      <!-- Profils MBTI — accordéon global -->
+      <div class="card">
+        <button class="accord-head" onclick="toggleAccord('coordProfilsBody','coordProfilsArrow')" style="width:100%;padding:0;">
+          <p class="eyebrow" style="margin:0;">Profils (MBTI, dons spirituels)</p>
+          <span id="coordProfilsArrow" class="accord-arrow">▸</span>
+        </button>
+        <div id="coordProfilsBody" style="display:none;margin-top:10px;">
+          <div id="coordProfilsList"></div>
+          <p class="empty-hint" id="coordProfilsEmpty">Aucun profil renseigné pour l'instant.</p>
+        </div>
+      </div>
+
+      <!-- Résumé semestriel — accordéon global -->
+      <div class="card">
+        <button class="accord-head" onclick="toggleAccord('coordResumeBody','coordResumeArrow')" style="width:100%;padding:0;">
+          <p class="eyebrow" style="margin:0;">Résumé pour rapport semestriel</p>
+          <span id="coordResumeArrow" class="accord-arrow">▸</span>
+        </button>
+        <div id="coordResumeBody" style="display:none;margin-top:10px;">
+          <p class="settings-hint">Le taux de présence est calculé sur la période choisie ci-dessous. Les autres chiffres (modules, esprit, dimensions) sont un état actuel — ils ne peuvent pas être reconstitués rétroactivement.</p>
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <label class="field" style="flex:1;"><span>Depuis</span><input type="date" id="resumeDateDebut" class="text-input"></label>
+            <label class="field" style="flex:1;"><span>Jusqu'à</span><input type="date" id="resumeDateFin" class="text-input"></label>
+          </div>
+          <button class="btn-primary" id="genResumeBtn" type="button">Générer le résumé</button>
+          <textarea id="resumeOutput" class="text-input" rows="10" readonly style="width:100%;margin-top:10px;display:none;font-family:monospace;font-size:12px;"></textarea>
+          <button class="btn-secondary" id="copyResumeBtn" type="button" style="margin-top:8px;display:none;">Copier le texte</button>
+        </div>
+      </div>
+
+      <!-- Tableau d'avancement -->
       <div class="card">
         <table class="tx-table" id="coordModulesTable">
           <thead><tr><th>Bât.</th><th>Tél.</th><th>Mod.</th><th>Car.</th><th>Dim.</th><th>Prés.</th><th>Esprit</th><th>Série</th></tr></thead>
           <tbody id="coordModulesBody"></tbody>
         </table>
         <p class="empty-hint" id="coordModulesEmpty">Aucun Bâtisseur pour l'instant.</p>
-      </div>
-
-      <div class="card">
-        <p class="eyebrow">Profils (MBTI, dons spirituels)</p>
-        <div id="coordProfilsList"></div>
-        <p class="empty-hint" id="coordProfilsEmpty">Aucun profil renseigné pour l'instant.</p>
-      </div>
-
-      <div class="card">
-        <p class="eyebrow">Résumé pour rapport semestriel</p>
-        <p class="settings-hint">Le taux de présence est calculé sur la période choisie ci-dessous. Les autres chiffres (modules, esprit, dimensions) sont un état actuel — ils ne peuvent pas être reconstitués rétroactivement.</p>
-        <div style="display:flex;gap:8px;margin-bottom:10px;">
-          <label class="field" style="flex:1;"><span>Depuis</span><input type="date" id="resumeDateDebut" class="text-input"></label>
-          <label class="field" style="flex:1;"><span>Jusqu'à</span><input type="date" id="resumeDateFin" class="text-input"></label>
-        </div>
-        <button class="btn-primary" id="genResumeBtn" type="button">Générer le résumé</button>
-        <textarea id="resumeOutput" class="text-input" rows="10" readonly style="width:100%;margin-top:10px;display:none;font-family:monospace;font-size:12px;"></textarea>
-        <button class="btn-secondary" id="copyResumeBtn" type="button" style="margin-top:8px;display:none;">Copier le texte</button>
       </div>
     </section>
 
