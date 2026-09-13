@@ -1,62 +1,53 @@
-const CACHE_NAME = "parcours-batisseur-v18";
+const CACHE = "abba-parcours-v12";
 const ASSETS = [
-  "./", "./index.html", "./style.css", "./app.js", "./sync.js", "./firebase-config.js",
-  "./manifest.json", "./logo.png", "./icon-192.png", "./icon-512.png",
-  "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js",
-  "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js",
-  "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js",
+  "./", "./index.html", "./style.css", "./app.js", "./sync.js",
+  "./firebase-config.js", "./manifest.json", "./logo.png",
+  "./icon-192.png", "./icon-512.png",
 ];
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
+// Installation : mettre tous les fichiers en cache immédiatement
+self.addEventListener("install", e => {
+  e.waitUntil(
+    caches.open(CACHE)
+      .then(c => c.addAll(ASSETS))
+      .then(() => self.skipWaiting())
   );
 });
 
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim())
+// Activation : supprimer les anciens caches
+self.addEventListener("activate", e => {
+  e.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
-self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
-  const url = new URL(event.request.url);
+// Fetch : cache d'abord (hors ligne garanti), réseau en arrière-plan
+self.addEventListener("fetch", e => {
+  const url = new URL(e.request.url);
 
-  if (url.hostname === "www.gstatic.com" && url.pathname.startsWith("/firebasejs/")) {
-    event.respondWith(
-      caches.match(event.request).then((cached) => {
-        const fetchPromise = fetch(event.request)
-          .then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              const clone = networkResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-            }
-            return networkResponse;
-          })
-          .catch(() => cached);
-        return cached || fetchPromise;
-      })
-    );
-    return;
+  // Firebase, Google APIs : réseau uniquement (pas de cache)
+  if (url.hostname.includes("firebase") ||
+      url.hostname.includes("googleapis") ||
+      url.hostname.includes("gstatic") ||
+      url.hostname.includes("firebaseio")) {
+    return; // le navigateur gère directement
   }
 
-  if (url.origin !== self.location.origin) return;
-
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const fetchPromise = fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const clone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+  // Fichiers de l'app : cache d'abord, mise à jour réseau en arrière-plan
+  e.respondWith(
+    caches.open(CACHE).then(cache =>
+      cache.match(e.request).then(cached => {
+        const networkFetch = fetch(e.request).then(response => {
+          if (response && response.status === 200 && response.type !== "opaque") {
+            cache.put(e.request, response.clone());
           }
-          return networkResponse;
-        })
-        .catch(() => cached);
-      return cached || fetchPromise;
-    })
+          return response;
+        }).catch(() => cached);
+        // Retourner le cache immédiatement si disponible, sinon attendre le réseau
+        return cached || networkFetch;
+      })
+    )
   );
 });
