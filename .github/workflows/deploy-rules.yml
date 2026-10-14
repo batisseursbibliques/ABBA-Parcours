@@ -1,0 +1,25 @@
+name: Déployer les règles Firestore
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "firestore.rules"
+      - "firebase.json"
+      - ".github/workflows/deploy-rules.yml"
+  workflow_dispatch:
+
+jobs:
+  rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Écrire la clé de service (secret GitHub, jamais dans le code)
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+      - name: Publier les règles
+        run: npx --yes firebase-tools@13 deploy --only firestore:rules --project abba-life-c6b5c --non-interactive
