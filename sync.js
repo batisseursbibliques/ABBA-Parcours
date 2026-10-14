@@ -10,7 +10,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp,
-  enableIndexedDbPersistence, collection, getDocs,
+  enableIndexedDbPersistence, collection, getDocs, query, where, updateDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig, ADMIN_EMAILS } from "./firebase-config.js";
 
@@ -233,6 +233,73 @@ async function reviewEnrollment(uid, app, status, reviewerEmail) {
     { merge: true });
 }
 
+/* ============================================================
+   FORMATION EN AUTONOMIE : correcteurs, liens, progression
+   ============================================================ */
+const lc = (s) => String(s || "").trim().toLowerCase();
+
+// Correcteurs (liste gérée par le coordinateur)
+function watchCorrecteurs(callback) {
+  return onSnapshot(collection(db, "correcteurs"), (snap) => {
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+  }, (err) => console.error("watchCorrecteurs:", err));
+}
+async function addCorrecteur(email, nom, byEmail) {
+  await setDoc(doc(db, "correcteurs", lc(email)), { email: lc(email), nom: nom || "", addedBy: byEmail, addedAt: serverTimestamp() });
+}
+async function removeCorrecteur(email) { await deleteDoc(doc(db, "correcteurs", lc(email))); }
+async function amICorrecteur(email) {
+  try { return (await getDoc(doc(db, "correcteurs", lc(email)))).exists(); } catch (e) { return false; }
+}
+
+// Liens étudiant -> correcteur
+async function setLien(uid, data) {
+  await setDoc(doc(db, "liens", uid), { uid, ...data, correcteurEmail: lc(data.correcteurEmail), updatedAt: serverTimestamp() });
+}
+async function deleteLien(uid) { await deleteDoc(doc(db, "liens", uid)); }
+async function loadAllLiens() {
+  const snap = await getDocs(collection(db, "liens"));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+async function getMyLien(uid) {
+  try { const s = await getDoc(doc(db, "liens", uid)); return s.exists() ? s.data() : null; } catch (e) { return null; }
+}
+async function loadMyStudents(email) {
+  const snap = await getDocs(query(collection(db, "liens"), where("correcteurEmail", "==", lc(email))));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+// Progression de formation d'un étudiant
+function watchFormationMeta(uid, callback) {
+  return onSnapshot(doc(db, "formation", uid), (snap) => {
+    callback(snap.exists() ? snap.data() : {});
+  }, (err) => { console.error("watchFormationMeta:", err); callback({}); });
+}
+async function setAcquis(uid, acquis) {
+  await setDoc(doc(db, "formation", uid), { acquis, updatedAt: serverTimestamp() }, { merge: true });
+}
+function watchFormationModules(uid, callback) {
+  return onSnapshot(collection(db, "formation", uid, "modules"), (snap) => {
+    const map = {};
+    snap.docs.forEach(d => { map[d.id] = d.data(); });
+    callback(map);
+  }, (err) => console.error("watchFormationModules:", err));
+}
+async function saveModulePart(uid, mid, partial) {
+  await setDoc(doc(db, "formation", uid, "modules", mid), { ...partial, updatedAt: serverTimestamp() }, { merge: true });
+}
+async function loadStudentModules(uid) {
+  const snap = await getDocs(collection(db, "formation", uid, "modules"));
+  const map = {};
+  snap.docs.forEach(d => { map[d.id] = d.data(); });
+  return map;
+}
+async function reviewFiche(uid, mid, status, comment, byEmail) {
+  await updateDoc(doc(db, "formation", uid, "modules", mid), {
+    ficheStatus: status, correctorComment: comment || "", validatedBy: lc(byEmail), validatedAt: serverTimestamp(),
+  });
+}
+
 window.AbbaSync = {
   isAdminEmail,
   logIn, logOut, watchAuth, getUserProfile,
@@ -247,4 +314,7 @@ window.AbbaSync = {
   watchSeances, createSeance, deleteSeance, markPresence,
   watchMyProfilFormation, saveMyProfilFormation,
   getMyEnrollment, requestEnrollment, watchAllEnrollments, reviewEnrollment,
+  watchCorrecteurs, addCorrecteur, removeCorrecteur, amICorrecteur,
+  setLien, deleteLien, loadAllLiens, getMyLien, loadMyStudents,
+  watchFormationMeta, setAcquis, watchFormationModules, saveModulePart, loadStudentModules, reviewFiche,
 };

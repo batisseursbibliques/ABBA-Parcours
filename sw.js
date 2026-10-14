@@ -1,8 +1,9 @@
-const CACHE = "abba-parcours-v12";
+const CACHE = "abba-parcours-v13";
 const ASSETS = [
-  "./", "./index.html", "./style.css", "./app.js", "./sync.js",
+  "./", "./index.html", "./style.css", "./app.js", "./sync.js", "./formation.js",
   "./firebase-config.js", "./manifest.json", "./logo.png",
   "./icon-192.png", "./icon-512.png",
+  ...Array.from({ length: 14 }, (_, i) => `./content/m${String(i + 1).padStart(2, "0")}.json`),
 ];
 
 // Installation : mettre tous les fichiers en cache immédiatement

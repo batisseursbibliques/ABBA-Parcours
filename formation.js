@@ -1,0 +1,557 @@
+/* ============================================================
+   FORMATION EN AUTONOMIE — Parcours Bâtisseur
+   Lecture du manuel → questions → exercices → fiche → validation
+   par le correcteur → module suivant.
+   S'appuie sur sync.js (window.AbbaSync). Contenu : dossier content/.
+   ============================================================ */
+const S = () => window.AbbaSync;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+const MODULES = [
+  { id: "m1", titre: "Disciple de Christ", ready: true },
+  { id: "m2", titre: "Guérir des blessures de l'âme" },
+  { id: "m3", titre: "Cure d'âme personnelle" },
+  { id: "m4", titre: "Aimer" },
+  { id: "m5", titre: "Bâtir le caractère" },
+  { id: "m6", titre: "Relation avec le Saint-Esprit" },
+  { id: "m7", titre: "Victoire par la prière" },
+  { id: "m8", titre: "Le monde spirituel" },
+  { id: "m9", titre: "Évangélisation, guérison, délivrance" },
+  { id: "m10", titre: "Les ministères de Dieu" },
+  { id: "m11", titre: "Maîtriser sa santé et son argent" },
+  { id: "m12", titre: "Les tests de la République" },
+  { id: "m13", titre: "Gestes de premiers secours" },
+  { id: "m14", titre: "Création de richesse" },
+];
+const modTitle = (m) => `M${m.id.slice(1)} — ${m.titre}`;
+const STEPS = [["lecture", "Lecture"], ["qcm", "Questions"], ["exercices", "Exercices"], ["fiche", "Fiche"]];
+
+const st = {
+  user: null, isAdmin: false, isCorrecteur: false,
+  meta: {}, prog: {}, parcours: [], lien: null,
+  content: {}, view: { mod: null, step: "lecture" },
+  cache: {}, msg: "",
+  corr: { open: false, rows: null, loading: false },
+  adm: { open: false, correcteurs: [], liens: [], students: [], loaded: false },
+  qcmDraft: {},
+};
+let unsubs = [];
+let lastSync = "";
+
+/* ---------- Démarrage / arrêt ---------- */
+function stop() {
+  unsubs.forEach((f) => { try { f && f(); } catch (e) {} });
+  unsubs = [];
+  if (st.adm && st.adm.unsub) { try { st.adm.unsub(); } catch (e) {} }
+  st.adm = { open: false, correcteurs: [], liens: [], students: [], loaded: false };
+  st.user = null; st.meta = {}; st.prog = {}; st.parcours = []; st.lien = null;
+  st.isAdmin = false; st.isCorrecteur = false; st.view = { mod: null, step: "lecture" };
+  render();
+}
+async function start(user) {
+  stop();
+  st.user = user;
+  const root = $("formationRoot");
+  if (root) root.innerHTML = '<p class="settings-hint">Chargement…</p>';
+  unsubs.push(S().watchAdmins((emails) => {
+    st.isAdmin = S().isAdminEmail(user.email) || (emails || []).map((e) => e.toLowerCase()).includes(user.email.toLowerCase());
+    render();
+  }));
+  st.isCorrecteur = await S().amICorrecteur(user.email);
+  st.lien = await S().getMyLien(user.uid);
+  unsubs.push(S().watchFormationMeta(user.uid, (m) => { st.meta = m || {}; afterProgress(); render(); }));
+  unsubs.push(S().watchFormationModules(user.uid, (p) => { st.prog = p || {}; afterProgress(); render(); }));
+  unsubs.push(S().watchParcours(user.uid, (l) => { st.parcours = l || []; afterProgress(); }));
+  render();
+}
+
+/* ---------- Règles de progression ---------- */
+const acquis = () => st.meta.acquis || [];
+const isComplete = (mid) => acquis().includes(mid) || (st.prog[mid] && st.prog[mid].ficheStatus === "validated" && st.prog[mid].qcm && st.prog[mid].qcm.ok);
+function isUnlocked(i) {
+  if (i === 0) return true;
+  return isComplete(MODULES[i - 1].id);
+}
+function afterProgress() {
+  if (!st.user) return;
+  const done = MODULES.filter((m) => isComplete(m.id)).map((m) => m.id);
+  const key = done.join(",") + "|" + st.parcours.join(",");
+  if (key === lastSync) return;
+  lastSync = key;
+  const missing = done.filter((id) => !st.parcours.includes(id));
+  if (missing.length) S().saveParcours(st.user.uid, [...st.parcours, ...missing]).catch(() => {});
+  S().saveModulesSummary(st.user.uid, { formationValides: done.length }).catch(() => {});
+}
+
+async function loadContent(mid) {
+  if (st.content[mid]) return st.content[mid];
+  const n = String(mid.slice(1)).padStart(2, "0");
+  try {
+    const r = await fetch(`content/m${n}.json`);
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    st.content[mid] = await r.json();
+  } catch (e) {
+    st.content[mid] = { error: true };
+  }
+  return st.content[mid];
+}
+
+/* ---------- Valeurs des champs (brouillon local + enregistré) ---------- */
+function getVal(scope, fid, saved) {
+  const k = scope + ":" + fid;
+  return k in st.cache ? st.cache[k] : (saved ? saved[fid] : undefined);
+}
+function fieldDone(f, v) {
+  if (f.type === "check") return v === true;
+  if (f.type === "oui_non") return v && Object.keys(v).length >= f.items.length;
+  if (f.type === "scale") return !!v;
+  if (f.required) return typeof v === "string" ? v.trim().length > 0 : !!v;
+  return true;
+}
+function fieldsComplete(fields, values) {
+  return (fields || []).every((f) => fieldDone(f, values ? values[f.id] : undefined));
+}
+function exoComplete(c, p) {
+  return (c.exercices || []).every((ex) => fieldsComplete(ex.champs, (p.exercices || {})[ex.id]));
+}
+function stepStatus(c, p) {
+  const lu = (p.lu || []).length >= (c.lecons || []).length;
+  const q = !!(p.qcm && p.qcm.ok);
+  const e = exoComplete(c, p);
+  const f = p.ficheStatus === "submitted" || p.ficheStatus === "validated";
+  return { lecture: lu, qcm: q, exercices: e, fiche: f };
+}
+
+/* ---------- Rendu des champs ---------- */
+function renderField(f, scope, saved, readonly) {
+  const v = getVal(scope, f.id, saved);
+  const key = `${scope}:${f.id}`;
+  const dis = readonly ? "disabled" : "";
+  if (f.type === "check") {
+    return `<label class="fm-check"><input type="checkbox" data-f="${key}" data-t="check" ${v === true ? "checked" : ""} ${dis}><span>${esc(f.label)}</span></label>`;
+  }
+  if (f.type === "textarea") {
+    return `<label class="field"><span>${esc(f.label)}</span><textarea class="text-input" rows="3" data-f="${key}" data-t="text" ${dis}>${esc(v || "")}</textarea></label>`;
+  }
+  if (f.type === "text") {
+    return `<label class="field"><span>${esc(f.label)}</span><input class="text-input" type="text" data-f="${key}" data-t="text" value="${esc(v || "")}" ${dis}></label>`;
+  }
+  if (f.type === "select") {
+    return `<label class="field"><span>${esc(f.label)}</span><select class="text-input" data-f="${key}" data-t="text" ${dis}><option value="">—</option>${(f.options || []).map((o) => `<option ${v === o ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></label>`;
+  }
+  if (f.type === "scale") {
+    return `<div class="field"><span>${esc(f.label)}</span><div class="fm-scale">${[1, 2, 3, 4, 5].map((n) => `<label><input type="radio" name="${key}" data-f="${key}" data-t="num" value="${n}" ${String(v) === String(n) ? "checked" : ""} ${dis}><b>${n}</b></label>`).join("")}</div></div>`;
+  }
+  if (f.type === "oui_non") {
+    const ans = v || {};
+    const done = Object.keys(ans).length;
+    let h = `<p class="settings-hint">${done}/${f.items.length} réponses</p><div class="fm-yn">`;
+    f.items.forEach((it, i) => {
+      const k = String(i + 1);
+      h += `<div class="fm-yn-row"><span class="fm-yn-n">${k}</span><span class="fm-yn-q">${esc(it)}</span><span class="fm-yn-b">` +
+        ["oui", "non"].map((o) => `<label><input type="radio" name="${key}-${k}" data-f="${key}" data-t="yn" data-i="${k}" value="${o}" ${ans[k] === o ? "checked" : ""} ${dis}><b>${o === "oui" ? "Oui" : "Non"}</b></label>`).join("") + `</span></div>`;
+    });
+    h += "</div>";
+    if (done >= f.items.length) h += renderIndicateurs(f, ans);
+    return h;
+  }
+  return "";
+}
+function renderIndicateurs(f, ans) {
+  let h = '<div class="fm-result"><p class="eyebrow">Tes résultats</p>';
+  (f.indicateurs || []).forEach((ind, i) => {
+    let oui = 0, total = 0;
+    for (let k = ind.a; k <= ind.b; k++) { total++; if (ans[String(k)] === "oui") oui++; }
+    h += `<p><strong>${esc(ind.t)}</strong> — ${oui} « Oui » sur ${total} (questions ${ind.a} à ${ind.b})<br><span class="small">${esc((f.resultats || [])[i] || "")}</span></p>`;
+  });
+  if (f.resultats && f.resultats[7]) h += `<p class="small"><em>${esc(f.resultats[7])}</em></p>`;
+  return h + "</div>";
+}
+
+/* ---------- Écran principal ---------- */
+function render() {
+  const root = $("formationRoot");
+  if (!root) return;
+  if (!st.user) { root.innerHTML = ""; return; }
+  let h = "";
+  if (st.view.mod) h += renderModuleView();
+  else h += renderModuleList();
+  if (st.isCorrecteur || st.isAdmin) h += renderCorrCard();
+  if (st.isAdmin) h += renderAdminCard();
+  root.innerHTML = h;
+  if (st.msg) { const m = root.querySelector(".fm-msg"); if (m) setTimeout(() => { st.msg = ""; if (m.parentNode) m.remove(); }, 4000); }
+  if (st.view.mod && !st.content[st.view.mod]) loadContent(st.view.mod).then(render);
+  if (st.corr.open && st.corr.rows == null && !st.corr.loading) loadCorrections();
+  if (st.adm.open && !st.adm.loaded) loadAdmin();
+}
+
+function renderModuleList() {
+  const faits = MODULES.filter((m) => isComplete(m.id)).length;
+  let h = st.msg ? `<p class="fm-msg">${esc(st.msg)}</p>` : "";
+  h += `<div class="card"><p class="eyebrow">Ma formation</p>
+    <p class="settings-hint">${faits}/${MODULES.length} modules validés. Pour passer au module suivant : lis le manuel, réponds aux questions, fais les exercices, puis envoie ta fiche. Ton correcteur la valide.</p>`;
+  if (st.lien && st.lien.correcteurNom) h += `<p class="settings-hint">Ton correcteur : <strong>${esc(st.lien.correcteurNom)}</strong></p>`;
+  else if (!st.isAdmin) h += `<p class="settings-hint">Aucun correcteur ne t'est encore attribué. Tu peux lire et répondre, mais l'envoi de ta fiche attendra qu'un correcteur te soit lié.</p>`;
+  h += '<div class="fm-mods">';
+  MODULES.forEach((m, i) => {
+    const done = isComplete(m.id), open = isUnlocked(i), p = st.prog[m.id] || {};
+    let badge = "🔒 Verrouillé", cls = "locked";
+    if (done) { badge = "✅ Validé"; cls = "done"; }
+    else if (open && !m.ready) { badge = "Bientôt disponible"; cls = "soon"; }
+    else if (open) {
+      cls = "open";
+      badge = p.ficheStatus === "submitted" ? "⏳ En correction" : p.ficheStatus === "returned" ? "↩️ À reprendre" : (p.lu || p.qcm || p.exercices) ? "En cours" : "À commencer";
+    }
+    const clickable = (open && m.ready) || done;
+    h += `<button class="fm-mod ${cls}" ${clickable ? `data-act="open" data-m="${m.id}"` : "disabled"}><span class="fm-mod-t">${esc(modTitle(m))}</span><span class="fm-mod-b">${badge}</span></button>`;
+  });
+  return h + "</div></div>";
+}
+
+function renderModuleView() {
+  const mid = st.view.mod, m = MODULES.find((x) => x.id === mid);
+  const c = st.content[mid];
+  let h = `<div class="card"><button class="btn-secondary" data-act="back">← Mes modules</button>
+    <h2 class="fm-h">${esc(modTitle(m))}</h2>`;
+  if (!c) return h + '<p class="settings-hint">Chargement du module…</p></div>';
+  if (c.error) return h + '<p class="auth-error">Impossible de charger ce module. Vérifie ta connexion puis réessaie.</p></div>';
+  const p = st.prog[mid] || {};
+  const ss = stepStatus(c, p);
+  if (st.msg) h += `<p class="fm-msg">${esc(st.msg)}</p>`;
+  h += '<div class="fm-steps">' + STEPS.map(([k, l], i) => `<button class="fm-step ${st.view.step === k ? "on" : ""} ${ss[k] ? "ok" : ""}" data-act="step" data-s="${k}">${ss[k] ? "✓" : i + 1}<small>${l}</small></button>`).join("") + "</div>";
+  const readonlyAll = p.ficheStatus === "submitted" || p.ficheStatus === "validated";
+  if (st.view.step === "lecture") h += renderLecture(c, p);
+  else if (st.view.step === "qcm") h += renderQcm(c, p);
+  else if (st.view.step === "exercices") h += renderExercices(c, p, readonlyAll);
+  else h += renderFiche(c, p, ss);
+  return h + "</div>";
+}
+
+function renderLecture(c, p) {
+  const lu = p.lu || [];
+  let h = "";
+  if (c.objectifs && c.objectifs.length) h += `<div class="fm-obj"><p class="eyebrow">Objectif de ce module</p><p class="small">À la fin, quelque chose doit avoir changé dans ta vie :</p><ul>${c.objectifs.map((o) => `<li>${esc(o)}</li>`).join("")}</ul></div>`;
+  h += `<p class="settings-hint">${lu.length}/${c.lecons.length} leçons lues. Ouvre chaque leçon, lis-la, puis touche « J'ai lu ».</p>`;
+  c.lecons.forEach((l) => {
+    const done = lu.includes(l.id);
+    h += `<details class="fm-lecon ${done ? "done" : ""}"><summary>${done ? "✓ " : ""}${esc(l.titre)}</summary><div class="fm-texte">${l.html}</div>
+      ${done ? '<p class="small">Leçon lue.</p>' : `<button class="btn-primary" data-act="lu" data-l="${l.id}">J'ai lu cette leçon</button>`}</details>`;
+  });
+  if (lu.length >= c.lecons.length) h += '<button class="btn-primary full" data-act="step" data-s="qcm">Passer aux questions →</button>';
+  return h;
+}
+
+function renderQcm(c, p) {
+  const q = c.qcm || [], res = p.qcm;
+  const locked = p.ficheStatus === "submitted" || p.ficheStatus === "validated";
+  let h = `<p class="settings-hint">${q.length} questions. Il faut au moins ${c.seuil || 70} % pour avancer. Tu peux recommencer autant de fois que nécessaire.</p>`;
+  if (res) {
+    h += `<div class="fm-score ${res.ok ? "ok" : "ko"}"><strong>${res.pct} %</strong> — ${res.score}/${res.total} bonnes réponses. ${res.ok ? "Bravo, c'est validé." : "Il te faut " + (c.seuil || 70) + " % : relis les leçons et recommence."}</div>`;
+  }
+  const showing = !res || st.qcmDraft.retry;
+  if (res && !showing) {
+    q.forEach((it, i) => {
+      const mine = res.answers ? res.answers[i] : null, good = mine === it.b;
+      h += `<div class="fm-q ${good ? "good" : "bad"}"><p><strong>${i + 1}. ${esc(it.q)}</strong></p>
+        <p class="small">Ta réponse : ${esc(mine == null ? "—" : it.c[mine])} ${good ? "✓" : "✗"}</p>
+        ${good ? "" : `<p class="small">Bonne réponse : ${esc(it.c[it.b])}</p>`}<p class="small"><em>${esc(it.e || "")}</em></p></div>`;
+    });
+    if (!locked) h += '<button class="btn-secondary" data-act="qcm-retry">Recommencer les questions</button>';
+    if (res.ok) h += '<button class="btn-primary full" data-act="step" data-s="exercices">Passer aux exercices →</button>';
+    return h;
+  }
+  q.forEach((it, i) => {
+    h += `<div class="fm-q"><p><strong>${i + 1}. ${esc(it.q)}</strong></p>` + it.c.map((o, j) =>
+      `<label class="fm-opt"><input type="radio" name="q${i}" data-qcm="${i}" value="${j}" ${st.qcmDraft[i] === j ? "checked" : ""}><span>${esc(o)}</span></label>`).join("") + "</div>";
+  });
+  h += '<button class="btn-primary full" data-act="qcm-submit">Valider mes réponses</button>';
+  return h;
+}
+
+function renderExercices(c, p, readonly) {
+  const done = exoComplete(c, p);
+  let h = '<p class="settings-hint">Fais chaque exercice, puis touche « Enregistrer ». Tu peux revenir les compléter plus tard.</p>';
+  (c.exercices || []).forEach((ex) => {
+    const saved = (p.exercices || {})[ex.id] || {};
+    const ok = fieldsComplete(ex.champs, saved);
+    h += `<div class="fm-ex ${ok ? "ok" : ""}"><p class="eyebrow">${ok ? "✓ " : ""}${esc(ex.titre)}</p><p class="small">${esc(ex.consigne || "")}</p>${ex.intro_html ? `<details class="fm-lecon"><summary>Lire le texte</summary><div class="fm-texte">${ex.intro_html}</div></details>` : ""}`;
+    (ex.champs || []).forEach((f) => { h += renderField(f, "ex:" + ex.id, saved, readonly); });
+    if (!readonly) h += `<button class="btn-secondary" data-act="ex-save" data-e="${ex.id}">Enregistrer</button>`;
+    h += "</div>";
+  });
+  if (done) h += '<button class="btn-primary full" data-act="step" data-s="fiche">Passer à la fiche →</button>';
+  return h;
+}
+
+function statusLabel(s) {
+  return { draft: "Brouillon", submitted: "Envoyée — en attente de correction", returned: "Renvoyée par ton correcteur", validated: "Validée ✅" }[s || "draft"];
+}
+function renderFiche(c, p, ss) {
+  const f = c.fiche, status = p.ficheStatus || "draft";
+  const readonly = status === "submitted" || status === "validated";
+  let h = `<p class="eyebrow">${esc(f.titre)}</p><p class="fm-status ${status}">${statusLabel(status)}</p>`;
+  if (status === "returned" && p.correctorComment) h += `<div class="fm-return"><strong>Remarque de ton correcteur :</strong><br>${esc(p.correctorComment)}</div>`;
+  if (status === "validated" && p.correctorComment) h += `<div class="fm-return"><strong>Mot de ton correcteur :</strong><br>${esc(p.correctorComment)}</div>`;
+  const saved = p.ficheData || {};
+  f.champs.forEach((fd) => { h += renderField(fd, "fiche", saved, readonly); });
+  if (!readonly) {
+    h += '<button class="btn-secondary" data-act="fiche-save">Enregistrer le brouillon</button>';
+    const prereq = ss.lecture && ss.qcm && ss.exercices;
+    h += `<button class="btn-primary full" data-act="fiche-send" ${prereq ? "" : "disabled"}>Envoyer à mon correcteur</button>`;
+    if (!prereq) h += '<p class="settings-hint">Pour envoyer : termine la lecture, réussis les questions et complète les exercices.</p>';
+  }
+  return h;
+}
+
+/* ---------- Collecte des champs (saisie en cours) ---------- */
+function collect(scope) {
+  const out = {};
+  const prefix = scope + ":";
+  Object.keys(st.cache).forEach((k) => { if (k.startsWith(prefix)) out[k.slice(prefix.length)] = st.cache[k]; });
+  return out;
+}
+function onFieldInput(el) {
+  const k = el.dataset.f, t = el.dataset.t;
+  if (t === "check") st.cache[k] = el.checked;
+  else if (t === "num") st.cache[k] = Number(el.value);
+  else if (t === "yn") {
+    const cur = Object.assign({}, st.cache[k] || currentSaved(k) || {});
+    cur[el.dataset.i] = el.value;
+    st.cache[k] = cur;
+    if (Object.keys(cur).length >= 1) rerenderKeepScroll();
+  } else st.cache[k] = el.value;
+}
+function currentSaved(k) {
+  const [scope, ...rest] = k.split(":");
+  const fid = rest.pop();
+  const mid = st.view.mod, p = st.prog[mid] || {};
+  if (scope === "fiche") return (p.ficheData || {})[fid];
+  if (scope === "ex") { const exId = rest.join(":"); return ((p.exercices || {})[exId] || {})[fid]; }
+  return undefined;
+}
+function rerenderKeepScroll() { const y = window.scrollY; render(); window.scrollTo(0, y); }
+
+// Fusionne les champs saisis (cache) avec ce qui est enregistré pour une portée donnée
+function scopeValues(scope, saved) {
+  return Object.assign({}, saved || {}, collect(scope));
+}
+
+/* ---------- Actions ---------- */
+async function onClick(e) {
+  const b = e.target.closest("[data-act]");
+  if (!b) return;
+  const act = b.dataset.act, mid = st.view.mod;
+  try {
+    if (act === "open") { S().getMyLien(st.user.uid).then((l) => { st.lien = l; }); st.view = { mod: b.dataset.m, step: "lecture" }; st.cache = {}; st.qcmDraft = {}; render(); window.scrollTo(0, 0); return; }
+    if (act === "back") { st.view = { mod: null, step: "lecture" }; st.cache = {}; render(); return; }
+    if (act === "step") { st.view.step = b.dataset.s; render(); window.scrollTo(0, 0); return; }
+    if (act === "lu") {
+      const p = st.prog[mid] || {};
+      const lu = Array.from(new Set([...(p.lu || []), b.dataset.l]));
+      await S().saveModulePart(st.user.uid, mid, { lu }); return;
+    }
+    if (act === "qcm-retry") { st.qcmDraft = { retry: true }; render(); return; }
+    if (act === "qcm-submit") return submitQcm();
+    if (act === "ex-save") return saveExercise(b.dataset.e);
+    if (act === "fiche-save") return saveFiche(false);
+    if (act === "fiche-send") return saveFiche(true);
+    if (act === "corr-toggle") { st.corr.open = !st.corr.open; if (st.corr.open) st.corr.rows = null; render(); return; }
+    if (act === "corr-refresh") { st.corr.rows = null; render(); return; }
+    if (act === "corr-review") return reviewFromUi(b);
+    if (act === "adm-toggle") { st.adm.open = !st.adm.open; render(); return; }
+    if (act === "adm-addcorr") return admAddCorrecteur();
+    if (act === "adm-delcorr") { await S().removeCorrecteur(b.dataset.e); await loadAdmin(); return; }
+    if (act === "adm-setlien") return admSetLien(b.dataset.u);
+    if (act === "adm-setacquis") return admSetAcquis(b.dataset.u);
+  } catch (err) {
+    console.error(err);
+    st.msg = "Une erreur est survenue : " + (err && err.message ? err.message : err);
+    render();
+  }
+}
+function onChange(e) {
+  const q = e.target.dataset && e.target.dataset.qcm;
+  if (q != null) { st.qcmDraft[q] = Number(e.target.value); return; }
+  if (e.target.dataset && e.target.dataset.f) onFieldInput(e.target);
+}
+function onInput(e) {
+  if (e.target.dataset && e.target.dataset.f && (e.target.tagName === "TEXTAREA" || e.target.type === "text")) onFieldInput(e.target);
+}
+
+async function submitQcm() {
+  const mid = st.view.mod, c = st.content[mid], q = c.qcm;
+  const answers = q.map((_, i) => (st.qcmDraft[i] == null ? null : st.qcmDraft[i]));
+  if (answers.some((a) => a == null)) { st.msg = "Réponds à toutes les questions avant de valider."; render(); return; }
+  const score = answers.filter((a, i) => a === q[i].b).length;
+  const pct = Math.round((score / q.length) * 100);
+  const qcm = { answers, score, total: q.length, pct, ok: pct >= (c.seuil || 70), at: new Date().toISOString() };
+  st.qcmDraft = {};
+  await S().saveModulePart(st.user.uid, mid, { qcm });
+}
+async function saveExercise(exId) {
+  const mid = st.view.mod, p = st.prog[mid] || {};
+  const saved = (p.exercices || {})[exId] || {};
+  const vals = scopeValues("ex:" + exId, saved);
+  await S().saveModulePart(st.user.uid, mid, { exercices: { ...(p.exercices || {}), [exId]: vals } });
+  st.msg = "Exercice enregistré.";
+}
+async function saveFiche(send) {
+  const mid = st.view.mod, c = st.content[mid], p = st.prog[mid] || {};
+  const vals = scopeValues("fiche", p.ficheData);
+  if (send) {
+    if (!fieldsComplete(c.fiche.champs, vals)) { st.msg = "Complète tous les champs de la fiche avant de l'envoyer."; await S().saveModulePart(st.user.uid, mid, { ficheData: vals }); render(); return; }
+    if (!st.lien) { st.msg = "Aucun correcteur ne t'est encore attribué. Contacte la coordination."; await S().saveModulePart(st.user.uid, mid, { ficheData: vals }); render(); return; }
+    await S().saveModulePart(st.user.uid, mid, { ficheData: vals, ficheStatus: "submitted", submittedAt: new Date().toISOString() });
+    st.msg = "Fiche envoyée à ton correcteur.";
+  } else {
+    await S().saveModulePart(st.user.uid, mid, { ficheData: vals });
+    st.msg = "Brouillon enregistré.";
+  }
+}
+
+/* ---------- Correcteur : fiches à valider ---------- */
+function renderCorrCard() {
+  let h = `<div class="card"><button class="fm-acc" data-act="corr-toggle"><span class="eyebrow">Corrections</span><span>${st.corr.open ? "▾" : "▸"}</span></button>`;
+  if (!st.corr.open) return h + "</div>";
+  h += '<button class="btn-secondary" data-act="corr-refresh">Actualiser</button>';
+  if (st.corr.rows == null) return h + '<p class="settings-hint">Chargement…</p></div>';
+  const pend = st.corr.rows.filter((r) => r.doc.ficheStatus === "submitted");
+  if (!pend.length) h += '<p class="settings-hint">Aucune fiche en attente.</p>';
+  pend.forEach((r, i) => { h += renderCorrRow(r, i); });
+  const hist = st.corr.rows.filter((r) => r.doc.ficheStatus !== "submitted");
+  if (hist.length) h += '<p class="eyebrow" style="margin-top:14px;">Déjà traitées</p>' + hist.map((r) => `<p class="small">${esc(r.nom)} — ${esc(modTitle(MODULES.find((m) => m.id === r.mid)))} : ${statusLabel(r.doc.ficheStatus)}</p>`).join("");
+  return h + "</div>";
+}
+async function loadCorrections() {
+  st.corr.loading = true;
+  try {
+    const liens = st.isAdmin ? await S().loadAllLiens() : await S().loadMyStudents(st.user.email);
+    const rows = [];
+    for (const l of liens) {
+      let mods = {};
+      try { mods = await S().loadStudentModules(l.uid || l.id); } catch (e) {}
+      Object.keys(mods).forEach((mid) => {
+        const d = mods[mid];
+        if (["submitted", "validated", "returned"].includes(d.ficheStatus)) rows.push({ uid: l.uid || l.id, nom: l.nom || l.email || "", mid, doc: d });
+      });
+    }
+    st.corr.rows = rows;
+  } catch (e) { st.corr.rows = []; st.msg = "Impossible de charger les fiches : " + e.message; }
+  st.corr.loading = false;
+  render();
+  for (const r of st.corr.rows) await loadContent(r.mid).then(() => {});
+  render();
+}
+function renderCorrRow(r, i) {
+  const c = st.content[r.mid];
+  const m = MODULES.find((x) => x.id === r.mid);
+  let h = `<div class="fm-ex"><p class="eyebrow">${esc(r.nom)} — ${esc(modTitle(m))}</p>`;
+  if (r.doc.qcm) h += `<p class="small">Questions : <strong>${r.doc.qcm.pct} %</strong> (${r.doc.qcm.score}/${r.doc.qcm.total})</p>`;
+  if (!c || c.error) h += '<p class="small">Chargement du contenu…</p>';
+  else {
+    h += `<details class="fm-lecon"><summary>Voir la fiche et les exercices</summary><div class="fm-texte">`;
+    (c.exercices || []).forEach((ex) => {
+      const v = (r.doc.exercices || {})[ex.id] || {};
+      h += `<p><strong>${esc(ex.titre)}</strong></p>` + (ex.champs || []).map((f) => readValue(f, v[f.id])).join("");
+    });
+    h += `<p><strong>${esc(c.fiche.titre)}</strong></p>` + c.fiche.champs.map((f) => readValue(f, (r.doc.ficheData || {})[f.id])).join("");
+    h += "</div></details>";
+  }
+  h += `<label class="field"><span>Remarque pour l'étudiant (obligatoire si tu renvoies)</span><textarea class="text-input" rows="2" id="corrc-${i}"></textarea></label>
+    <button class="btn-primary" data-act="corr-review" data-i="${i}" data-s="validated">Valider</button>
+    <button class="btn-secondary" data-act="corr-review" data-i="${i}" data-s="returned">Renvoyer pour correction</button></div>`;
+  return h;
+}
+function readValue(f, v) {
+  if (f.type === "oui_non") {
+    const oui = Object.values(v || {}).filter((x) => x === "oui").length;
+    return `<p class="small">${esc(f.id.toUpperCase())} : ${oui} « Oui » sur ${f.items.length}</p>`;
+  }
+  if (f.type === "check") return `<p class="small">${v === true ? "☑" : "☐"} ${esc(f.label)}</p>`;
+  return `<p class="small"><em>${esc(f.label)}</em><br>${esc(v == null || v === "" ? "—" : v)}</p>`;
+}
+async function reviewFromUi(b) {
+  const pend = st.corr.rows.filter((r) => r.doc.ficheStatus === "submitted");
+  const r = pend[Number(b.dataset.i)];
+  const status = b.dataset.s;
+  const comment = ($("corrc-" + b.dataset.i) || {}).value || "";
+  if (status === "returned" && !comment.trim()) { st.msg = "Écris une remarque pour expliquer ce qui est à reprendre."; render(); return; }
+  await S().reviewFiche(r.uid, r.mid, status, comment, st.user.email);
+  st.msg = status === "validated" ? "Fiche validée." : "Fiche renvoyée.";
+  st.corr.rows = null;
+  render();
+}
+
+/* ---------- Coordinateur : correcteurs, liens, modules acquis ---------- */
+async function loadAdmin() {
+  try {
+    const [liens, sums] = await Promise.all([S().loadAllLiens(), S().loadAllSummaries()]);
+    st.adm.liens = liens;
+    st.adm.students = sums.filter((s) => s.email).sort((a, b) => (a.nom || "").localeCompare(b.nom || ""));
+    const metas = {};
+    await Promise.all(st.adm.students.map(async (s) => {
+      metas[s.uid] = await new Promise((res) => { const u = S().watchFormationMeta(s.uid, (m) => { u(); res(m); }); });
+    }));
+    st.adm.metas = metas;
+  } catch (e) { st.msg = "Chargement impossible : " + e.message; }
+  if (!st.adm.unsub) st.adm.unsub = S().watchCorrecteurs((l) => { st.adm.correcteurs = l; render(); });
+  st.adm.loaded = true;
+  render();
+}
+function renderAdminCard() {
+  let h = `<div class="card"><button class="fm-acc" data-act="adm-toggle"><span class="eyebrow">Gestion des correcteurs et des étudiants</span><span>${st.adm.open ? "▾" : "▸"}</span></button>`;
+  if (!st.adm.open) return h + "</div>";
+  if (!st.adm.loaded) return h + '<p class="settings-hint">Chargement…</p></div>';
+  h += '<p class="eyebrow">Correcteurs</p>';
+  if (!st.adm.correcteurs.length) h += '<p class="settings-hint">Aucun correcteur pour l\'instant.</p>';
+  st.adm.correcteurs.forEach((c) => { h += `<p class="small">${esc(c.nom || "")} — ${esc(c.email)} <button class="btn-small btn-refuse" data-act="adm-delcorr" data-e="${esc(c.email)}">Retirer</button></p>`; });
+  h += `<div class="fm-add"><input class="text-input" id="admCorrNom" placeholder="Nom du correcteur"><input class="text-input" id="admCorrEmail" type="email" placeholder="E-mail du compte du correcteur"><button class="btn-secondary" data-act="adm-addcorr">Ajouter ce correcteur</button></div>`;
+  h += '<p class="eyebrow" style="margin-top:16px;">Étudiants</p><p class="settings-hint">Lie chaque étudiant à un correcteur. « Modules acquis » : les modules déjà faits en séance, comptés comme validés.</p>';
+  st.adm.students.forEach((s) => {
+    const lien = st.adm.liens.find((l) => (l.uid || l.id) === s.uid);
+    const acq = ((st.adm.metas || {})[s.uid] || {}).acquis || [];
+    h += `<div class="fm-ex"><p class="eyebrow">${esc(s.nom || s.email)}</p><p class="small">${esc(s.email)}</p>
+      <label class="field"><span>Correcteur</span><select class="text-input" id="admLien-${s.uid}"><option value="">— aucun —</option>${st.adm.correcteurs.map((c) => `<option value="${esc(c.email)}" ${lien && lien.correcteurEmail === c.email ? "selected" : ""}>${esc(c.nom || c.email)}</option>`).join("")}</select></label>
+      <button class="btn-secondary" data-act="adm-setlien" data-u="${s.uid}">Enregistrer le lien</button>
+      <div class="fm-acq">${MODULES.map((m) => `<label><input type="checkbox" id="admAcq-${s.uid}-${m.id}" ${acq.includes(m.id) ? "checked" : ""}> M${m.id.slice(1)}</label>`).join("")}</div>
+      <button class="btn-secondary" data-act="adm-setacquis" data-u="${s.uid}">Enregistrer les modules acquis</button></div>`;
+  });
+  return h + "</div>";
+}
+async function admAddCorrecteur() {
+  const nom = ($("admCorrNom") || {}).value || "", email = ($("admCorrEmail") || {}).value || "";
+  if (!email.includes("@")) { st.msg = "Saisis un e-mail valide."; render(); return; }
+  await S().addCorrecteur(email, nom.trim(), st.user.email);
+  st.msg = "Correcteur ajouté.";
+}
+async function admSetLien(uid) {
+  const email = ($("admLien-" + uid) || {}).value || "";
+  const s = st.adm.students.find((x) => x.uid === uid);
+  if (!email) { await S().deleteLien(uid); st.adm.liens = st.adm.liens.filter((l) => (l.uid || l.id) !== uid); st.msg = "Lien supprimé."; render(); return; }
+  const c = st.adm.correcteurs.find((x) => x.email === email);
+  const data = { nom: s.nom || s.email, email: s.email, correcteurEmail: email, correcteurNom: c ? c.nom || c.email : email };
+  await S().setLien(uid, data);
+  st.adm.liens = st.adm.liens.filter((l) => (l.uid || l.id) !== uid).concat([{ uid, ...data }]);
+  st.msg = "Lien enregistré.";
+  render();
+}
+async function admSetAcquis(uid) {
+  const list = MODULES.filter((m) => { const el = $(`admAcq-${uid}-${m.id}`); return el && el.checked; }).map((m) => m.id);
+  await S().setAcquis(uid, list);
+  st.adm.metas[uid] = { acquis: list };
+  st.msg = "Modules acquis enregistrés.";
+  render();
+}
+
+/* ---------- Branchement ---------- */
+function boot() {
+  const root = $("formationRoot");
+  if (!root) return;
+  root.addEventListener("click", onClick);
+  root.addEventListener("change", onChange);
+  root.addEventListener("input", onInput);
+  S().watchAuth((user) => { if (user) start(user); else stop(); });
+}
+if (window.AbbaSync) boot(); else window.addEventListener("load", boot);
+window.Formation = { start, stop };

@@ -77,5 +77,58 @@ service cloud.firestore {
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
+
+    // ===== FORMATION EN AUTONOMIE (correcteurs, liens, progression par module) =====
+    function myEmail() { return request.auth.token.email.lower(); }
+
+    // Le correcteur désigné pour cet étudiant (lien posé par le coordinateur)
+    function isCorrecteurOf(uid) {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/liens/$(uid)) &&
+        get(/databases/$(database)/documents/liens/$(uid)).data.correcteurEmail == myEmail();
+    }
+
+    // Liste des correcteurs : gérée par le coordinateur
+    match /correcteurs/{email} {
+      allow read: if isAdmin() || (request.auth != null && email == myEmail());
+      allow write: if isAdmin();
+    }
+
+    // Lien étudiant -> correcteur : posé par le coordinateur
+    match /liens/{uid} {
+      allow read: if isAdmin()
+        || (request.auth != null && request.auth.uid == uid)
+        || (request.auth != null && resource.data.correcteurEmail == myEmail());
+      allow write: if isAdmin();
+    }
+
+    match /formation/{uid} {
+      // Document de synthèse (modules acquis, posés par le coordinateur)
+      allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid) || isCorrecteurOf(uid);
+      allow write: if isAdmin();
+
+      match /modules/{mid} {
+        allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid) || isCorrecteurOf(uid);
+
+        // L'étudiant écrit ses réponses, jamais la validation
+        allow create: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['qcm','exercices','ficheData','ficheStatus','submittedAt','updatedAt','lu'])
+          && request.resource.data.get('ficheStatus', 'draft') in ['draft', 'submitted'];
+
+        allow update: if (request.auth != null && request.auth.uid == uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qcm','exercices','ficheData','ficheStatus','submittedAt','updatedAt','lu'])
+            && resource.data.get('ficheStatus', 'draft') in ['draft', 'returned']
+            && (request.resource.data.get('ficheStatus', 'draft') in ['draft', 'submitted']
+                || (request.resource.data.get('ficheStatus', 'draft') == 'returned' && resource.data.get('ficheStatus', 'draft') == 'returned')))
+          // Le correcteur valide ou renvoie une fiche envoyée, rien d'autre
+          || (isCorrecteurOf(uid)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ficheStatus','validatedBy','validatedAt','correctorComment'])
+            && resource.data.get('ficheStatus', 'draft') == 'submitted'
+            && request.resource.data.ficheStatus in ['validated', 'returned'])
+          || isAdmin();
+
+        allow delete: if isAdmin();
+      }
+    }
   }
 }
