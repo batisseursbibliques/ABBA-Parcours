@@ -28,6 +28,6 @@ jobs:
           code=$?
           cat out.txt
           if [ $code -ne 0 ]; then
-            echo "::error title=Erreur Firebase::$(tail -n 12 out.txt | tr '\n' ' ' | cut -c1-900)"
+            echo "::error title=Erreur Firebase::$(grep -iv "npm warn" out.txt | tail -n 12 | tr '\n' ' ' | cut -c1-900)"
             exit $code
           fi
