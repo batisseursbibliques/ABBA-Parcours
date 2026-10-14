@@ -1,4 +1,7 @@
-const CACHE = "abba-parcours-v13";
+// Parcours Bâtisseur — service worker
+// Principe : le réseau d'abord (toujours la dernière version quand il y a du réseau),
+// le cache en secours (lecture hors ligne). Plus de version « figée » sur le téléphone.
+const CACHE = "abba-parcours-v14";
 const ASSETS = [
   "./", "./index.html", "./style.css", "./app.js", "./sync.js", "./formation.js",
   "./firebase-config.js", "./manifest.json", "./logo.png",
@@ -6,49 +9,33 @@ const ASSETS = [
   ...Array.from({ length: 14 }, (_, i) => `./content/m${String(i + 1).padStart(2, "0")}.json`),
 ];
 
-// Installation : mettre tous les fichiers en cache immédiatement
-self.addEventListener("install", e => {
+self.addEventListener("install", (e) => {
   e.waitUntil(
     caches.open(CACHE)
-      .then(c => c.addAll(ASSETS))
+      .then((c) => Promise.all(ASSETS.map((u) =>
+        fetch(new Request(u, { cache: "reload" })).then((r) => (r.ok ? c.put(u, r) : null)).catch(() => null))))
       .then(() => self.skipWaiting())
   );
 });
 
-// Activation : supprimer les anciens caches
-self.addEventListener("activate", e => {
+self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
 
-// Fetch : cache d'abord (hors ligne garanti), réseau en arrière-plan
-self.addEventListener("fetch", e => {
-  const url = new URL(e.request.url);
-
-  // Firebase, Google APIs : réseau uniquement (pas de cache)
-  if (url.hostname.includes("firebase") ||
-      url.hostname.includes("googleapis") ||
-      url.hostname.includes("gstatic") ||
-      url.hostname.includes("firebaseio")) {
-    return; // le navigateur gère directement
-  }
-
-  // Fichiers de l'app : cache d'abord, mise à jour réseau en arrière-plan
+self.addEventListener("fetch", (e) => {
+  const req = e.request;
+  const url = new URL(req.url);
+  if (req.method !== "GET" || url.origin !== self.location.origin) return; // Firebase, Google : le navigateur gère
   e.respondWith(
-    caches.open(CACHE).then(cache =>
-      cache.match(e.request).then(cached => {
-        const networkFetch = fetch(e.request).then(response => {
-          if (response && response.status === 200 && response.type !== "opaque") {
-            cache.put(e.request, response.clone());
-          }
-          return response;
-        }).catch(() => cached);
-        // Retourner le cache immédiatement si disponible, sinon attendre le réseau
-        return cached || networkFetch;
+    fetch(new Request(req, { cache: "no-cache" }))
+      .then((res) => {
+        if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
+        return res;
       })
-    )
+      .catch(() => caches.match(req).then((hit) => hit || caches.match("./index.html")))
   );
 });

@@ -10,19 +10,19 @@ const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": 
 
 const MODULES = [
   { id: "m1", titre: "Disciple de Christ", ready: true },
-  { id: "m2", titre: "Guérir des blessures de l'âme" },
-  { id: "m3", titre: "Cure d'âme personnelle" },
+  { id: "m2", titre: "Guérir des Blessures de l'Âme" },
+  { id: "m3", titre: "Cure d'Âme Personnelle" },
   { id: "m4", titre: "Aimer" },
-  { id: "m5", titre: "Bâtir le caractère" },
-  { id: "m6", titre: "Relation avec le Saint-Esprit" },
-  { id: "m7", titre: "Victoire par la prière" },
-  { id: "m8", titre: "Le monde spirituel" },
-  { id: "m9", titre: "Évangélisation, guérison, délivrance" },
-  { id: "m10", titre: "Les ministères de Dieu" },
-  { id: "m11", titre: "Maîtriser sa santé et son argent" },
-  { id: "m12", titre: "Les tests de la République" },
-  { id: "m13", titre: "Gestes de premiers secours" },
-  { id: "m14", titre: "Création de richesse" },
+  { id: "m5", titre: "Bâtir le Caractère" },
+  { id: "m6", titre: "Le Saint-Esprit" },
+  { id: "m7", titre: "Victoire par la Prière" },
+  { id: "m8", titre: "Le Monde Spirituel" },
+  { id: "m9", titre: "Évangélisation, Guérison, Délivrance" },
+  { id: "m10", titre: "Les Ministères de Dieu" },
+  { id: "m11", titre: "Maîtriser sa Santé et son Argent" },
+  { id: "m12", titre: "Citoyenneté Responsable" },
+  { id: "m13", titre: "Les Gestes de Premiers Secours" },
+  { id: "m14", titre: "Création de Richesse" },
 ];
 const modTitle = (m) => `M${m.id.slice(1)} — ${m.titre}`;
 const STEPS = [["lecture", "Lecture"], ["qcm", "Questions"], ["exercices", "Exercices"], ["fiche", "Fiche"]];

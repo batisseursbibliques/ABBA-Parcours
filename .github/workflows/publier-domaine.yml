@@ -1,0 +1,55 @@
+name: Publier sur batisseursbibliques.org
+
+# Le domaine batisseursbibliques.org est servi par Firebase Hosting (projet abba-g, dépôt abba-gestion).
+# Ce dépôt reste la SEULE source de l'app : à chaque envoi sur main, ses fichiers sont
+# copiés automatiquement dans abba-gestion/public/ABBA-Parcours, ce qui déclenche le déploiement.
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - ".github/**"
+      - "firebase.json"
+      - ".firebaserc"
+  workflow_dispatch:
+
+concurrency:
+  group: publier-domaine
+  cancel-in-progress: false
+
+jobs:
+  publier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: src
+
+      - name: Préparer l'accès à abba-gestion (clé de déploiement)
+        env:
+          KEY: ${{ secrets.GESTION_DEPLOY_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Copier les fichiers dans abba-gestion
+        run: |
+          git clone --depth 1 --filter=blob:none --sparse git@github.com:batisseursbibliques/abba-gestion.git gest
+          cd gest
+          git sparse-checkout set public/ABBA-Parcours
+          D=public/ABBA-Parcours
+          rm -rf "$D" && mkdir -p "$D"
+          cd ../src
+          cp -r index.html app.js sync.js formation.js firebase-config.js style.css sw.js manifest.json \
+                logo.png icon-192.png icon-512.png content firestore.rules ../gest/$D/
+          cd ../gest
+          git config user.name "Publication automatique"
+          git config user.email "noreply@batisseursbibliques.org"
+          git add -A "$D"
+          if git diff --cached --quiet; then echo "Rien à publier."; exit 0; fi
+          git commit -m "ABBA-Parcours : publication automatique ($(cd ../src && git rev-parse --short HEAD))"
+          for i in 1 2 3; do
+            git push origin HEAD:main && break
+            git pull --rebase origin main
+          done
