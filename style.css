@@ -704,3 +704,7 @@ details.fm-ex[open]>summary{border-bottom:1px dashed var(--line);margin-bottom:1
 .dash-tasks-head em{color:var(--brick);font-size:12px;font-style:normal;margin-left:4px;}
 .dash-tasks.open .dash-task{padding-left:16px;padding-right:16px;}
 .dash-tasks.open .dash-task:first-of-type{border-top:1px dashed #E8C98F;}
+
+.fm-grid-row{border-top:1px dashed var(--line);padding:8px 0;}
+.fm-grid-t{font-weight:700;color:var(--navy);margin:0 0 4px;font-size:14px;}
+.fm-grid-c{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--ink-soft);margin-bottom:6px;}

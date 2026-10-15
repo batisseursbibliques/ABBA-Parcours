@@ -11,8 +11,8 @@ const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": 
 const MODULES = [
   { id: "m1", titre: "Disciple de Christ", ready: true },
   { id: "m2", titre: "Guérir des Blessures de l'Âme", ready: true },
-  { id: "m3", titre: "Cure d'Âme Personnelle", preview: true },
-  { id: "m4", titre: "Aimer" },
+  { id: "m3", titre: "Cure d'Âme Personnelle", ready: true },
+  { id: "m4", titre: "Aimer", preview: true },
   { id: "m5", titre: "Bâtir le Caractère" },
   { id: "m6", titre: "Le Saint-Esprit" },
   { id: "m7", titre: "Victoire par la Prière" },
@@ -117,6 +117,7 @@ function fieldDone(f, v, prefix) {
   if (f.type === "suivi") return !!st.suivis[`${prefix}_${f.id}`];
   if (f.type === "check") return f.optional ? true : v === true;
   if (f.type === "oui_non" || f.type === "scores") return v && Object.keys(v).length >= f.items.length;
+  if (f.type === "grille") return !!v && Object.values(v).filter(Boolean).length >= f.rows.length * f.cols.length;
   if (f.type === "scale") return !!v;
   if (f.required) return typeof v === "string" ? v.trim().length > 0 : !!v;
   return true;
@@ -155,7 +156,7 @@ function renderSuivi(f, key) {
       labels.map((lb, i) => `<label><input type="checkbox" data-sv="${key}|${d}|${i}" ${got.includes(i) ? "checked" : ""} ${future ? "disabled" : ""}><b>${esc(lb)}</b></label>`).join("") +
       `</span>${late ? "<em>en retard</em>" : ""}</div>`;
     if ((f.notesJours || []).includes(d) && !future) {
-      h += `<textarea class="text-input fm-day-note" rows="2" placeholder="Ce que j'observe (facultatif)" data-svn="${key}|${d}">${esc((sv.notes || {})[String(d)] || "")}</textarea>`;
+      h += `<textarea class="text-input fm-day-note" rows="2" placeholder="${esc(f.notePlaceholder || "Ce que j'observe (facultatif)")}" data-svn="${key}|${d}">${esc((sv.notes || {})[String(d)] || "")}</textarea>`;
     }
   }
   return h + "</div></div>";
@@ -191,6 +192,19 @@ function renderField(f, scope, saved, readonly) {
     });
     h += "</div>";
     if (done >= f.items.length) h += renderIndicateurs(f, ans);
+    return h;
+  }
+  if (f.type === "grille") {
+    const ans = v || {};
+    let h = `<p class="settings-hint">${Object.values(ans).filter(Boolean).length}/${f.rows.length * f.cols.length} réponses</p>`;
+    f.rows.forEach((r, i) => {
+      h += `<div class="fm-grid-row"><p class="fm-grid-t">${esc(r)}</p>`;
+      f.cols.forEach((cl, j) => {
+        const k = `${i}_${j}`;
+        h += `<label class="fm-grid-c"><span>${esc(cl)}</span><select class="text-input" data-f="${key}" data-t="grille" data-i="${k}" ${dis}><option value="">—</option>${f.options.map((o) => `<option ${ans[k] === o ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></label>`;
+      });
+      h += "</div>";
+    });
     return h;
   }
   if (f.type === "scores") {
@@ -394,7 +408,11 @@ function onFieldInput(el) {
   const k = el.dataset.f, t = el.dataset.t;
   if (t === "check") st.cache[k] = el.checked;
   else if (t === "num") { st.cache[k] = Number(el.value); if (k.startsWith("auto:")) rerenderKeepScroll(); }
-  else if (t === "yn" || t === "sc") {
+  else if (t === "grille") {
+    const cur = Object.assign({}, st.cache[k] || currentSaved(k) || {});
+    cur[el.dataset.i] = el.value;
+    st.cache[k] = cur;
+  } else if (t === "yn" || t === "sc") {
     const cur = Object.assign({}, st.cache[k] || currentSaved(k) || {});
     cur[el.dataset.i] = el.value;
     st.cache[k] = cur;
@@ -738,6 +756,7 @@ function renderCorrRow(r, i) {
 }
 function readValue(f, v) {
   if (f.type === "suivi") return "";
+  if (f.type === "grille") return `<p class="small"><strong>Cartographie :</strong> ${Object.values(v || {}).filter(Boolean).length}/${f.rows.length * f.cols.length} réponses — ${f.rows.map((r, i) => esc(r) + " : " + f.cols.map((_, j) => esc(((v || {})[i + "_" + j] || "—"))).join("/")).join(" · ")}</p>`;
   if (f.type === "oui_non") {
     const oui = Object.values(v || {}).filter((x) => x === "oui").length;
     return `<p class="small">${esc(f.id.toUpperCase())} : ${oui} « Oui » sur ${f.items.length}</p>`;
