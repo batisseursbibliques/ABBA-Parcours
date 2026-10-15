@@ -11,7 +11,7 @@ const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": 
 const MODULES = [
   { id: "m1", titre: "Disciple de Christ", ready: true },
   { id: "m2", titre: "Guérir des Blessures de l'Âme", ready: true },
-  { id: "m3", titre: "Cure d'Âme Personnelle" },
+  { id: "m3", titre: "Cure d'Âme Personnelle", preview: true },
   { id: "m4", titre: "Aimer" },
   { id: "m5", titre: "Bâtir le Caractère" },
   { id: "m6", titre: "Le Saint-Esprit" },
@@ -115,7 +115,7 @@ function getVal(scope, fid, saved) {
 }
 function fieldDone(f, v, prefix) {
   if (f.type === "suivi") return !!st.suivis[`${prefix}_${f.id}`];
-  if (f.type === "check") return v === true;
+  if (f.type === "check") return f.optional ? true : v === true;
   if (f.type === "oui_non" || f.type === "scores") return v && Object.keys(v).length >= f.items.length;
   if (f.type === "scale") return !!v;
   if (f.required) return typeof v === "string" ? v.trim().length > 0 : !!v;
@@ -354,7 +354,7 @@ function renderExercices(c, p, readonly) {
     const state = exerciseState(c, ex, p);
     const badge = { ok: "✓ Fait", cours: "En cours", afaire: "À faire" }[state];
     const open = !!st.openEx[c.id + ":" + ex.id];
-    h += `<details class="fm-ex ${state === "ok" ? "ok" : ""}" id="ex-${ex.id}" data-ex="${c.id}:${ex.id}" ${open ? "open" : ""}><summary><span class="fm-ex-t">${esc(ex.titre)}</span><span class="fm-ex-b ${state}">${badge}</span></summary><div class="fm-ex-body"><p class="small">${esc(ex.consigne || "")}</p>${ex.intro_html ? `<details class="fm-lecon"><summary>Lire le texte</summary><div class="fm-texte">${ex.intro_html}</div></details>` : ""}`;
+    h += `<details class="fm-ex ${state === "ok" ? "ok" : ""}" id="ex-${ex.id}" data-ex="${c.id}:${ex.id}" ${open ? "open" : ""}><summary><span class="fm-ex-t">${esc(ex.titre)}</span><span class="fm-ex-b ${state}">${badge}</span></summary><div class="fm-ex-body"><p class="small">${esc(ex.consigne || "")}</p>${ex.intro_html ? (ex.directIntro ? `<div class="fm-texte">${ex.intro_html}</div>` : `<details class="fm-lecon"><summary>Lire le texte</summary><div class="fm-texte">${ex.intro_html}</div></details>`) : ""}`;
     (ex.champs || []).forEach((f) => { h += renderField(f, "ex:" + ex.id, saved, readonly); });
     if (!readonly) h += `<button class="btn-secondary" data-act="ex-save" data-e="${ex.id}">Enregistrer</button>`;
     h += "</div></details>";
