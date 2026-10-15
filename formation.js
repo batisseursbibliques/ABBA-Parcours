@@ -24,12 +24,18 @@ const MODULES = [
   { id: "m13", titre: "Les Gestes de Premiers Secours" },
   { id: "m14", titre: "Création de Richesse" },
 ];
+const pad2 = (n) => String(n).padStart(2, "0");
+const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; };
+const dayNum = (s) => { const [y, m, d] = s.split("-").map(Number); return Date.UTC(y, m - 1, d) / 86400000; };
+const dayIndex = (start) => dayNum(todayStr()) - dayNum(start) + 1; // 1 = jour de départ
+const fmtDate = (start, k) => { const [y, m, d] = start.split("-").map(Number); const dt = new Date(Date.UTC(y, m - 1, d + k - 1)); return `${pad2(dt.getUTCDate())}/${pad2(dt.getUTCMonth() + 1)}`; };
+const suiviKey = (mid, exId, fid) => `${mid}_${exId}_${fid}`;
 const modTitle = (m) => `M${m.id.slice(1)} — ${m.titre}`;
 const STEPS = [["lecture", "Lecture"], ["qcm", "Questions"], ["exercices", "Exercices"], ["fiche", "Fiche"]];
 
 const st = {
   user: null, isAdmin: false, isCorrecteur: false,
-  meta: {}, prog: {}, parcours: [], lien: null, profile: {},
+  meta: {}, prog: {}, parcours: [], lien: null, profile: {}, suivis: {}, focus: null,
   content: {}, view: { mod: null, step: "lecture" },
   cache: {}, msg: "",
   corr: { open: false, rows: null, loading: false },
@@ -45,7 +51,7 @@ function stop() {
   unsubs = [];
   if (st.adm && st.adm.unsub) { try { st.adm.unsub(); } catch (e) {} }
   st.adm = { open: false, correcteurs: [], liens: [], students: [], loaded: false };
-  st.user = null; st.meta = {}; st.prog = {}; st.parcours = []; st.lien = null;
+  st.user = null; st.meta = {}; st.prog = {}; st.suivis = {}; st.parcours = []; st.lien = null;
   st.isAdmin = false; st.isCorrecteur = false; st.view = { mod: null, step: "lecture" };
   render();
 }
@@ -64,6 +70,7 @@ async function start(user) {
   st.lien = await S().getMyLien(user.uid);
   unsubs.push(S().watchFormationMeta(user.uid, (m) => { st.meta = m || {}; afterProgress(); render(); }));
   unsubs.push(S().watchFormationModules(user.uid, (p) => { st.prog = p || {}; afterProgress(); render(); }));
+  unsubs.push(S().watchSuivis(user.uid, (m) => { st.suivis = m || {}; render(); }));
   unsubs.push(S().watchParcours(user.uid, (l) => { st.parcours = l || []; afterProgress(); }));
   render();
 }
@@ -106,18 +113,19 @@ function getVal(scope, fid, saved) {
   const k = scope + ":" + fid;
   return k in st.cache ? st.cache[k] : (saved ? saved[fid] : undefined);
 }
-function fieldDone(f, v) {
+function fieldDone(f, v, prefix) {
+  if (f.type === "suivi") return !!st.suivis[`${prefix}_${f.id}`];
   if (f.type === "check") return v === true;
   if (f.type === "oui_non" || f.type === "scores") return v && Object.keys(v).length >= f.items.length;
   if (f.type === "scale") return !!v;
   if (f.required) return typeof v === "string" ? v.trim().length > 0 : !!v;
   return true;
 }
-function fieldsComplete(fields, values) {
-  return (fields || []).every((f) => fieldDone(f, values ? values[f.id] : undefined));
+function fieldsComplete(fields, values, prefix) {
+  return (fields || []).every((f) => fieldDone(f, values ? values[f.id] : undefined, prefix));
 }
 function exoComplete(c, p) {
-  return (c.exercices || []).every((ex) => fieldsComplete(ex.champs, (p.exercices || {})[ex.id]));
+  return (c.exercices || []).every((ex) => fieldsComplete(ex.champs, (p.exercices || {})[ex.id], c.id + "_" + ex.id));
 }
 function stepStatus(c, p) {
   const lu = (p.lu || []).length >= (c.lecons || []).length;
@@ -128,7 +136,32 @@ function stepStatus(c, p) {
 }
 
 /* ---------- Rendu des champs ---------- */
+function renderSuivi(f, key) {
+  const sv = st.suivis[key];
+  const labels = f.labels || ["Fait"];
+  let h = '<div class="fm-suivi">';
+  if (!sv) {
+    h += `${f.intro ? `<p class="small">${esc(f.intro)}</p>` : ""}<p class="small">Cet exercice dure ${f.jours} jours. <strong>Tu n'as pas besoin d'attendre la fin pour avancer</strong> : dès que tu le commences, tu peux continuer le parcours. Chaque jour, il apparaîtra sur ta page d'accueil jusqu'à ce que tu l'aies fait.</p>
+      <button class="btn-primary" data-act="suivi-start" data-sk="${key}">▶ Commencer aujourd'hui</button></div>`;
+    return h;
+  }
+  const idx = dayIndex(sv.start), done = sv.done || {};
+  const nDone = Object.values(done).reduce((a, x) => a + x.length, 0), total = sv.jours * labels.length;
+  h += `<p class="small"><strong>${nDone}/${total}</strong> faits — commencé le ${fmtDate(sv.start, 1)}${idx > sv.jours ? " — période terminée" : ""}</p><div class="fm-days">`;
+  for (let d = 1; d <= sv.jours; d++) {
+    const future = d > idx, isToday = d === idx, got = done[String(d)] || [];
+    const late = !future && !isToday && got.length < labels.length;
+    h += `<div class="fm-day ${isToday ? "today" : ""} ${late ? "late" : ""} ${future ? "future" : ""}"><span class="fm-day-d">J${d}<small>${fmtDate(sv.start, d)}</small></span><span class="fm-day-s">` +
+      labels.map((lb, i) => `<label><input type="checkbox" data-sv="${key}|${d}|${i}" ${got.includes(i) ? "checked" : ""} ${future ? "disabled" : ""}><b>${esc(lb)}</b></label>`).join("") +
+      `</span>${late ? "<em>en retard</em>" : ""}</div>`;
+    if ((f.notesJours || []).includes(d) && !future) {
+      h += `<textarea class="text-input fm-day-note" rows="2" placeholder="Ce que j'observe (facultatif)" data-svn="${key}|${d}">${esc((sv.notes || {})[String(d)] || "")}</textarea>`;
+    }
+  }
+  return h + "</div></div>";
+}
 function renderField(f, scope, saved, readonly) {
+  if (f.type === "suivi") return renderSuivi(f, suiviKey(st.view.mod, scope.slice(3), f.id));
   const v = getVal(scope, f.id, saved);
   const key = `${scope}:${f.id}`;
   const dis = readonly ? "disabled" : "";
@@ -215,6 +248,7 @@ function render() {
   root.innerHTML = h;
   if (st.msg) { const m = root.querySelector(".fm-msg"); if (m) setTimeout(() => { st.msg = ""; if (m.parentNode) m.remove(); }, 4000); }
   if (st.view.mod && !st.content[st.view.mod]) loadContent(st.view.mod).then(render);
+  if (st.focus) { const el = document.getElementById("ex-" + st.focus); if (el) { st.focus = null; setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 60); } }
   if (st.corr.open && st.corr.rows == null && !st.corr.loading) loadCorrections();
   if (st.adm.open && !st.adm.loaded) loadAdmin();
 }
@@ -310,8 +344,8 @@ function renderExercices(c, p, readonly) {
   let h = '<p class="settings-hint">Fais chaque exercice, puis touche « Enregistrer ». Tu peux revenir les compléter plus tard.</p>';
   (c.exercices || []).forEach((ex) => {
     const saved = (p.exercices || {})[ex.id] || {};
-    const ok = fieldsComplete(ex.champs, saved);
-    h += `<div class="fm-ex ${ok ? "ok" : ""}"><p class="eyebrow">${ok ? "✓ " : ""}${esc(ex.titre)}</p><p class="small">${esc(ex.consigne || "")}</p>${ex.intro_html ? `<details class="fm-lecon"><summary>Lire le texte</summary><div class="fm-texte">${ex.intro_html}</div></details>` : ""}`;
+    const ok = fieldsComplete(ex.champs, saved, c.id + "_" + ex.id);
+    h += `<div class="fm-ex ${ok ? "ok" : ""}" id="ex-${ex.id}"><p class="eyebrow">${ok ? "✓ " : ""}${esc(ex.titre)}</p><p class="small">${esc(ex.consigne || "")}</p>${ex.intro_html ? `<details class="fm-lecon"><summary>Lire le texte</summary><div class="fm-texte">${ex.intro_html}</div></details>` : ""}`;
     (ex.champs || []).forEach((f) => { h += renderField(f, "ex:" + ex.id, saved, readonly); });
     if (!readonly) h += `<button class="btn-secondary" data-act="ex-save" data-e="${ex.id}">Enregistrer</button>`;
     h += "</div>";
@@ -381,6 +415,14 @@ async function onClick(e) {
   try {
     if (act === "open" && b.dataset.m === "autoeval") { st.view = { mod: "autoeval", step: "fiche" }; st.cache = {}; render(); window.scrollTo(0, 0); return; }
     if (act === "open") { S().getMyLien(st.user.uid).then((l) => { st.lien = l; }); st.view = { mod: b.dataset.m, step: "lecture" }; st.cache = {}; st.qcmDraft = {}; render(); window.scrollTo(0, 0); return; }
+    if (act === "suivi-start") return suiviStart(b.dataset.sk);
+    if (act === "task-open") {
+      const sv = st.suivis[b.dataset.sk];
+      if (!sv) return;
+      st.view = { mod: sv.mid, step: "exercices" }; st.cache = {}; st.focus = sv.exId;
+      const t = document.querySelector('.tab[data-tab="parcours"]'); if (t) t.click();
+      render(); return;
+    }
     if (act === "goto-parcours") { const t = document.querySelector('.tab[data-tab="parcours"]'); if (t) t.click(); return; }
     if (act === "auto-save") return saveAutoeval(false);
     if (act === "auto-send") return saveAutoeval(true);
@@ -411,6 +453,10 @@ async function onClick(e) {
   }
 }
 function onChange(e) {
+  const sv = e.target.dataset && e.target.dataset.sv;
+  if (sv) { suiviTick(sv, e.target.checked).catch((err) => { st.msg = "Erreur : " + err.message; render(); }); return; }
+  const svn = e.target.dataset && e.target.dataset.svn;
+  if (svn) { suiviNote(svn, e.target.value).catch(() => {}); return; }
   const q = e.target.dataset && e.target.dataset.qcm;
   if (q != null) { st.qcmDraft[q] = Number(e.target.value); return; }
   if (e.target.dataset && e.target.dataset.f) onFieldInput(e.target);
@@ -450,6 +496,60 @@ async function saveFiche(send) {
   }
 }
 
+
+/* ---------- Exercices sur plusieurs jours ---------- */
+async function suiviStart(sk) {
+  const mid = st.view.mod, c = st.content[mid];
+  let field = null, ex0 = null;
+  (c.exercices || []).forEach((ex) => (ex.champs || []).forEach((f) => { if (f.type === "suivi" && suiviKey(mid, ex.id, f.id) === sk) { field = f; ex0 = ex; } }));
+  if (!field) return;
+  await S().startSuivi(st.user.uid, sk, { mid, exId: ex0.id, fid: field.id, titre: ex0.titre, jours: field.jours, labels: field.labels || ["Fait"], start: todayStr() });
+  st.msg = "C'est parti ! Cette tâche apparaîtra chaque jour sur ta page d'accueil.";
+}
+async function suiviTick(attr, checked) {
+  const [key, d, i] = attr.split("|"), sv = st.suivis[key];
+  if (!sv) return;
+  const done = JSON.parse(JSON.stringify(sv.done || {}));
+  const set = new Set(done[d] || []);
+  if (checked) set.add(Number(i)); else set.delete(Number(i));
+  done[d] = Array.from(set).sort();
+  await S().updateSuivi(st.user.uid, key, { done });
+}
+async function suiviNote(attr, val) {
+  const [key, d] = attr.split("|"), sv = st.suivis[key];
+  if (!sv) return;
+  await S().updateSuivi(st.user.uid, key, { notes: { ...(sv.notes || {}), [d]: val } });
+}
+function tasksToday() {
+  const out = [];
+  Object.entries(st.suivis).forEach(([key, sv]) => {
+    const idx = dayIndex(sv.start);
+    if (idx < 1 || idx > sv.jours + 7) return;
+    const labels = sv.labels || ["Fait"], done = sv.done || {};
+    const upTo = Math.min(idx, sv.jours);
+    const todo = [], late = [];
+    for (let d = 1; d <= upTo; d++) {
+      const got = done[String(d)] || [];
+      const miss = labels.filter((_, i) => !got.includes(i));
+      if (!miss.length) continue;
+      if (d === idx) todo.push(...miss); else late.push({ d, miss });
+    }
+    if (todo.length || late.length) out.push({ key, sv, idx, todo, late });
+  });
+  return out;
+}
+function renderTasks() {
+  const box = $("dashTasks");
+  if (!box) return;
+  const tasks = st.user ? tasksToday() : [];
+  if (!tasks.length) { box.innerHTML = ""; box.style.display = "none"; return; }
+  box.style.display = "";
+  box.innerHTML = '<div class="dash-tasks"><p class="eyebrow">⏰ Tâches à accomplir aujourd\'hui</p>' + tasks.map((t) =>
+    `<div class="dash-task"><div class="dash-task-t"><strong>${esc(t.sv.titre)}</strong>
+      <small>${t.idx <= t.sv.jours ? `Jour ${t.idx}/${t.sv.jours}` : "À rattraper"}${t.todo.length ? " · à faire : " + esc(t.todo.join(", ")) : ""}</small>
+      ${t.late.length ? `<small class="late">⚠ En retard : ${t.late.map((l) => `J${l.d} (${esc(l.miss.join(", "))})`).join(" ; ")}</small>` : ""}</div>
+      <button class="btn-primary" data-act="task-open" data-sk="${esc(t.key)}">Ouvrir</button></div>`).join("") + "</div>";
+}
 
 /* ---------- Auto-évaluation de départ ---------- */
 function autoFields(c) {
@@ -541,6 +641,7 @@ function nextStepText() {
   return [modTitle(m), "Prochaine étape : " + next];
 }
 function renderDash() {
+  renderTasks();
   const hello = $("dashHello"), box = $("dashRing");
   if (!hello || !box) return;
   if (!st.user) { box.innerHTML = ""; return; }
@@ -579,10 +680,12 @@ async function loadCorrections() {
     const rows = [];
     for (const l of liens) {
       let mods = {};
+      let sv = {};
       try { mods = await S().loadStudentModules(l.uid || l.id); } catch (e) {}
+      try { sv = await S().loadStudentSuivis(l.uid || l.id); } catch (e) {}
       Object.keys(mods).forEach((mid) => {
         const d = mods[mid];
-        if (["submitted", "validated", "returned"].includes(d.ficheStatus)) rows.push({ uid: l.uid || l.id, nom: l.nom || l.email || "", mid, doc: d });
+        if (["submitted", "validated", "returned"].includes(d.ficheStatus)) rows.push({ uid: l.uid || l.id, nom: l.nom || l.email || "", mid, doc: d, suivis: sv });
       });
     }
     st.corr.rows = rows;
@@ -604,6 +707,10 @@ function renderCorrRow(r, i) {
       const v = (r.doc.exercices || {})[ex.id] || {};
       h += `<p><strong>${esc(ex.titre)}</strong></p>` + (ex.champs || []).map((f) => readValue(f, v[f.id])).join("");
     });
+    Object.values(r.suivis || {}).filter((s) => s.mid === r.mid).forEach((s) => {
+      const tot = s.jours * (s.labels || [1]).length, nd = Object.values(s.done || {}).reduce((a, x) => a + x.length, 0);
+      h += `<p class="small"><strong>Suivi « ${esc(s.titre)} » :</strong> ${nd}/${tot} faits (commencé le ${fmtDate(s.start, 1)})</p>`;
+    });
     h += `<p><strong>${esc(c.fiche.titre)}</strong></p>` + c.fiche.champs.map((f) => readValue(f, (r.doc.ficheData || {})[f.id])).join("");
     h += "</div></details>";
   }
@@ -613,6 +720,7 @@ function renderCorrRow(r, i) {
   return h;
 }
 function readValue(f, v) {
+  if (f.type === "suivi") return "";
   if (f.type === "oui_non") {
     const oui = Object.values(v || {}).filter((x) => x === "oui").length;
     return `<p class="small">${esc(f.id.toUpperCase())} : ${oui} « Oui » sur ${f.items.length}</p>`;
@@ -708,6 +816,8 @@ function boot() {
   root.addEventListener("input", onInput);
   const dash = $("dashRing");
   if (dash) dash.addEventListener("click", onClick);
+  const dt = $("dashTasks");
+  if (dt) dt.addEventListener("click", onClick);
   S().watchAuth((user) => { if (user) start(user); else stop(); });
 }
 if (window.AbbaSync) boot(); else window.addEventListener("load", boot);

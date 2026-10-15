@@ -300,6 +300,30 @@ async function reviewFiche(uid, mid, status, comment, byEmail) {
   });
 }
 
+// Suivis quotidiens (exercices sur plusieurs jours)
+function watchSuivis(uid, callback) {
+  return onSnapshot(collection(db, "formation", uid, "suivis"), (snap) => {
+    const map = {};
+    snap.docs.forEach(d => { map[d.id] = d.data(); });
+    callback(map);
+  }, (err) => console.error("watchSuivis:", err));
+}
+async function startSuivi(uid, id, data) {
+  const ref = doc(db, "formation", uid, "suivis", id);
+  const snap = await getDoc(ref);
+  if (snap.exists()) return;
+  await setDoc(ref, { ...data, done: {}, notes: {}, updatedAt: serverTimestamp() });
+}
+async function updateSuivi(uid, id, partial) {
+  await updateDoc(doc(db, "formation", uid, "suivis", id), { ...partial, updatedAt: serverTimestamp() });
+}
+async function loadStudentSuivis(uid) {
+  const snap = await getDocs(collection(db, "formation", uid, "suivis"));
+  const map = {};
+  snap.docs.forEach(d => { map[d.id] = d.data(); });
+  return map;
+}
+
 window.AbbaSync = {
   isAdminEmail,
   logIn, logOut, watchAuth, getUserProfile,
@@ -317,4 +341,5 @@ window.AbbaSync = {
   watchCorrecteurs, addCorrecteur, removeCorrecteur, amICorrecteur,
   setLien, deleteLien, loadAllLiens, getMyLien, loadMyStudents,
   watchFormationMeta, setAcquis, watchFormationModules, saveModulePart, loadStudentModules, reviewFiche,
+  watchSuivis, startSuivi, updateSuivi, loadStudentSuivis,
 };
