@@ -29,7 +29,7 @@ const STEPS = [["lecture", "Lecture"], ["qcm", "Questions"], ["exercices", "Exer
 
 const st = {
   user: null, isAdmin: false, isCorrecteur: false,
-  meta: {}, prog: {}, parcours: [], lien: null,
+  meta: {}, prog: {}, parcours: [], lien: null, profile: {},
   content: {}, view: { mod: null, step: "lecture" },
   cache: {}, msg: "",
   corr: { open: false, rows: null, loading: false },
@@ -58,6 +58,8 @@ async function start(user) {
     st.isAdmin = S().isAdminEmail(user.email) || (emails || []).map((e) => e.toLowerCase()).includes(user.email.toLowerCase());
     render();
   }));
+  S().getUserProfile(user.uid).then((p) => { st.profile = p || {}; renderDash(); }).catch(() => {});
+  MODULES.filter((m) => m.ready).forEach((m) => loadContent(m.id).then(() => { render(); }));
   st.isCorrecteur = await S().amICorrecteur(user.email);
   st.lien = await S().getMyLien(user.uid);
   unsubs.push(S().watchFormationMeta(user.uid, (m) => { st.meta = m || {}; afterProgress(); render(); }));
@@ -69,7 +71,9 @@ async function start(user) {
 /* ---------- Règles de progression ---------- */
 const acquis = () => st.meta.acquis || [];
 const isComplete = (mid) => acquis().includes(mid) || (st.prog[mid] && st.prog[mid].ficheStatus === "validated" && st.prog[mid].qcm && st.prog[mid].qcm.ok);
+const autoevalDone = () => !!(st.meta.autoevalFaite || (st.prog.autoeval && st.prog.autoeval.done));
 function isUnlocked(i) {
+  if (!autoevalDone()) return false;
   if (i === 0) return true;
   return isComplete(MODULES[i - 1].id);
 }
@@ -86,9 +90,9 @@ function afterProgress() {
 
 async function loadContent(mid) {
   if (st.content[mid]) return st.content[mid];
-  const n = String(mid.slice(1)).padStart(2, "0");
+  const file = mid === "autoeval" ? "autoeval" : "m" + String(mid.slice(1)).padStart(2, "0");
   try {
-    const r = await fetch(`content/m${n}.json`);
+    const r = await fetch(`content/${file}.json`);
     if (!r.ok) throw new Error("HTTP " + r.status);
     st.content[mid] = await r.json();
   } catch (e) {
@@ -171,11 +175,13 @@ function renderIndicateurs(f, ans) {
 
 /* ---------- Écran principal ---------- */
 function render() {
+  renderDash();
   const root = $("formationRoot");
   if (!root) return;
   if (!st.user) { root.innerHTML = ""; return; }
   let h = "";
-  if (st.view.mod) h += renderModuleView();
+  if (st.view.mod === "autoeval") h += renderAutoeval();
+  else if (st.view.mod) h += renderModuleView();
   else h += renderModuleList();
   if (st.isCorrecteur || st.isAdmin) h += renderCorrCard();
   if (st.isAdmin) h += renderAdminCard();
@@ -193,6 +199,7 @@ function renderModuleList() {
     <p class="settings-hint">${faits}/${MODULES.length} modules validés. Pour passer au module suivant : lis le manuel, réponds aux questions, fais les exercices, puis envoie ta fiche. Ton correcteur la valide.</p>`;
   if (st.lien && st.lien.correcteurNom) h += `<p class="settings-hint">Ton correcteur : <strong>${esc(st.lien.correcteurNom)}</strong></p>`;
   else if (!st.isAdmin) h += `<p class="settings-hint">Aucun correcteur ne t'est encore attribué. Tu peux lire et répondre, mais l'envoi de ta fiche attendra qu'un correcteur te soit lié.</p>`;
+  h += renderAutoCard();
   h += '<div class="fm-mods">';
   MODULES.forEach((m, i) => {
     const done = isComplete(m.id), open = isUnlocked(i), p = st.prog[m.id] || {};
@@ -314,7 +321,7 @@ function collect(scope) {
 function onFieldInput(el) {
   const k = el.dataset.f, t = el.dataset.t;
   if (t === "check") st.cache[k] = el.checked;
-  else if (t === "num") st.cache[k] = Number(el.value);
+  else if (t === "num") { st.cache[k] = Number(el.value); if (k.startsWith("auto:")) rerenderKeepScroll(); }
   else if (t === "yn") {
     const cur = Object.assign({}, st.cache[k] || currentSaved(k) || {});
     cur[el.dataset.i] = el.value;
@@ -343,7 +350,11 @@ async function onClick(e) {
   if (!b) return;
   const act = b.dataset.act, mid = st.view.mod;
   try {
+    if (act === "open" && b.dataset.m === "autoeval") { st.view = { mod: "autoeval", step: "fiche" }; st.cache = {}; render(); window.scrollTo(0, 0); return; }
     if (act === "open") { S().getMyLien(st.user.uid).then((l) => { st.lien = l; }); st.view = { mod: b.dataset.m, step: "lecture" }; st.cache = {}; st.qcmDraft = {}; render(); window.scrollTo(0, 0); return; }
+    if (act === "goto-parcours") { const t = document.querySelector('.tab[data-tab="parcours"]'); if (t) t.click(); return; }
+    if (act === "auto-save") return saveAutoeval(false);
+    if (act === "auto-send") return saveAutoeval(true);
     if (act === "back") { st.view = { mod: null, step: "lecture" }; st.cache = {}; render(); return; }
     if (act === "step") { st.view.step = b.dataset.s; render(); window.scrollTo(0, 0); return; }
     if (act === "lu") {
@@ -408,6 +419,115 @@ async function saveFiche(send) {
     await S().saveModulePart(st.user.uid, mid, { ficheData: vals });
     st.msg = "Brouillon enregistré.";
   }
+}
+
+
+/* ---------- Auto-évaluation de départ ---------- */
+function autoFields(c) {
+  const f = [];
+  c.dimensions.forEach((d) => {
+    f.push({ id: "d" + d.n, type: "scale", label: `${d.nom} — ${d.desc}`, required: true, bloc: d.bloc });
+    f.push({ id: "o" + d.n, type: "textarea", label: "Ce que j'observe (facultatif)" });
+  });
+  c.questions.forEach((q, i) => f.push({ id: "q" + (i + 1), type: "textarea", label: q, required: true }));
+  f.push({ id: "engage", type: "check", label: c.engagement });
+  return f;
+}
+function renderAutoCard() {
+  if (autoevalDone()) {
+    return `<div class="fm-auto done"><p class="eyebrow">✅ Auto-évaluation de départ faite</p><button class="btn-secondary" data-act="open" data-m="autoeval">Revoir mes résultats</button></div>`;
+  }
+  return `<div class="fm-auto"><p class="eyebrow">Première étape</p><p class="small">Avant de commencer les modules, fais ton auto-évaluation : elle te montre où tu en es dans les 8 dimensions de ta vie (une dizaine de minutes).</p><button class="btn-primary" data-act="open" data-m="autoeval">Commencer mon auto-évaluation</button></div>`;
+}
+function autoBilan(c, vals) {
+  const dims = c.dimensions.filter((d) => vals["d" + d.n]);
+  if (dims.length < c.dimensions.length) return "";
+  const total = dims.reduce((a, d) => a + Number(vals["d" + d.n]), 0);
+  const sorted = dims.slice().sort((a, b) => Number(vals["d" + b.n]) - Number(vals["d" + a.n]));
+  const fort = sorted[0], faible = sorted[sorted.length - 1];
+  return `<div class="fm-bilan"><p class="eyebrow">Mon bilan</p>
+    <p>Total : <strong>${total} / 40</strong> — moyenne : <strong>${(total / 8).toFixed(1)} / 5</strong></p>
+    <p>Ma dimension la plus forte : <strong>${esc(fort.nom)}</strong> (${vals["d" + fort.n]}/5)<br>Ma dimension la plus faible : <strong>${esc(faible.nom)}</strong> (${vals["d" + faible.n]}/5)</p></div>`;
+}
+function renderAutoeval() {
+  const c = st.content.autoeval;
+  let h = `<div class="card"><button class="btn-secondary" data-act="back">← Mon parcours</button><h2 class="fm-h">${c ? esc(c.titre) : "Auto-évaluation"}</h2>`;
+  if (!c) return h + '<p class="settings-hint">Chargement…</p></div>';
+  if (c.error) return h + '<p class="auth-error">Impossible de charger l\'auto-évaluation. Vérifie ta connexion.</p></div>';
+  const p = st.prog.autoeval || {}, saved = p.ficheData || {}, done = !!p.done;
+  if (st.msg) h += `<p class="fm-msg">${esc(st.msg)}</p>`;
+  h += `<p class="small">${esc(c.intro)}</p>`;
+  const fields = autoFields(c);
+  let lastBloc = "";
+  fields.forEach((fd) => {
+    if (fd.bloc && fd.bloc !== lastBloc) { h += `<p class="fm-bloc">${esc(fd.bloc)}</p>`; lastBloc = fd.bloc; }
+    if (fd.id === "q1") h += '<p class="fm-bloc">Trois questions pour aller plus loin</p>';
+    if (fd.id === "engage") h += '<p class="fm-bloc">Mon engagement aujourd\'hui</p>';
+    h += renderField(fd, "auto", saved, done);
+  });
+  const vals = scopeValues("auto", saved);
+  h += autoBilan(c, vals);
+  if (done) {
+    h += '<p class="fm-status validated">Auto-évaluation validée ✅</p><button class="btn-primary full" data-act="back">Commencer les modules →</button>';
+  } else {
+    h += '<button class="btn-secondary" data-act="auto-save">Enregistrer le brouillon</button>';
+    h += '<button class="btn-primary full" data-act="auto-send">Valider mon auto-évaluation</button>';
+  }
+  return h + "</div>";
+}
+async function saveAutoeval(final) {
+  const c = st.content.autoeval, p = st.prog.autoeval || {};
+  const vals = scopeValues("auto", p.ficheData);
+  if (final) {
+    if (!fieldsComplete(autoFields(c), vals)) { await S().saveModulePart(st.user.uid, "autoeval", { ficheData: vals }); st.msg = "Réponds à toutes les dimensions, aux trois questions et coche ton engagement."; render(); return; }
+    await S().saveModulePart(st.user.uid, "autoeval", { ficheData: vals, done: true, doneAt: new Date().toISOString() });
+    st.msg = "Auto-évaluation enregistrée. Tu peux commencer les modules.";
+  } else {
+    await S().saveModulePart(st.user.uid, "autoeval", { ficheData: vals });
+    st.msg = "Brouillon enregistré.";
+  }
+}
+
+/* ---------- Tableau de bord (page d'accueil) ---------- */
+function moduleFraction(m) {
+  if (isComplete(m.id)) return 1;
+  if (!m.ready) return 0;
+  const c = st.content[m.id], p = st.prog[m.id] || {};
+  if (!c || c.error) return 0;
+  const s = stepStatus(c, p);
+  return ((s.lecture ? 1 : 0) + (s.qcm ? 1 : 0) + (s.exercices ? 1 : 0) + (p.ficheStatus === "validated" ? 1 : 0)) / 4;
+}
+function nextStepText() {
+  if (!autoevalDone()) return ["Commence par ton auto-évaluation", "Elle te montre où tu en es avant de plonger dans les modules."];
+  const i = MODULES.findIndex((m) => !isComplete(m.id));
+  if (i < 0) return ["Parcours terminé 🎉", ""];
+  const m = MODULES[i];
+  if (!m.ready) return [modTitle(m), "Ce module arrive bientôt dans l'application."];
+  const c = st.content[m.id], p = st.prog[m.id] || {};
+  if (!c || c.error) return [modTitle(m), ""];
+  if (p.ficheStatus === "submitted") return [modTitle(m), "Ta fiche est chez ton correcteur."];
+  if (p.ficheStatus === "returned") return [modTitle(m), "Ton correcteur t'a renvoyé ta fiche : reprends-la."];
+  const s = stepStatus(c, p);
+  const next = !s.lecture ? "Lecture" : !s.qcm ? "Questions" : !s.exercices ? "Exercices" : "Fiche";
+  return [modTitle(m), "Prochaine étape : " + next];
+}
+function renderDash() {
+  const hello = $("dashHello"), box = $("dashRing");
+  if (!hello || !box) return;
+  if (!st.user) { box.innerHTML = ""; return; }
+  const prenom = (st.profile && st.profile.prenom) || (st.user.displayName || "").split(" ")[0] || "";
+  hello.textContent = prenom ? `Bienvenue, ${prenom} 👋` : "Bienvenue 👋";
+  const pct = Math.round(MODULES.reduce((a, m) => a + moduleFraction(m), 0) / MODULES.length * 100);
+  const C = 2 * Math.PI * 52;
+  const [t1, t2] = nextStepText();
+  box.innerHTML = `<p class="eyebrow">Mon parcours</p>
+    <div class="dash-ring"><svg viewBox="0 0 120 120" width="150" height="150" aria-hidden="true">
+      <circle cx="60" cy="60" r="52" fill="none" stroke="var(--paper)" stroke-width="10"/>
+      <circle cx="60" cy="60" r="52" fill="none" stroke="var(--navy)" stroke-width="10" stroke-linecap="round"
+        stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - pct / 100)).toFixed(1)}" transform="rotate(-90 60 60)"/></svg>
+      <div class="dash-ring-n"><b>${pct}%</b><small>de ton parcours</small></div></div>
+    <p class="dash-next"><strong>${esc(t1)}</strong>${t2 ? `<small>${esc(t2)}</small>` : ""}</p>
+    <button class="link-btn" data-act="goto-parcours">Ouvrir mon parcours →</button>`;
 }
 
 /* ---------- Correcteur : fiches à valider ---------- */
@@ -514,6 +634,7 @@ function renderAdminCard() {
     h += `<div class="fm-ex"><p class="eyebrow">${esc(s.nom || s.email)}</p><p class="small">${esc(s.email)}</p>
       <label class="field"><span>Correcteur</span><select class="text-input" id="admLien-${s.uid}"><option value="">— aucun —</option>${st.adm.correcteurs.map((c) => `<option value="${esc(c.email)}" ${lien && lien.correcteurEmail === c.email ? "selected" : ""}>${esc(c.nom || c.email)}</option>`).join("")}</select></label>
       <button class="btn-secondary" data-act="adm-setlien" data-u="${s.uid}">Enregistrer le lien</button>
+      <label class="fm-check"><input type="checkbox" id="admAuto-${s.uid}" ${((st.adm.metas || {})[s.uid] || {}).autoevalFaite ? "checked" : ""}><span>Auto-évaluation déjà faite (dispensée)</span></label>
       <div class="fm-acq">${MODULES.map((m) => `<label><input type="checkbox" id="admAcq-${s.uid}-${m.id}" ${acq.includes(m.id) ? "checked" : ""}> M${m.id.slice(1)}</label>`).join("")}</div>
       <button class="btn-secondary" data-act="adm-setacquis" data-u="${s.uid}">Enregistrer les modules acquis</button></div>`;
   });
@@ -538,8 +659,9 @@ async function admSetLien(uid) {
 }
 async function admSetAcquis(uid) {
   const list = MODULES.filter((m) => { const el = $(`admAcq-${uid}-${m.id}`); return el && el.checked; }).map((m) => m.id);
-  await S().setAcquis(uid, list);
-  st.adm.metas[uid] = { acquis: list };
+  const autoevalFaite = !!($(`admAuto-${uid}`) || {}).checked;
+  await S().setAcquis(uid, list, { autoevalFaite });
+  st.adm.metas[uid] = { acquis: list, autoevalFaite };
   st.msg = "Modules acquis enregistrés.";
   render();
 }
@@ -551,6 +673,8 @@ function boot() {
   root.addEventListener("click", onClick);
   root.addEventListener("change", onChange);
   root.addEventListener("input", onInput);
+  const dash = $("dashRing");
+  if (dash) dash.addEventListener("click", onClick);
   S().watchAuth((user) => { if (user) start(user); else stop(); });
 }
 if (window.AbbaSync) boot(); else window.addEventListener("load", boot);

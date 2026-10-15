@@ -112,11 +112,11 @@ service cloud.firestore {
 
         // L'étudiant écrit ses réponses, jamais la validation
         allow create: if request.auth != null && request.auth.uid == uid
-          && request.resource.data.keys().hasOnly(['qcm','exercices','ficheData','ficheStatus','submittedAt','updatedAt','lu'])
+          && request.resource.data.keys().hasOnly(['qcm','exercices','ficheData','ficheStatus','submittedAt','updatedAt','lu','done','doneAt'])
           && request.resource.data.get('ficheStatus', 'draft') in ['draft', 'submitted'];
 
         allow update: if (request.auth != null && request.auth.uid == uid
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qcm','exercices','ficheData','ficheStatus','submittedAt','updatedAt','lu'])
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qcm','exercices','ficheData','ficheStatus','submittedAt','updatedAt','lu','done','doneAt'])
             && resource.data.get('ficheStatus', 'draft') in ['draft', 'returned']
             && (request.resource.data.get('ficheStatus', 'draft') in ['draft', 'submitted']
                 || (request.resource.data.get('ficheStatus', 'draft') == 'returned' && resource.data.get('ficheStatus', 'draft') == 'returned')))

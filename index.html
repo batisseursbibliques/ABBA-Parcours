@@ -75,16 +75,24 @@
 
     <!-- ================= ACCUEIL ================= -->
     <section class="panel active" id="panel-accueil">
-      <div class="panel-head">
-        <h1>Parcours Bâtisseur</h1>
+      <div class="abba-invite-card">
+        <div class="abba-invite-glow"></div>
+        <div class="abba-invite-content">
+          <p class="abba-invite-greeting" id="dashHello">Bienvenue 👋</p>
+          <p class="abba-invite-text">
+            Tu es en chemin avec <strong>ABBA — Alliance des Bâtisseurs Bibliques en Action</strong>.
+            Notre vision : que chaque personne jouisse des bonnes grâces de Dieu et soit bien pourvue en tout ce qui
+            contribue à la vie et à la piété — santé, éducation, profession, finance, famille, foi.
+          </p>
+          <div class="abba-invite-divider"></div>
+          <a href="https://abba-g.web.app/membres" target="_blank" rel="noopener" class="abba-invite-btn">
+            <span>Accéder à mon espace membre</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
       </div>
-      <p class="settings-hint" style="margin:-8px 0 16px;">Ton compagnon pour suivre ta formation, en plus d'ABBA Life.</p>
 
-      <div class="card">
-        <p class="eyebrow">📘 Mon parcours</p>
-        <p class="settings-hint" id="accueilModulesHint">Suis l'avancement de tes modules.</p>
-        <button class="link-btn" data-goto="parcours">Ouvrir Mon parcours →</button>
-      </div>
+      <div class="card dash-card" id="dashRing"></div>
 
       <div class="card admin-only" id="accueilCoordCard" style="display:none;">
         <p class="eyebrow">★ Coordination</p>
@@ -92,28 +100,12 @@
         <button class="link-btn" data-goto="coordination">Ouvrir Coordination →</button>
       </div>
 
-      <div class="card">
-        <p class="eyebrow">🤝 Fiche Binôme</p>
-        <p class="settings-hint">Suis ton engagement avec ton binôme d'accountability.</p>
-        <button class="link-btn" data-goto="binome">Ouvrir Fiche Binôme →</button>
-      </div>
-
-      <div class="card">
-        <p class="eyebrow">🧭 Zones de caractère</p>
-        <p class="settings-hint">Auto-évaluation mensuelle des 6 zones de ton caractère.</p>
-        <button class="link-btn" data-goto="caractere">Ouvrir Zones de caractère →</button>
-      </div>
-
-      <div class="card">
-        <p class="eyebrow">🧭 Mon accomplissement (Homme Fait)</p>
-        <p class="settings-hint">Ton objectif du mois pour chacune des 8 dimensions de l'Homme Fait.</p>
-        <button class="link-btn" data-goto="dimensions">Ouvrir Dimensions →</button>
-      </div>
-
-      <div class="card">
-        <p class="eyebrow">📋 Présence aux séances</p>
-        <p class="settings-hint">Ton suivi de présence, marqué par ton coordinateur.</p>
-        <button class="link-btn" data-goto="presence">Ouvrir Présence →</button>
+      <p class="eyebrow dash-tools-title">Mes outils</p>
+      <div class="dash-tools">
+        <button class="dash-tool" data-goto="binome"><span>🤝</span>Fiche binôme</button>
+        <button class="dash-tool" data-goto="caractere"><span>🧭</span>Zones de caractère</button>
+        <button class="dash-tool" data-goto="dimensions"><span>📊</span>Mes dimensions</button>
+        <button class="dash-tool" data-goto="presence"><span>📋</span>Présence</button>
       </div>
 
       <div class="card settings-card">

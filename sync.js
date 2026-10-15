@@ -275,8 +275,8 @@ function watchFormationMeta(uid, callback) {
     callback(snap.exists() ? snap.data() : {});
   }, (err) => { console.error("watchFormationMeta:", err); callback({}); });
 }
-async function setAcquis(uid, acquis) {
-  await setDoc(doc(db, "formation", uid), { acquis, updatedAt: serverTimestamp() }, { merge: true });
+async function setAcquis(uid, acquis, extra) {
+  await setDoc(doc(db, "formation", uid), { acquis, ...(extra || {}), updatedAt: serverTimestamp() }, { merge: true });
 }
 function watchFormationModules(uid, callback) {
   return onSnapshot(collection(db, "formation", uid, "modules"), (snap) => {
