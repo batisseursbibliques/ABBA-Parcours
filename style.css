@@ -658,3 +658,10 @@ button,input,select{font-family:inherit;}
 .fm-auto.done{border-color:var(--sage);background:var(--sage-soft);}
 .fm-bloc{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin:18px 0 4px;font-weight:700;}
 .fm-bilan{background:var(--paper);border-radius:var(--radius);padding:10px 14px;margin:12px 0;font-size:14px;}
+
+.fm-sc{display:flex;gap:14px;margin-top:6px;}
+.fm-sc label{display:flex;align-items:center;gap:3px;cursor:pointer;}
+.fm-tbl{overflow-x:auto;margin:10px 0;}
+.fm-tbl table{border-collapse:collapse;font-size:13px;min-width:100%;}
+.fm-tbl td{border:1px solid var(--line);padding:6px 8px;vertical-align:top;}
+.fm-tbl tr:first-child td{background:var(--paper);font-weight:600;}

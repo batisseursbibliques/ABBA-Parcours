@@ -10,7 +10,7 @@ const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": 
 
 const MODULES = [
   { id: "m1", titre: "Disciple de Christ", ready: true },
-  { id: "m2", titre: "Guérir des Blessures de l'Âme" },
+  { id: "m2", titre: "Guérir des Blessures de l'Âme", preview: true },
   { id: "m3", titre: "Cure d'Âme Personnelle" },
   { id: "m4", titre: "Aimer" },
   { id: "m5", titre: "Bâtir le Caractère" },
@@ -108,7 +108,7 @@ function getVal(scope, fid, saved) {
 }
 function fieldDone(f, v) {
   if (f.type === "check") return v === true;
-  if (f.type === "oui_non") return v && Object.keys(v).length >= f.items.length;
+  if (f.type === "oui_non" || f.type === "scores") return v && Object.keys(v).length >= f.items.length;
   if (f.type === "scale") return !!v;
   if (f.required) return typeof v === "string" ? v.trim().length > 0 : !!v;
   return true;
@@ -160,7 +160,34 @@ function renderField(f, scope, saved, readonly) {
     if (done >= f.items.length) h += renderIndicateurs(f, ans);
     return h;
   }
+  if (f.type === "scores") {
+    const ans = v || {};
+    const done = Object.keys(ans).length;
+    let h = `<p class="settings-hint">${done}/${f.items.length} réponses</p><div class="fm-yn">`;
+    f.items.forEach((it, i) => {
+      const k = String(i + 1);
+      const sec = (f.sections || []).find((s) => s.de === i + 1);
+      if (sec) h += `<p class="fm-bloc">${esc(sec.titre)}</p>`;
+      h += `<div class="fm-yn-row"><span class="fm-yn-n">${k}</span><span class="fm-yn-q">${esc(it)}<span class="fm-sc">` +
+        [0, 1, 2, 3].map((n) => `<label><input type="radio" name="${key}-${k}" data-f="${key}" data-t="sc" data-i="${k}" value="${n}" ${String(ans[k]) === String(n) ? "checked" : ""} ${dis}><b>${n}</b></label>`).join("") + `</span></span></div>`;
+    });
+    h += "</div>";
+    if (done >= f.items.length) h += renderScoresResult(f, ans);
+    return h;
+  }
   return "";
+}
+function scoreTotals(f, ans) {
+  return (f.groupes || []).map((g) => ({ g, total: g.items.reduce((a, n) => a + Number(ans[String(n)] || 0), 0) }));
+}
+function scoreLevel(f, t) { return (f.interpretation || [])[t <= 5 ? 0 : t <= 10 ? 1 : t <= 15 ? 2 : 3] || ""; }
+function renderScoresResult(f, ans) {
+  const rows = scoreTotals(f, ans);
+  const max = Math.max(...rows.map((r) => r.total));
+  let h = '<div class="fm-result"><p class="eyebrow">Tes résultats</p>';
+  rows.forEach((r) => { h += `<p><strong>${esc(r.g.nom)}</strong> (${esc(r.g.masque)}) : ${r.total} / ${r.g.items.length * 3}${r.total === max ? " ← la plus élevée" : ""}<br><span class="small">${esc(scoreLevel(f, r.total))}</span></p>`; });
+  if (f.note) h += `<p class="small"><em>${esc(f.note)}</em></p>`;
+  return h + "</div>";
 }
 function renderIndicateurs(f, ans) {
   let h = '<div class="fm-result"><p class="eyebrow">Tes résultats</p>';
@@ -210,7 +237,9 @@ function renderModuleList() {
       cls = "open";
       badge = p.ficheStatus === "submitted" ? "⏳ En correction" : p.ficheStatus === "returned" ? "↩️ À reprendre" : (p.lu || p.qcm || p.exercices) ? "En cours" : "À commencer";
     }
-    const clickable = (open && m.ready) || done;
+    const prev = st.isAdmin && m.preview && !m.ready;
+    if (prev) { cls = "open"; badge = "👁 Aperçu coordinateur"; }
+    const clickable = (open && m.ready) || done || prev;
     h += `<button class="fm-mod ${cls}" ${clickable ? `data-act="open" data-m="${m.id}"` : "disabled"}><span class="fm-mod-t">${esc(modTitle(m))}</span><span class="fm-mod-b">${badge}</span></button>`;
   });
   return h + "</div></div>";
@@ -322,7 +351,7 @@ function onFieldInput(el) {
   const k = el.dataset.f, t = el.dataset.t;
   if (t === "check") st.cache[k] = el.checked;
   else if (t === "num") { st.cache[k] = Number(el.value); if (k.startsWith("auto:")) rerenderKeepScroll(); }
-  else if (t === "yn") {
+  else if (t === "yn" || t === "sc") {
     const cur = Object.assign({}, st.cache[k] || currentSaved(k) || {});
     cur[el.dataset.i] = el.value;
     st.cache[k] = cur;
@@ -587,6 +616,10 @@ function readValue(f, v) {
   if (f.type === "oui_non") {
     const oui = Object.values(v || {}).filter((x) => x === "oui").length;
     return `<p class="small">${esc(f.id.toUpperCase())} : ${oui} « Oui » sur ${f.items.length}</p>`;
+  }
+  if (f.type === "scores") {
+    const rows = scoreTotals(f, v || {});
+    return `<p class="small"><strong>Test :</strong> ${rows.map((r) => `${esc(r.g.nom)} ${r.total}/${r.g.items.length * 3}`).join(" · ")}</p>`;
   }
   if (f.type === "check") return `<p class="small">${v === true ? "☑" : "☐"} ${esc(f.label)}</p>`;
   return `<p class="small"><em>${esc(f.label)}</em><br>${esc(v == null || v === "" ? "—" : v)}</p>`;
