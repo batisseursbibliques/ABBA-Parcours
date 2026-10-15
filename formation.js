@@ -10,7 +10,7 @@ const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": 
 
 const MODULES = [
   { id: "m1", titre: "Disciple de Christ", ready: true },
-  { id: "m2", titre: "Guérir des Blessures de l'Âme", preview: true },
+  { id: "m2", titre: "Guérir des Blessures de l'Âme", ready: true },
   { id: "m3", titre: "Cure d'Âme Personnelle" },
   { id: "m4", titre: "Aimer" },
   { id: "m5", titre: "Bâtir le Caractère" },
@@ -35,7 +35,7 @@ const STEPS = [["lecture", "Lecture"], ["qcm", "Questions"], ["exercices", "Exer
 
 const st = {
   user: null, isAdmin: false, isCorrecteur: false,
-  meta: {}, prog: {}, parcours: [], lien: null, profile: {}, suivis: {}, focus: null,
+  meta: {}, prog: {}, parcours: [], lien: null, profile: {}, suivis: {}, focus: null, openEx: {}, tasksOpen: false,
   content: {}, view: { mod: null, step: "lecture" },
   cache: {}, msg: "",
   corr: { open: false, rows: null, loading: false },
@@ -339,16 +339,25 @@ function renderQcm(c, p) {
   return h;
 }
 
+function exerciseState(c, ex, p) {
+  const saved = (p.exercices || {})[ex.id] || {};
+  if (fieldsComplete(ex.champs, saved, c.id + "_" + ex.id)) return "ok";
+  const started = Object.keys(saved).length > 0 || (ex.champs || []).some((fd) => (fd.type === "suivi" && st.suivis[`${c.id}_${ex.id}_${fd.id}`]) || ("ex:" + ex.id + ":" + fd.id) in st.cache);
+  return started ? "cours" : "afaire";
+}
 function renderExercices(c, p, readonly) {
   const done = exoComplete(c, p);
-  let h = '<p class="settings-hint">Fais chaque exercice, puis touche « Enregistrer ». Tu peux revenir les compléter plus tard.</p>';
+  const nOk = (c.exercices || []).filter((ex) => exerciseState(c, ex, p) === "ok").length;
+  let h = `<p class="settings-hint">${nOk}/${(c.exercices || []).length} exercices faits. Ouvre un exercice pour le faire, puis touche « Enregistrer ». Tu peux revenir compléter les autres plus tard.</p>`;
   (c.exercices || []).forEach((ex) => {
     const saved = (p.exercices || {})[ex.id] || {};
-    const ok = fieldsComplete(ex.champs, saved, c.id + "_" + ex.id);
-    h += `<div class="fm-ex ${ok ? "ok" : ""}" id="ex-${ex.id}"><p class="eyebrow">${ok ? "✓ " : ""}${esc(ex.titre)}</p><p class="small">${esc(ex.consigne || "")}</p>${ex.intro_html ? `<details class="fm-lecon"><summary>Lire le texte</summary><div class="fm-texte">${ex.intro_html}</div></details>` : ""}`;
+    const state = exerciseState(c, ex, p);
+    const badge = { ok: "✓ Fait", cours: "En cours", afaire: "À faire" }[state];
+    const open = !!st.openEx[c.id + ":" + ex.id];
+    h += `<details class="fm-ex ${state === "ok" ? "ok" : ""}" id="ex-${ex.id}" data-ex="${c.id}:${ex.id}" ${open ? "open" : ""}><summary><span class="fm-ex-t">${esc(ex.titre)}</span><span class="fm-ex-b ${state}">${badge}</span></summary><div class="fm-ex-body"><p class="small">${esc(ex.consigne || "")}</p>${ex.intro_html ? `<details class="fm-lecon"><summary>Lire le texte</summary><div class="fm-texte">${ex.intro_html}</div></details>` : ""}`;
     (ex.champs || []).forEach((f) => { h += renderField(f, "ex:" + ex.id, saved, readonly); });
     if (!readonly) h += `<button class="btn-secondary" data-act="ex-save" data-e="${ex.id}">Enregistrer</button>`;
-    h += "</div>";
+    h += "</div></details>";
   });
   if (done) h += '<button class="btn-primary full" data-act="step" data-s="fiche">Passer à la fiche →</button>';
   return h;
@@ -415,11 +424,12 @@ async function onClick(e) {
   try {
     if (act === "open" && b.dataset.m === "autoeval") { st.view = { mod: "autoeval", step: "fiche" }; st.cache = {}; render(); window.scrollTo(0, 0); return; }
     if (act === "open") { S().getMyLien(st.user.uid).then((l) => { st.lien = l; }); st.view = { mod: b.dataset.m, step: "lecture" }; st.cache = {}; st.qcmDraft = {}; render(); window.scrollTo(0, 0); return; }
+    if (act === "tasks-toggle") { st.tasksOpen = !st.tasksOpen; renderTasks(); return; }
     if (act === "suivi-start") return suiviStart(b.dataset.sk);
     if (act === "task-open") {
       const sv = st.suivis[b.dataset.sk];
       if (!sv) return;
-      st.view = { mod: sv.mid, step: "exercices" }; st.cache = {}; st.focus = sv.exId;
+      st.view = { mod: sv.mid, step: "exercices" }; st.cache = {}; st.focus = sv.exId; st.openEx[sv.mid + ":" + sv.exId] = true; st.tasksOpen = false;
       const t = document.querySelector('.tab[data-tab="parcours"]'); if (t) t.click();
       render(); return;
     }
@@ -480,6 +490,8 @@ async function saveExercise(exId) {
   const saved = (p.exercices || {})[exId] || {};
   const vals = scopeValues("ex:" + exId, saved);
   await S().saveModulePart(st.user.uid, mid, { exercices: { ...(p.exercices || {}), [exId]: vals } });
+  const c = st.content[mid], ex = (c.exercices || []).find((x) => x.id === exId);
+  if (ex && fieldsComplete(ex.champs, vals, mid + "_" + exId)) delete st.openEx[mid + ":" + exId];
   st.msg = "Exercice enregistré.";
 }
 async function saveFiche(send) {
@@ -544,11 +556,16 @@ function renderTasks() {
   const tasks = st.user ? tasksToday() : [];
   if (!tasks.length) { box.innerHTML = ""; box.style.display = "none"; return; }
   box.style.display = "";
-  box.innerHTML = '<div class="dash-tasks"><p class="eyebrow">⏰ Tâches à accomplir aujourd\'hui</p>' + tasks.map((t) =>
-    `<div class="dash-task"><div class="dash-task-t"><strong>${esc(t.sv.titre)}</strong>
-      <small>${t.idx <= t.sv.jours ? `Jour ${t.idx}/${t.sv.jours}` : "À rattraper"}${t.todo.length ? " · à faire : " + esc(t.todo.join(", ")) : ""}</small>
-      ${t.late.length ? `<small class="late">⚠ En retard : ${t.late.map((l) => `J${l.d} (${esc(l.miss.join(", "))})`).join(" ; ")}</small>` : ""}</div>
-      <button class="btn-primary" data-act="task-open" data-sk="${esc(t.key)}">Ouvrir</button></div>`).join("") + "</div>";
+  const open = st.tasksOpen, anyLate = tasks.some((t) => t.late.length);
+  let h = `<div class="dash-tasks ${open ? "open" : ""}"><button class="dash-tasks-head" data-act="tasks-toggle"><span>⏰ Tâches à accomplir aujourd'hui <b>${tasks.length}</b>${anyLate ? ' <em>⚠ en retard</em>' : ""}</span><span>${open ? "▾" : "▸"}</span></button>`;
+  if (open) {
+    h += tasks.map((t) =>
+      `<div class="dash-task"><div class="dash-task-t"><strong>${esc(t.sv.titre)}</strong>
+        <small>${t.idx <= t.sv.jours ? `Jour ${t.idx}/${t.sv.jours}` : "À rattraper"}${t.todo.length ? " · à faire : " + esc(t.todo.join(", ")) : ""}</small>
+        ${t.late.length ? `<small class="late">⚠ En retard : ${t.late.map((l) => `J${l.d} (${esc(l.miss.join(", "))})`).join(" ; ")}</small>` : ""}</div>
+        <button class="btn-primary" data-act="task-open" data-sk="${esc(t.key)}">Ouvrir</button></div>`).join("");
+  }
+  box.innerHTML = h + "</div>";
 }
 
 /* ---------- Auto-évaluation de départ ---------- */
@@ -814,6 +831,7 @@ function boot() {
   root.addEventListener("click", onClick);
   root.addEventListener("change", onChange);
   root.addEventListener("input", onInput);
+  root.addEventListener("toggle", (e) => { const d = e.target; if (d && d.dataset && d.dataset.ex) { if (d.open) st.openEx[d.dataset.ex] = true; else delete st.openEx[d.dataset.ex]; } }, true);
   const dash = $("dashRing");
   if (dash) dash.addEventListener("click", onClick);
   const dt = $("dashTasks");
