@@ -712,3 +712,6 @@ details.fm-ex[open]>summary{border-bottom:1px dashed var(--line);margin-bottom:1
 .fm-day{flex-wrap:wrap;}
 .fm-day-c{flex-basis:100%;font-size:12px;color:var(--navy);font-weight:600;padding-left:54px;}
 .dash-task-t small.cible{color:var(--navy);font-weight:600;}
+
+.fm-ex-n{flex:none;width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;}
+details.fm-ex>summary .fm-ex-t{flex:1;}

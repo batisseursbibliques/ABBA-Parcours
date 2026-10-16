@@ -12,8 +12,8 @@ const MODULES = [
   { id: "m1", titre: "Disciple de Christ", ready: true },
   { id: "m2", titre: "Guérir des Blessures de l'Âme", ready: true },
   { id: "m3", titre: "Cure d'Âme Personnelle", ready: true },
-  { id: "m4", titre: "Aimer", preview: true },
-  { id: "m5", titre: "Bâtir le Caractère" },
+  { id: "m4", titre: "Aimer", ready: true },
+  { id: "m5", titre: "Bâtir le Caractère", preview: true },
   { id: "m6", titre: "Le Saint-Esprit" },
   { id: "m7", titre: "Victoire par la Prière" },
   { id: "m8", titre: "Le Monde Spirituel" },
@@ -219,10 +219,24 @@ function renderField(f, scope, saved, readonly) {
         [0, 1, 2, 3].map((n) => `<label><input type="radio" name="${key}-${k}" data-f="${key}" data-t="sc" data-i="${k}" value="${n}" ${String(ans[k]) === String(n) ? "checked" : ""} ${dis}><b>${n}</b></label>`).join("") + `</span></span></div>`;
     });
     h += "</div>";
-    if (done >= f.items.length) h += renderScoresResult(f, ans);
+    if (done >= f.items.length) h += f.dimensions ? renderMbtiResult(f, ans) : renderScoresResult(f, ans);
     return h;
   }
   return "";
+}
+function mbtiResult(f, ans) {
+  const sum = (items) => items.reduce((a, n) => a + Number(ans[String(n)] || 0), 0);
+  const rows = (f.dimensions || []).map((d) => {
+    const sa = sum(d.a.items), sb = sum(d.b.items);
+    return { d, sa, sb, letter: sa > sb ? d.a.l : d.b.l };
+  });
+  return { rows, type: rows.map((r) => r.letter).join("") };
+}
+function renderMbtiResult(f, ans) {
+  const r = mbtiResult(f, ans);
+  let h = '<div class="fm-result"><p class="eyebrow">Tes résultats</p>';
+  r.rows.forEach((x, i) => { h += `<p><strong>Dimension ${i + 1}</strong> : ${esc(x.d.a.nom)} (${x.d.a.l}) ${x.sa}/15 · ${esc(x.d.b.nom)} (${x.d.b.l}) ${x.sb}/15 → <strong>${x.letter}</strong></p>`; });
+  return h + `<p>Ton type MBTI : <strong style="font-size:20px;letter-spacing:.15em;">${esc(r.type)}</strong></p><p class="small"><em>Note-le dans ta fiche. C'est un outil pour mieux te connaître, pas un diagnostic : tu n'es jamais réduit(e) à quatre lettres.</em></p></div>`;
 }
 function scoreTotals(f, ans) {
   return (f.groupes || []).map((g) => ({ g, total: g.items.reduce((a, n) => a + Number(ans[String(n)] || 0), 0) }));
@@ -363,12 +377,12 @@ function renderExercices(c, p, readonly) {
   const done = exoComplete(c, p);
   const nOk = (c.exercices || []).filter((ex) => exerciseState(c, ex, p) === "ok").length;
   let h = `<p class="settings-hint">${nOk}/${(c.exercices || []).length} exercices faits. Ouvre un exercice pour le faire, puis touche « Enregistrer ». Tu peux revenir compléter les autres plus tard.</p>`;
-  (c.exercices || []).forEach((ex) => {
+  (c.exercices || []).forEach((ex, exIdx) => {
     const saved = (p.exercices || {})[ex.id] || {};
     const state = exerciseState(c, ex, p);
     const badge = { ok: "✓ Fait", cours: "En cours", afaire: "À faire" }[state];
     const open = !!st.openEx[c.id + ":" + ex.id];
-    h += `<details class="fm-ex ${state === "ok" ? "ok" : ""}" id="ex-${ex.id}" data-ex="${c.id}:${ex.id}" ${open ? "open" : ""}><summary><span class="fm-ex-t">${esc(ex.titre)}</span><span class="fm-ex-b ${state}">${badge}</span></summary><div class="fm-ex-body"><p class="small">${esc(ex.consigne || "")}</p>${ex.intro_html ? (ex.directIntro ? `<div class="fm-texte">${ex.intro_html}</div>` : `<details class="fm-lecon"><summary>Lire le texte</summary><div class="fm-texte">${ex.intro_html}</div></details>`) : ""}`;
+    h += `<details class="fm-ex ${state === "ok" ? "ok" : ""}" id="ex-${ex.id}" data-ex="${c.id}:${ex.id}" ${open ? "open" : ""}><summary><span class="fm-ex-n">${exIdx + 1}</span><span class="fm-ex-t">${esc(ex.titre)}</span><span class="fm-ex-b ${state}">${badge}</span></summary><div class="fm-ex-body"><p class="small">${esc(ex.consigne || "")}</p>${ex.intro_html ? (ex.directIntro ? `<div class="fm-texte">${ex.intro_html}</div>` : `<details class="fm-lecon"><summary>Lire le texte</summary><div class="fm-texte">${ex.intro_html}</div></details>`) : ""}`;
     (ex.champs || []).forEach((f) => { h += renderField(f, "ex:" + ex.id, saved, readonly); });
     if (!readonly) h += `<button class="btn-secondary" data-act="ex-save" data-e="${ex.id}">Enregistrer</button>`;
     h += "</div></details>";
@@ -761,6 +775,9 @@ function readValue(f, v) {
   if (f.type === "oui_non") {
     const oui = Object.values(v || {}).filter((x) => x === "oui").length;
     return `<p class="small">${esc(f.id.toUpperCase())} : ${oui} « Oui » sur ${f.items.length}</p>`;
+  }
+  if (f.type === "scores" && f.dimensions) {
+    return Object.keys(v || {}).length >= f.items.length ? `<p class="small"><strong>Test MBTI :</strong> type ${esc(mbtiResult(f, v).type)}</p>` : `<p class="small"><strong>Test MBTI :</strong> incomplet</p>`;
   }
   if (f.type === "scores") {
     const rows = scoreTotals(f, v || {});
