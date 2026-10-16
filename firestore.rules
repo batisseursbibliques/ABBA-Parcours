@@ -135,7 +135,7 @@ service cloud.firestore {
       match /suivis/{sid} {
         allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid) || isCorrecteurOf(uid);
         allow create: if request.auth != null && request.auth.uid == uid
-          && request.resource.data.keys().hasOnly(['mid','exId','fid','titre','jours','labels','start','done','notes','updatedAt']);
+          && request.resource.data.keys().hasOnly(['mid','exId','fid','titre','jours','labels','cibles','start','done','notes','updatedAt']);
         allow update: if (request.auth != null && request.auth.uid == uid
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['done','notes','updatedAt']))
           || isAdmin();

@@ -154,7 +154,7 @@ function renderSuivi(f, key) {
     const late = !future && !isToday && got.length < labels.length;
     h += `<div class="fm-day ${isToday ? "today" : ""} ${late ? "late" : ""} ${future ? "future" : ""}"><span class="fm-day-d">J${d}<small>${fmtDate(sv.start, d)}</small></span><span class="fm-day-s">` +
       labels.map((lb, i) => `<label><input type="checkbox" data-sv="${key}|${d}|${i}" ${got.includes(i) ? "checked" : ""} ${future ? "disabled" : ""}><b>${esc(lb)}</b></label>`).join("") +
-      `</span>${late ? "<em>en retard</em>" : ""}</div>`;
+      `</span>${late ? "<em>en retard</em>" : ""}${(sv.cibles || [])[d - 1] ? `<span class="fm-day-c">${esc(sv.cibles[d - 1])}</span>` : ""}</div>`;
     if ((f.notesJours || []).includes(d) && !future) {
       h += `<textarea class="text-input fm-day-note" rows="2" placeholder="${esc(f.notePlaceholder || "Ce que j'observe (facultatif)")}" data-svn="${key}|${d}">${esc((sv.notes || {})[String(d)] || "")}</textarea>`;
     }
@@ -533,7 +533,7 @@ async function suiviStart(sk) {
   let field = null, ex0 = null;
   (c.exercices || []).forEach((ex) => (ex.champs || []).forEach((f) => { if (f.type === "suivi" && suiviKey(mid, ex.id, f.id) === sk) { field = f; ex0 = ex; } }));
   if (!field) return;
-  await S().startSuivi(st.user.uid, sk, { mid, exId: ex0.id, fid: field.id, titre: ex0.titre, jours: field.jours, labels: field.labels || ["Fait"], start: todayStr() });
+  await S().startSuivi(st.user.uid, sk, { mid, exId: ex0.id, fid: field.id, titre: ex0.titre, jours: field.jours, labels: field.labels || ["Fait"], ...(field.cibles ? { cibles: field.cibles } : {}), start: todayStr() });
   st.msg = "C'est parti ! Cette tâche apparaîtra chaque jour sur ta page d'accueil.";
 }
 async function suiviTick(attr, checked) {
@@ -580,6 +580,7 @@ function renderTasks() {
     h += tasks.map((t) =>
       `<div class="dash-task"><div class="dash-task-t"><strong>${esc(t.sv.titre)}</strong>
         <small>${t.idx <= t.sv.jours ? `Jour ${t.idx}/${t.sv.jours}` : "À rattraper"}${t.todo.length ? " · à faire : " + esc(t.todo.join(", ")) : ""}</small>
+        ${t.idx <= t.sv.jours && (t.sv.cibles || [])[t.idx - 1] ? `<small class="cible">👉 ${esc(t.sv.cibles[t.idx - 1])}</small>` : ""}
         ${t.late.length ? `<small class="late">⚠ En retard : ${t.late.map((l) => `J${l.d} (${esc(l.miss.join(", "))})`).join(" ; ")}</small>` : ""}</div>
         <button class="btn-primary" data-act="task-open" data-sk="${esc(t.key)}">Ouvrir</button></div>`).join("");
   }

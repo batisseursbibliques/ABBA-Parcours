@@ -708,3 +708,7 @@ details.fm-ex[open]>summary{border-bottom:1px dashed var(--line);margin-bottom:1
 .fm-grid-row{border-top:1px dashed var(--line);padding:8px 0;}
 .fm-grid-t{font-weight:700;color:var(--navy);margin:0 0 4px;font-size:14px;}
 .fm-grid-c{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--ink-soft);margin-bottom:6px;}
+
+.fm-day{flex-wrap:wrap;}
+.fm-day-c{flex-basis:100%;font-size:12px;color:var(--navy);font-weight:600;padding-left:54px;}
+.dash-task-t small.cible{color:var(--navy);font-weight:600;}
