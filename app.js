@@ -70,7 +70,7 @@ const DEFAULT_ZONES = [
   { id: "z3", titre: "Pensée" },
   { id: "z4", titre: "Décision" },
   { id: "z5", titre: "Habitudes" },
-  { id: "z6", titre: "Parole" },
+  { id: "z6", titre: "Manier son caractère par son esprit" },
 ];
 function currentMonthKey() {
   const d = new Date();
@@ -215,6 +215,8 @@ async function onAuthChanged(user) {
 
   unsubZonesConfig = window.AbbaSync.watchZonesConfig((list) => {
     ZONES_CONFIG = (list && list.length) ? list : deepClone(DEFAULT_ZONES);
+    // Alignement avec le manuel et le cahier : l'ancienne zone « Parole » devient « Manier son caractère par son esprit »
+    ZONES_CONFIG = ZONES_CONFIG.map(z => (z.titre && z.titre.trim().toLowerCase() === "parole") ? { ...z, titre: "Manier son caractère par son esprit" } : z);
     renderZones();
     renderZonesEditor();
   });

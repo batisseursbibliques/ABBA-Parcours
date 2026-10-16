@@ -14,7 +14,7 @@ const MODULES = [
   { id: "m3", titre: "Cure d'Âme Personnelle", ready: true },
   { id: "m4", titre: "Aimer", ready: true },
   { id: "m5", titre: "Bâtir le Caractère", ready: true },
-  { id: "m6", titre: "Le Saint-Esprit" },
+  { id: "m6", titre: "Le Saint-Esprit", preview: true },
   { id: "m7", titre: "Victoire par la Prière" },
   { id: "m8", titre: "Le Monde Spirituel" },
   { id: "m9", titre: "Évangélisation, Guérison, Délivrance" },
