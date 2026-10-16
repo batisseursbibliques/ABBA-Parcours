@@ -15,7 +15,7 @@ const MODULES = [
   { id: "m4", titre: "Aimer", ready: true },
   { id: "m5", titre: "Bâtir le Caractère", ready: true },
   { id: "m6", titre: "Le Saint-Esprit", preview: true },
-  { id: "m7", titre: "Victoire par la Prière" },
+  { id: "m7", titre: "Victoire par la Prière", preview: true },
   { id: "m8", titre: "Le Monde Spirituel" },
   { id: "m9", titre: "Évangélisation, Guérison, Délivrance" },
   { id: "m10", titre: "Les Ministères de Dieu" },
@@ -149,13 +149,14 @@ function renderSuivi(f, key) {
       <button class="btn-primary" data-act="suivi-start" data-sk="${key}">▶ Commencer aujourd'hui</button></div>`;
     return h;
   }
-  const idx = dayIndex(sv.start), done = sv.done || {};
+  const pas = sv.pas || 1, idx = dayIndex(sv.start), per = idx < 1 ? 0 : Math.floor((idx - 1) / pas) + 1, done = sv.done || {};
+  const unit = pas > 1 ? "S" : "J";
   const nDone = Object.values(done).reduce((a, x) => a + x.length, 0), total = sv.jours * labels.length;
-  h += `<p class="small"><strong>${nDone}/${total}</strong> faits — commencé le ${fmtDate(sv.start, 1)}${idx > sv.jours ? " — période terminée" : ""}</p><div class="fm-days">`;
+  h += `<p class="small"><strong>${nDone}/${total}</strong> faits — commencé le ${fmtDate(sv.start, 1)}${per > sv.jours ? " — période terminée" : ""}</p><div class="fm-days">`;
   for (let d = 1; d <= sv.jours; d++) {
-    const future = d > idx, isToday = d === idx, got = done[String(d)] || [];
+    const future = d > per, isToday = d === per, got = done[String(d)] || [];
     const late = !future && !isToday && got.length < labels.length;
-    h += `<div class="fm-day ${isToday ? "today" : ""} ${late ? "late" : ""} ${future ? "future" : ""}"><span class="fm-day-d">J${d}<small>${fmtDate(sv.start, d)}</small></span><span class="fm-day-s">` +
+    h += `<div class="fm-day ${isToday ? "today" : ""} ${late ? "late" : ""} ${future ? "future" : ""}"><span class="fm-day-d">${unit}${d}<small>${fmtDate(sv.start, (d - 1) * pas + 1)}</small></span><span class="fm-day-s">` +
       labels.map((lb, i) => `<label><input type="checkbox" data-sv="${key}|${d}|${i}" ${got.includes(i) ? "checked" : ""} ${future ? "disabled" : ""}><b>${esc(lb)}</b></label>`).join("") +
       `</span>${late ? "<em>en retard</em>" : ""}${(sv.cibles || [])[d - 1] ? `<span class="fm-day-c">${esc(sv.cibles[d - 1])}</span>` : ""}</div>`;
     if ((f.notesJours || []).includes(d) && !future) {
@@ -609,7 +610,7 @@ async function suiviStart(sk) {
   let field = null, ex0 = null;
   (c.exercices || []).forEach((ex) => (ex.champs || []).forEach((f) => { if (f.type === "suivi" && suiviKey(mid, ex.id, f.id) === sk) { field = f; ex0 = ex; } }));
   if (!field) return;
-  await S().startSuivi(st.user.uid, sk, { mid, exId: ex0.id, fid: field.id, titre: ex0.titre, jours: field.jours, labels: field.labels || ["Fait"], ...(field.cibles ? { cibles: field.cibles } : {}), start: todayStr() });
+  await S().startSuivi(st.user.uid, sk, { mid, exId: ex0.id, fid: field.id, titre: ex0.titre, jours: field.jours, labels: field.labels || ["Fait"], ...(field.cibles ? { cibles: field.cibles } : {}), ...(field.pas ? { pas: field.pas } : {}), start: todayStr() });
   st.msg = "C'est parti ! Cette tâche apparaîtra chaque jour sur ta page d'accueil.";
 }
 async function suiviTick(attr, checked) {
@@ -629,18 +630,19 @@ async function suiviNote(attr, val) {
 function tasksToday() {
   const out = [];
   Object.entries(st.suivis).forEach(([key, sv]) => {
-    const idx = dayIndex(sv.start);
-    if (idx < 1 || idx > sv.jours + 7) return;
+    const pas = sv.pas || 1, idx = dayIndex(sv.start);
+    if (idx < 1 || idx > sv.jours * pas + 7) return;
+    const per = Math.floor((idx - 1) / pas) + 1;
     const labels = sv.labels || ["Fait"], done = sv.done || {};
-    const upTo = Math.min(idx, sv.jours);
+    const upTo = Math.min(per, sv.jours);
     const todo = [], late = [];
     for (let d = 1; d <= upTo; d++) {
       const got = done[String(d)] || [];
       const miss = labels.filter((_, i) => !got.includes(i));
       if (!miss.length) continue;
-      if (d === idx) todo.push(...miss); else late.push({ d, miss });
+      if (d === per) todo.push(...miss); else late.push({ d, miss });
     }
-    if (todo.length || late.length) out.push({ key, sv, idx, todo, late });
+    if (todo.length || late.length) out.push({ key, sv, idx, per, pas, todo, late });
   });
   return out;
 }
@@ -655,9 +657,9 @@ function renderTasks() {
   if (open) {
     h += tasks.map((t) =>
       `<div class="dash-task"><div class="dash-task-t"><strong>${esc(t.sv.titre)}</strong>
-        <small>${t.idx <= t.sv.jours ? `Jour ${t.idx}/${t.sv.jours}` : "À rattraper"}${t.todo.length ? " · à faire : " + esc(t.todo.join(", ")) : ""}</small>
-        ${t.idx <= t.sv.jours && (t.sv.cibles || [])[t.idx - 1] ? `<small class="cible">👉 ${esc(t.sv.cibles[t.idx - 1])}</small>` : ""}
-        ${t.late.length ? `<small class="late">⚠ En retard : ${t.late.map((l) => `J${l.d} (${esc(l.miss.join(", "))})`).join(" ; ")}</small>` : ""}</div>
+        <small>${t.per <= t.sv.jours ? `${t.pas > 1 ? "Semaine" : "Jour"} ${t.per}/${t.sv.jours}` : "À rattraper"}${t.todo.length ? " · à faire : " + esc(t.todo.join(", ")) : ""}</small>
+        ${t.per <= t.sv.jours && (t.sv.cibles || [])[t.per - 1] ? `<small class="cible">👉 ${esc(t.sv.cibles[t.per - 1])}</small>` : ""}
+        ${t.late.length ? `<small class="late">⚠ En retard : ${t.late.map((l) => `${t.pas > 1 ? "S" : "J"}${l.d} (${esc(l.miss.join(", "))})`).join(" ; ")}</small>` : ""}</div>
         <button class="btn-primary" data-act="task-open" data-sk="${esc(t.key)}">Ouvrir</button></div>`).join("");
   }
   box.innerHTML = h + "</div>";
