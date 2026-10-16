@@ -715,3 +715,13 @@ details.fm-ex[open]>summary{border-bottom:1px dashed var(--line);margin-bottom:1
 
 .fm-ex-n{flex:none;width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;}
 details.fm-ex>summary .fm-ex-t{flex:1;}
+
+/* ===== EXERCICES DU MOIS PAR ZONE ===== */
+.zp-opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;margin:8px 0;cursor:pointer;background:var(--card-bg);}
+.zp-opt.on{border-color:var(--navy);background:var(--paper);}
+.zp-opt input{margin-top:4px;}
+.zp-opt p{margin:4px 0 0;font-size:13px;}
+.zp-opt strong{color:var(--navy);font-size:14px;}
+.zp-prat{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;}
+.zp-prat .btn-secondary{padding:8px 14px;}
+.zp-prat.done .btn-secondary{background:var(--sage-soft);border-color:var(--sage);color:var(--sage);}

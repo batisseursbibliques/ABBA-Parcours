@@ -13,7 +13,7 @@ const MODULES = [
   { id: "m2", titre: "Guérir des Blessures de l'Âme", ready: true },
   { id: "m3", titre: "Cure d'Âme Personnelle", ready: true },
   { id: "m4", titre: "Aimer", ready: true },
-  { id: "m5", titre: "Bâtir le Caractère", preview: true },
+  { id: "m5", titre: "Bâtir le Caractère", ready: true },
   { id: "m6", titre: "Le Saint-Esprit" },
   { id: "m7", titre: "Victoire par la Prière" },
   { id: "m8", titre: "Le Monde Spirituel" },
@@ -35,7 +35,7 @@ const STEPS = [["lecture", "Lecture"], ["qcm", "Questions"], ["exercices", "Exer
 
 const st = {
   user: null, isAdmin: false, isCorrecteur: false,
-  meta: {}, prog: {}, parcours: [], lien: null, profile: {}, suivis: {}, focus: null, openEx: {}, tasksOpen: false,
+  meta: {}, prog: {}, parcours: [], lien: null, profile: {}, suivis: {}, focus: null, openEx: {}, tasksOpen: false, zp: { plan: {}, content: null, open: {} },
   content: {}, view: { mod: null, step: "lecture" },
   cache: {}, msg: "",
   corr: { open: false, rows: null, loading: false },
@@ -51,7 +51,7 @@ function stop() {
   unsubs = [];
   if (st.adm && st.adm.unsub) { try { st.adm.unsub(); } catch (e) {} }
   st.adm = { open: false, correcteurs: [], liens: [], students: [], loaded: false };
-  st.user = null; st.meta = {}; st.prog = {}; st.suivis = {}; st.parcours = []; st.lien = null;
+  st.user = null; st.meta = {}; st.prog = {}; st.suivis = {}; st.zp.plan = {}; st.parcours = []; st.lien = null;
   st.isAdmin = false; st.isCorrecteur = false; st.view = { mod: null, step: "lecture" };
   render();
 }
@@ -70,6 +70,8 @@ async function start(user) {
   st.lien = await S().getMyLien(user.uid);
   unsubs.push(S().watchFormationMeta(user.uid, (m) => { st.meta = m || {}; afterProgress(); render(); }));
   unsubs.push(S().watchFormationModules(user.uid, (p) => { st.prog = p || {}; afterProgress(); render(); }));
+  unsubs.push(S().watchZonesPlan(user.uid, (p) => { st.zp.plan = p || {}; render(); }));
+  loadZonesContent();
   unsubs.push(S().watchSuivis(user.uid, (m) => { st.suivis = m || {}; render(); }));
   unsubs.push(S().watchParcours(user.uid, (l) => { st.parcours = l || []; afterProgress(); }));
   render();
@@ -114,6 +116,7 @@ function getVal(scope, fid, saved) {
   return k in st.cache ? st.cache[k] : (saved ? saved[fid] : undefined);
 }
 function fieldDone(f, v, prefix) {
+  if (f.type === "lienZones") return zonesEverComplete();
   if (f.type === "suivi") return !!st.suivis[`${prefix}_${f.id}`];
   if (f.type === "check") return f.optional ? true : v === true;
   if (f.type === "oui_non" || f.type === "scores") return v && Object.keys(v).length >= f.items.length;
@@ -163,6 +166,7 @@ function renderSuivi(f, key) {
 }
 function renderField(f, scope, saved, readonly) {
   if (f.type === "suivi") return renderSuivi(f, suiviKey(st.view.mod, scope.slice(3), f.id));
+  if (f.type === "lienZones") return `<div class="fm-suivi"><p class="small"><strong>${zonesChosenCount()}/6</strong> zones avec un exercice choisi pour ${esc(monthLabel(monthKey()))}.</p><button class="btn-secondary" data-act="goto-zones">Choisir mes exercices dans l'onglet Zones de caractère →</button></div>`;
   const v = getVal(scope, f.id, saved);
   const key = `${scope}:${f.id}`;
   const dis = readonly ? "disabled" : "";
@@ -264,6 +268,7 @@ function renderIndicateurs(f, ans) {
 /* ---------- Écran principal ---------- */
 function render() {
   renderDash();
+  renderZonesPlan();
   const root = $("formationRoot");
   if (!root) return;
   if (!st.user) { root.innerHTML = ""; return; }
@@ -370,7 +375,7 @@ function renderQcm(c, p) {
 function exerciseState(c, ex, p) {
   const saved = (p.exercices || {})[ex.id] || {};
   if (fieldsComplete(ex.champs, saved, c.id + "_" + ex.id)) return "ok";
-  const started = Object.keys(saved).length > 0 || (ex.champs || []).some((fd) => (fd.type === "suivi" && st.suivis[`${c.id}_${ex.id}_${fd.id}`]) || ("ex:" + ex.id + ":" + fd.id) in st.cache);
+  const started = Object.keys(saved).length > 0 || (ex.champs || []).some((fd) => (fd.type === "suivi" && st.suivis[`${c.id}_${ex.id}_${fd.id}`]) || (fd.type === "lienZones" && zonesChosenCount() > 0) || ("ex:" + ex.id + ":" + fd.id) in st.cache);
   return started ? "cours" : "afaire";
 }
 function renderExercices(c, p, readonly) {
@@ -456,6 +461,7 @@ async function onClick(e) {
   try {
     if (act === "open" && b.dataset.m === "autoeval") { st.view = { mod: "autoeval", step: "fiche" }; st.cache = {}; render(); window.scrollTo(0, 0); return; }
     if (act === "open") { S().getMyLien(st.user.uid).then((l) => { st.lien = l; }); st.view = { mod: b.dataset.m, step: "lecture" }; st.cache = {}; st.qcmDraft = {}; render(); window.scrollTo(0, 0); return; }
+    if (act === "goto-zones") { const t = document.querySelector('.tab[data-tab="caractere"]'); if (t) t.click(); return; }
     if (act === "tasks-toggle") { st.tasksOpen = !st.tasksOpen; renderTasks(); return; }
     if (act === "suivi-start") return suiviStart(b.dataset.sk);
     if (act === "task-open") {
@@ -540,6 +546,62 @@ async function saveFiche(send) {
   }
 }
 
+
+
+/* ---------- Exercices du mois par zone de caractère (onglet Zones de caractère) ---------- */
+const monthKey = () => { const d = new Date(); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`; };
+const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+const monthLabel = (mk) => { const [y, m] = mk.split("-").map(Number); return `${MOIS[m - 1]} ${y}`; };
+async function loadZonesContent() {
+  if (st.zp.content) return;
+  try { const r = await fetch("content/zones-exercices.json"); if (!r.ok) throw new Error(r.status); st.zp.content = await r.json(); }
+  catch (e) { st.zp.content = { zones: [], error: true }; }
+  render();
+}
+const zpChoix = (mk) => ((st.zp.plan[mk] || {}).choix) || {};
+const zonesChosenCount = () => Object.keys(zpChoix(monthKey())).length;
+const zonesEverComplete = () => Object.keys(st.zp.plan).some((mk) => Object.keys(zpChoix(mk)).length >= 6);
+function renderZonesPlan() {
+  const box = $("zonesPlanRoot");
+  if (!box) return;
+  if (!st.user) { box.innerHTML = ""; return; }
+  const c = st.zp.content;
+  if (!c) { box.innerHTML = ""; return; }
+  if (c.error || !c.zones.length) { box.innerHTML = ""; return; }
+  const mk = monthKey(), choix = zpChoix(mk), prat = (st.zp.plan[mk] || {}).pratiques || {};
+  const n = Object.keys(choix).length, today = todayStr();
+  const prevKeys = Object.keys(st.zp.plan).filter((k) => k < mk && Object.keys(zpChoix(k)).length).sort();
+  let h = `<div class="card"><p class="eyebrow">Mes exercices du mois — ${esc(monthLabel(mk))}</p>
+    <p class="settings-hint">Pour chaque zone, choisis UN exercice à pratiquer ce mois-ci. <strong>${n}/${c.zones.length}</strong> choisis.</p>`;
+  if (!n && prevKeys.length) h += '<button class="btn-secondary" data-zp="reprendre">Reprendre mes choix du mois dernier</button>';
+  c.zones.forEach((z, i) => {
+    const sel = choix[z.key], chosen = z.exercices.find((e) => e.id === sel);
+    const count = (prat[z.key] || []).length, doneToday = (prat[z.key] || []).includes(today);
+    h += `<details class="fm-ex ${chosen ? "ok" : ""}" data-zpk="${z.key}" ${st.zp.open[z.key] ? "open" : ""}><summary><span class="fm-ex-n">${i + 1}</span><span class="fm-ex-t">${esc(z.titre)}</span><span class="fm-ex-b ${chosen ? "ok" : "afaire"}">${chosen ? esc(chosen.id + " ✓") : "À choisir"}</span></summary><div class="fm-ex-body">
+      ${z.sous ? `<p class="small"><em>${esc(z.sous)}</em></p>` : ""}${z.verset ? `<p class="small">${esc(z.verset)}</p>` : ""}`;
+    z.exercices.forEach((e) => {
+      h += `<label class="zp-opt ${sel === e.id ? "on" : ""}"><input type="radio" name="zp-${z.key}" data-zp="choisir" data-z="${z.key}" value="${e.id}" ${sel === e.id ? "checked" : ""}><div><strong>${esc(e.id)} — ${esc(e.titre)}</strong><p>${esc(e.comment)}</p><p class="small">Fréquence : ${esc(e.frequence)}</p></div></label>`;
+    });
+    if (chosen) h += `<div class="zp-prat ${doneToday ? "done" : ""}"><button class="btn-secondary" data-zp="pratique" data-z="${z.key}">${doneToday ? "✓ Pratiqué aujourd'hui" : "Je l'ai pratiqué aujourd'hui"}</button><span class="small">${count} fois ce mois-ci</span></div>`;
+    h += "</div></details>";
+  });
+  box.innerHTML = h + "</div>";
+}
+async function zpAction(e) {
+  const b = e.target.closest("[data-zp]");
+  if (!b || !st.user) return;
+  const mk = monthKey(), a = b.dataset.zp;
+  if (a === "choisir") { if (!b.checked && e.type === "click") return; await S().saveZonesPlan(st.user.uid, mk, { choix: { [b.dataset.z]: b.value } }); return; }
+  if (a === "pratique") {
+    const z = b.dataset.z, cur = ((st.zp.plan[mk] || {}).pratiques || {})[z] || [], t = todayStr();
+    const next = cur.includes(t) ? cur.filter((d) => d !== t) : [...cur, t];
+    await S().saveZonesPlan(st.user.uid, mk, { pratiques: { [z]: next } }); return;
+  }
+  if (a === "reprendre") {
+    const prev = Object.keys(st.zp.plan).filter((k) => k < mk && Object.keys(zpChoix(k)).length).sort().pop();
+    if (prev) await S().saveZonesPlan(st.user.uid, mk, { choix: zpChoix(prev) });
+  }
+}
 
 /* ---------- Exercices sur plusieurs jours ---------- */
 async function suiviStart(sk) {
@@ -873,6 +935,12 @@ function boot() {
   if (dash) dash.addEventListener("click", onClick);
   const dt = $("dashTasks");
   if (dt) dt.addEventListener("click", onClick);
+  const zr = $("zonesPlanRoot");
+  if (zr) {
+    zr.addEventListener("change", (e) => { if (e.target.dataset && e.target.dataset.zp === "choisir") zpAction(e).catch((err) => console.error(err)); });
+    zr.addEventListener("click", (e) => { const b = e.target.closest("[data-zp]"); if (b && b.dataset.zp !== "choisir") zpAction(e).catch((err) => console.error(err)); });
+    zr.addEventListener("toggle", (e) => { const d = e.target; if (d && d.dataset && d.dataset.zpk) { if (d.open) st.zp.open[d.dataset.zpk] = true; else delete st.zp.open[d.dataset.zpk]; } }, true);
+  }
   S().watchAuth((user) => { if (user) start(user); else stop(); });
 }
 if (window.AbbaSync) boot(); else window.addEventListener("load", boot);

@@ -159,6 +159,18 @@ async function saveMyZonesMonth(uid, monthKey, evaluation) {
   }, { merge: true });
 }
 
+// Exercices choisis par zone de caractère, mois par mois
+function watchZonesPlan(uid, callback) {
+  return onSnapshot(doc(db, "users", uid, "priv", "zonesExercices"), (snap) => {
+    callback(snap.exists() ? (snap.data().parMois || {}) : {});
+  }, (err) => console.error("watchZonesPlan:", err));
+}
+async function saveZonesPlan(uid, monthKey, partial) {
+  await setDoc(doc(db, "users", uid, "priv", "zonesExercices"), {
+    parMois: { [monthKey]: { ...partial, updatedAt: serverTimestamp() } },
+  }, { merge: true });
+}
+
 /* ---------- DIMENSIONS (Physique, Profession) — objectif libre du mois ---------- */
 // docKey = "physique" ou "profession"
 function watchMyDimension(uid, docKey, callback) {
@@ -342,4 +354,5 @@ window.AbbaSync = {
   setLien, deleteLien, loadAllLiens, getMyLien, loadMyStudents,
   watchFormationMeta, setAcquis, watchFormationModules, saveModulePart, loadStudentModules, reviewFiche,
   watchSuivis, startSuivi, updateSuivi, loadStudentSuivis,
+  watchZonesPlan, saveZonesPlan,
 };
