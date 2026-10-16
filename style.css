@@ -725,3 +725,24 @@ details.fm-ex>summary .fm-ex-t{flex:1;}
 .zp-prat{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;}
 .zp-prat .btn-secondary{padding:8px 14px;}
 .zp-prat.done .btn-secondary{background:var(--sage-soft);border-color:var(--sage);color:var(--sage);}
+
+/* ===== DÉCLARATION QUOTIDIENNE + LECTURE À VOIX HAUTE ===== */
+.decl-today{display:flex;gap:10px;margin:12px 0;}
+.decl-slot{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px 8px;border-radius:var(--radius);border:2px solid var(--line);background:var(--card-bg);color:var(--ink);font-size:16px;font-weight:700;cursor:pointer;}
+.decl-slot span{font-size:26px;line-height:1;color:var(--ink-soft);}
+.decl-slot.on{border-color:var(--sage);background:var(--sage-soft);color:var(--sage);}
+.decl-slot.on span{color:var(--sage);}
+.decl-stats{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.decl-dots{display:flex;gap:6px;}
+.decl-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--line);background:transparent;}
+.decl-dot.full{background:var(--sage);border-color:var(--sage);}
+.decl-dot.half{background:linear-gradient(90deg,var(--sage) 50%,transparent 50%);border-color:var(--sage);}
+.decl-dot.now{box-shadow:0 0 0 2px #E8A33D;}
+.decl-text{font-size:17px;line-height:1.7;}
+.decl-text p{margin:0 0 12px;}
+.fm-tts{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0;}
+.fm-tts .btn-secondary{padding:8px 14px;}
+.fm-tts .small{flex-basis:100%;}
+.fm-rate{width:auto;padding:8px 10px;font-size:13px;}
+.dash-task-b{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;}
+.dash-task-b .btn-secondary,.dash-task-b .btn-primary{padding:7px 12px;font-size:13px;white-space:nowrap;}

@@ -62,6 +62,7 @@
   <!-- ===== NAVIGATION ===== -->
   <nav class="tabs" id="tabs" aria-label="Navigation principale">
     <button class="tab active" data-tab="accueil"><span class="tab-num">I</span>Accueil</button>
+    <button class="tab" data-tab="declaration"><span class="tab-num">✦</span>Déclaration</button>
     <button class="tab" data-tab="parcours"><span class="tab-num">II</span>Mon Parcours</button>
     <button class="tab" data-tab="binome"><span class="tab-num">III</span>Binôme</button>
     <button class="tab" data-tab="caractere"><span class="tab-num">V</span>Caractère</button>
@@ -119,6 +120,13 @@
     </section>
 
     <!-- ================= MON PARCOURS ================= -->
+    <section class="panel" id="panel-declaration">
+      <div class="panel-head">
+        <h1>Ma déclaration</h1>
+      </div>
+      <div id="declRoot"></div>
+    </section>
+
     <section class="panel" id="panel-parcours">
       <div class="panel-head">
         <h1>Mon parcours</h1>
@@ -363,6 +371,10 @@
     <button class="bnav-btn active" data-tab="accueil">
       <svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 11 L12 4 L20 11 M6 10 V20 H18 V10" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
       <span>Accueil</span>
+    </button>
+    <button class="bnav-btn" data-tab="declaration">
+      <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 3 L14 9 L20 9 L15 13 L17 19 L12 15.5 L7 19 L9 13 L4 9 L10 9 Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      <span>Déclaration</span>
     </button>
     <button class="bnav-btn" data-tab="parcours">
       <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 4 H18 V20 L12 17 L6 20 Z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>

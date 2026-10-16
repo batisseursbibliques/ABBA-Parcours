@@ -30,12 +30,13 @@ const dayNum = (s) => { const [y, m, d] = s.split("-").map(Number); return Date.
 const dayIndex = (start) => dayNum(todayStr()) - dayNum(start) + 1; // 1 = jour de départ
 const fmtDate = (start, k) => { const [y, m, d] = start.split("-").map(Number); const dt = new Date(Date.UTC(y, m - 1, d + k - 1)); return `${pad2(dt.getUTCDate())}/${pad2(dt.getUTCMonth() + 1)}`; };
 const suiviKey = (mid, exId, fid) => `${mid}_${exId}_${fid}`;
+const DECL_KEY = "declaration";
 const modTitle = (m) => `M${m.id.slice(1)} — ${m.titre}`;
 const STEPS = [["lecture", "Lecture"], ["qcm", "Questions"], ["exercices", "Exercices"], ["fiche", "Fiche"]];
 
 const st = {
   user: null, isAdmin: false, isCorrecteur: false,
-  meta: {}, prog: {}, parcours: [], lien: null, profile: {}, suivis: {}, focus: null, openEx: {}, tasksOpen: false, zp: { plan: {}, content: null, open: {} },
+  meta: {}, prog: {}, parcours: [], lien: null, profile: {}, suivis: {}, focus: null, openEx: {}, tasksOpen: false, zp: { plan: {}, content: null, open: {} }, decl: null,
   content: {}, view: { mod: null, step: "lecture" },
   cache: {}, msg: "",
   corr: { open: false, rows: null, loading: false },
@@ -72,6 +73,7 @@ async function start(user) {
   unsubs.push(S().watchFormationModules(user.uid, (p) => { st.prog = p || {}; afterProgress(); render(); }));
   unsubs.push(S().watchZonesPlan(user.uid, (p) => { st.zp.plan = p || {}; render(); }));
   loadZonesContent();
+  loadDeclContent();
   unsubs.push(S().watchSuivis(user.uid, (m) => { st.suivis = m || {}; render(); }));
   unsubs.push(S().watchParcours(user.uid, (l) => { st.parcours = l || []; afterProgress(); }));
   render();
@@ -117,7 +119,7 @@ function getVal(scope, fid, saved) {
 }
 function fieldDone(f, v, prefix) {
   if (f.type === "lienZones") return zonesEverComplete();
-  if (f.type === "suivi") return !!st.suivis[`${prefix}_${f.id}`];
+  if (f.type === "suivi") return !!st.suivis[f.permanent ? DECL_KEY : `${prefix}_${f.id}`];
   if (f.type === "check") return f.optional ? true : v === true;
   if (f.type === "oui_non" || f.type === "scores") return v && Object.keys(v).length >= f.items.length;
   if (f.type === "grille") return !!v && Object.values(v).filter(Boolean).length >= f.rows.length * f.cols.length;
@@ -152,8 +154,9 @@ function renderSuivi(f, key) {
   const pas = sv.pas || 1, idx = dayIndex(sv.start), per = idx < 1 ? 0 : Math.floor((idx - 1) / pas) + 1, done = sv.done || {};
   const unit = pas > 1 ? "S" : "J";
   const nDone = Object.values(done).reduce((a, x) => a + x.length, 0), total = sv.jours * labels.length;
-  h += `<p class="small"><strong>${nDone}/${total}</strong> faits — commencé le ${fmtDate(sv.start, 1)}${per > sv.jours ? " — période terminée" : ""}</p><div class="fm-days">`;
-  for (let d = 1; d <= sv.jours; d++) {
+  h += `<p class="small"><strong>${sv.jours > 60 ? `${nDone}</strong> faits — commencé le ${fmtDate(sv.start, 1)} · chaque jour, jusqu'à la fin de ta formation` : `${nDone}/${total}</strong> faits — commencé le ${fmtDate(sv.start, 1)}${per > sv.jours ? " — période terminée" : ""}`}</p><div class="fm-days">`;
+  const startD = sv.jours > 60 ? Math.max(1, per - 6) : 1, endD = sv.jours > 60 ? Math.max(per, 1) : sv.jours;
+  for (let d = startD; d <= endD; d++) {
     const future = d > per, isToday = d === per, got = done[String(d)] || [];
     const late = !future && !isToday && got.length < labels.length;
     h += `<div class="fm-day ${isToday ? "today" : ""} ${late ? "late" : ""} ${future ? "future" : ""}"><span class="fm-day-d">${unit}${d}<small>${fmtDate(sv.start, (d - 1) * pas + 1)}</small></span><span class="fm-day-s">` +
@@ -166,7 +169,7 @@ function renderSuivi(f, key) {
   return h + "</div></div>";
 }
 function renderField(f, scope, saved, readonly) {
-  if (f.type === "suivi") return renderSuivi(f, suiviKey(st.view.mod, scope.slice(3), f.id));
+  if (f.type === "suivi") return renderSuivi(f, f.permanent ? DECL_KEY : suiviKey(st.view.mod, scope.slice(3), f.id));
   if (f.type === "lienZones") return `<div class="fm-suivi"><p class="small"><strong>${zonesChosenCount()}/6</strong> zones avec un exercice choisi pour ${esc(monthLabel(monthKey()))}.</p><button class="btn-secondary" data-act="goto-zones">Choisir mes exercices dans l'onglet Zones de caractère →</button></div>`;
   const v = getVal(scope, f.id, saved);
   const key = `${scope}:${f.id}`;
@@ -270,6 +273,7 @@ function renderIndicateurs(f, ans) {
 function render() {
   renderDash();
   renderZonesPlan();
+  renderDecl();
   const root = $("formationRoot");
   if (!root) return;
   if (!st.user) { root.innerHTML = ""; return; }
@@ -339,7 +343,7 @@ function renderLecture(c, p) {
   h += `<p class="settings-hint">${lu.length}/${c.lecons.length} leçons lues. Ouvre chaque leçon, lis-la, puis touche « J'ai lu ».</p>`;
   c.lecons.forEach((l) => {
     const done = lu.includes(l.id);
-    h += `<details class="fm-lecon ${done ? "done" : ""}"><summary>${done ? "✓ " : ""}${esc(l.titre)}</summary><div class="fm-texte">${l.html}</div>
+    h += `<details class="fm-lecon ${done ? "done" : ""}"><summary>${done ? "✓ " : ""}${esc(l.titre)}</summary><div class="fm-tts" data-ttsbar="les:${c.id}:${l.id}">${ttsBar(`les:${c.id}:${l.id}`)}</div><div class="fm-texte">${l.html}</div>
       ${done ? '<p class="small">Leçon lue.</p>' : `<button class="btn-primary" data-act="lu" data-l="${l.id}">J'ai lu cette leçon</button>`}</details>`;
   });
   if (lu.length >= c.lecons.length) h += '<button class="btn-primary full" data-act="step" data-s="qcm">Passer aux questions →</button>';
@@ -376,7 +380,7 @@ function renderQcm(c, p) {
 function exerciseState(c, ex, p) {
   const saved = (p.exercices || {})[ex.id] || {};
   if (fieldsComplete(ex.champs, saved, c.id + "_" + ex.id)) return "ok";
-  const started = Object.keys(saved).length > 0 || (ex.champs || []).some((fd) => (fd.type === "suivi" && st.suivis[`${c.id}_${ex.id}_${fd.id}`]) || (fd.type === "lienZones" && zonesChosenCount() > 0) || ("ex:" + ex.id + ":" + fd.id) in st.cache);
+  const started = Object.keys(saved).length > 0 || (ex.champs || []).some((fd) => (fd.type === "suivi" && st.suivis[fd.permanent ? DECL_KEY : `${c.id}_${ex.id}_${fd.id}`]) || (fd.type === "lienZones" && zonesChosenCount() > 0) || ("ex:" + ex.id + ":" + fd.id) in st.cache);
   return started ? "cours" : "afaire";
 }
 function renderExercices(c, p, readonly) {
@@ -468,6 +472,7 @@ async function onClick(e) {
     if (act === "task-open") {
       const sv = st.suivis[b.dataset.sk];
       if (!sv) return;
+      if (b.dataset.sk === DECL_KEY) { st.tasksOpen = false; const t = document.querySelector('.tab[data-tab="declaration"]'); if (t) t.click(); return; }
       st.view = { mod: sv.mid, step: "exercices" }; st.cache = {}; st.focus = sv.exId; st.openEx[sv.mid + ":" + sv.exId] = true; st.tasksOpen = false;
       const t = document.querySelector('.tab[data-tab="parcours"]'); if (t) t.click();
       render(); return;
@@ -549,6 +554,131 @@ async function saveFiche(send) {
 
 
 
+
+/* ---------- Lecture à voix haute (synthèse vocale de l'appareil, gratuite) ---------- */
+const TTS = { id: null, state: "stop", chunks: [], i: 0, tok: 0, rate: Number(localStorage.getItem("abba_tts_rate")) || 1, msg: "" };
+const ttsOk = () => "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
+function ttsVoice() {
+  const vs = speechSynthesis.getVoices() || [];
+  const fr = vs.filter((v) => (v.lang || "").toLowerCase().startsWith("fr"));
+  if (vs.length && !fr.length) TTS.msg = "Aucune voix française détectée sur cet appareil : la lecture peut se faire avec une autre voix. Active la synthèse vocale française dans les réglages de ton téléphone.";
+  return fr.find((v) => /fr[-_]FR/i.test(v.lang)) || fr[0] || null;
+}
+function ttsClean(t) {
+  return String(t || "").replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]+/g, "").replace(/\(Votre Nom\)/gi, declName()).replace(/\s+/g, " ").trim();
+}
+function ttsChunks(text) {
+  const sents = ttsClean(text).split(/(?<=[.!?…:;])\s+/), out = [];
+  let cur = "";
+  sents.forEach((s) => {
+    if ((cur + " " + s).length > 170 && cur) { out.push(cur); cur = s; } else cur = cur ? cur + " " + s : s;
+  });
+  if (cur) out.push(cur);
+  return out.flatMap((c) => (c.length > 220 ? c.split(/(?<=,)\s+/) : [c]));
+}
+function htmlToSpeech(html) {
+  const d = document.createElement("div");
+  d.innerHTML = html;
+  d.querySelectorAll("h3,h4").forEach((h) => { h.textContent = h.textContent.replace(/[.:]*$/, "") + ". "; });
+  d.querySelectorAll("li,p").forEach((p) => { p.textContent = p.textContent + " "; });
+  return d.textContent || "";
+}
+function ttsSpeakNext() {
+  if (TTS.state !== "play") return;
+  if (TTS.i >= TTS.chunks.length) { TTS.state = "stop"; TTS.id = null; updateTtsUi(); return; }
+  const tok = TTS.tok, u = new SpeechSynthesisUtterance(TTS.chunks[TTS.i]);
+  u.lang = "fr-FR"; u.rate = TTS.rate;
+  const v = ttsVoice(); if (v) u.voice = v;
+  u.onend = () => { if (tok === TTS.tok && TTS.state === "play") { TTS.i++; ttsSpeakNext(); } };
+  u.onerror = (e) => { if (tok !== TTS.tok || (e && (e.error === "interrupted" || e.error === "canceled"))) return; TTS.i++; ttsSpeakNext(); };
+  speechSynthesis.speak(u);
+}
+function ttsText(id) {
+  if (id === "decl") return ((st.decl || {}).paragraphes || []).join(" ");
+  const [, mid, lid] = id.split(":");
+  const c = st.content[mid], l = c && (c.lecons || []).find((x) => x.id === lid);
+  return l ? l.titre + ". " + htmlToSpeech(l.html) : "";
+}
+function ttsPlay(id) {
+  if (!ttsOk()) return;
+  ttsStop(false);
+  TTS.tok++; TTS.id = id; TTS.msg = ""; TTS.chunks = ttsChunks(ttsText(id)); TTS.i = 0; TTS.state = "play";
+  updateTtsUi(); ttsSpeakNext();
+}
+function ttsPause() { if (TTS.state !== "play") return; TTS.tok++; TTS.state = "pause"; speechSynthesis.cancel(); updateTtsUi(); }
+function ttsResume() { if (TTS.state !== "pause") return; TTS.tok++; TTS.state = "play"; updateTtsUi(); ttsSpeakNext(); }
+function ttsStop(ui = true) { TTS.tok++; TTS.state = "stop"; TTS.id = null; if (ttsOk()) speechSynthesis.cancel(); if (ui) updateTtsUi(); }
+function ttsBar(id) {
+  if (!ttsOk()) return '<p class="small">La lecture à voix haute n\'est pas disponible sur cet appareil.</p>';
+  const active = TTS.id === id && TTS.state !== "stop";
+  let b = !active ? `<button class="btn-secondary" data-tts="play" data-id="${id}">🔊 Écouter</button>`
+    : TTS.state === "play" ? `<button class="btn-secondary" data-tts="pause">⏸ Pause</button><button class="btn-secondary" data-tts="stop">⏹ Arrêter</button>`
+    : `<button class="btn-secondary" data-tts="resume">▶ Reprendre</button><button class="btn-secondary" data-tts="stop">⏹ Arrêter</button>`;
+  b += `<select class="text-input fm-rate" data-tts="rate" aria-label="Vitesse de lecture">${[[0.85, "Lent"], [1, "Normal"], [1.15, "Rapide"]].map(([v, l]) => `<option value="${v}" ${TTS.rate === v ? "selected" : ""}>${l}</option>`).join("")}</select>`;
+  return b + (TTS.msg && active ? `<p class="small">${esc(TTS.msg)}</p>` : "");
+}
+function updateTtsUi() { document.querySelectorAll("[data-ttsbar]").forEach((el) => { el.innerHTML = ttsBar(el.dataset.ttsbar); }); }
+function ttsEvent(e) {
+  const b = e.target.closest("[data-tts]");
+  if (!b) return;
+  const a = b.dataset.tts;
+  if (a === "rate") { if (e.type !== "change") return; TTS.rate = Number(b.value) || 1; localStorage.setItem("abba_tts_rate", String(TTS.rate)); if (TTS.state === "play") { TTS.tok++; speechSynthesis.cancel(); ttsSpeakNext(); } return; }
+  if (e.type !== "click") return;
+  if (a === "play") ttsPlay(b.dataset.id); else if (a === "pause") ttsPause(); else if (a === "resume") ttsResume(); else if (a === "stop") ttsStop();
+}
+
+/* ---------- Déclaration principale (onglet « Déclaration ») ---------- */
+async function loadDeclContent() {
+  if (st.decl) return;
+  try { const r = await fetch("content/declaration.json"); if (!r.ok) throw new Error(r.status); st.decl = await r.json(); }
+  catch (e) { st.decl = { error: true, paragraphes: [] }; }
+  render();
+}
+function declName() {
+  const p = st.profile || {};
+  const n = [p.prenom, p.nom].filter(Boolean).join(" ").trim() || (st.user && st.user.displayName) || "";
+  return n || "(Votre Nom)";
+}
+async function startDeclaration() {
+  await S().startSuivi(st.user.uid, DECL_KEY, { mid: "m1", exId: "declaration", fid: "suivi", titre: "Ma déclaration principale", jours: 365, labels: ["Matin", "Soir"], start: todayStr() });
+}
+async function declAction(e) {
+  const b = e.target.closest("[data-decl]");
+  if (!b || !st.user) return;
+  if (b.dataset.decl === "start") { await startDeclaration(); return; }
+  if (b.dataset.decl === "tick") {
+    const sv = st.suivis[DECL_KEY];
+    if (!sv) return;
+    const idx = dayIndex(sv.start), slot = Number(b.dataset.slot), got = (sv.done || {})[String(idx)] || [];
+    await suiviTick(`${DECL_KEY}|${idx}|${slot}`, !got.includes(slot));
+  }
+}
+function renderDecl() {
+  const box = $("declRoot");
+  if (!box) return;
+  if (!st.user) { box.innerHTML = ""; return; }
+  const c = st.decl;
+  if (!c) { box.innerHTML = '<p class="settings-hint">Chargement…</p>'; return; }
+  if (c.error) { box.innerHTML = '<p class="auth-error">Impossible de charger la déclaration. Vérifie ta connexion.</p>'; return; }
+  const sv = st.suivis[DECL_KEY];
+  let h = `<div class="card"><p class="eyebrow">${esc(c.titre)}</p><p class="small">${esc(c.sous)}</p>`;
+  if (!sv) {
+    h += `<p class="settings-hint">Commence ta déclaration quotidienne : elle apparaîtra chaque jour sur ta page d'accueil, matin et soir, jusqu'à la fin de ta formation.</p><button class="btn-primary full" data-decl="start">▶ Commencer ma déclaration quotidienne</button>`;
+  } else {
+    const labels = sv.labels || ["Matin", "Soir"], idx = dayIndex(sv.start), done = sv.done || {}, today = done[String(idx)] || [];
+    h += `<div class="decl-today">${labels.map((lb, i) => `<button class="decl-slot ${today.includes(i) ? "on" : ""}" data-decl="tick" data-slot="${i}"><span>${today.includes(i) ? "✓" : "○"}</span>${esc(lb)}</button>`).join("")}</div>`;
+    let streak = 0;
+    for (let d = idx; d >= 1; d--) { const full = (done[String(d)] || []).length >= labels.length; if (full) streak++; else if (d === idx) continue; else break; }
+    let dots = "";
+    for (let d = Math.max(1, idx - 6); d <= idx; d++) { const n = (done[String(d)] || []).length; dots += `<span class="decl-dot ${n >= labels.length ? "full" : n ? "half" : ""} ${d === idx ? "now" : ""}" title="${fmtDate(sv.start, d)}"></span>`; }
+    h += `<div class="decl-stats"><span class="decl-dots">${dots}</span>${streak >= 2 ? `<span class="small">🔥 ${streak} jours de suite</span>` : ""}</div>`;
+  }
+  h += "</div>";
+  const nm = declName();
+  h += `<div class="card"><div class="fm-tts" data-ttsbar="decl">${ttsBar("decl")}</div><div class="decl-text">${(c.paragraphes || []).map((p) => `<p>${esc(p).replace(/\(Votre Nom\)/gi, "<strong>" + esc(nm) + "</strong>")}</p>`).join("")}${c.refs ? `<p class="small"><strong>Références bibliques :</strong> ${esc(c.refs.replace(/^Références bibliques\s*:\s*/i, ""))}</p>` : ""}</div></div>`;
+  box.innerHTML = h;
+}
+
 /* ---------- Exercices du mois par zone de caractère (onglet Zones de caractère) ---------- */
 const monthKey = () => { const d = new Date(); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`; };
 const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
@@ -608,8 +738,9 @@ async function zpAction(e) {
 async function suiviStart(sk) {
   const mid = st.view.mod, c = st.content[mid];
   let field = null, ex0 = null;
-  (c.exercices || []).forEach((ex) => (ex.champs || []).forEach((f) => { if (f.type === "suivi" && suiviKey(mid, ex.id, f.id) === sk) { field = f; ex0 = ex; } }));
+  (c.exercices || []).forEach((ex) => (ex.champs || []).forEach((f) => { if (f.type === "suivi" && (f.permanent ? DECL_KEY : suiviKey(mid, ex.id, f.id)) === sk) { field = f; ex0 = ex; } }));
   if (!field) return;
+  if (field.permanent) { await startDeclaration(); st.msg = "C'est parti ! Ta déclaration apparaîtra chaque jour sur ta page d'accueil, jusqu'à la fin de ta formation."; return; }
   await S().startSuivi(st.user.uid, sk, { mid, exId: ex0.id, fid: field.id, titre: ex0.titre, jours: field.jours, labels: field.labels || ["Fait"], ...(field.cibles ? { cibles: field.cibles } : {}), ...(field.pas ? { pas: field.pas } : {}), start: todayStr() });
   st.msg = "C'est parti ! Cette tâche apparaîtra chaque jour sur ta page d'accueil.";
 }
@@ -634,13 +765,13 @@ function tasksToday() {
     if (idx < 1 || idx > sv.jours * pas + 7) return;
     const per = Math.floor((idx - 1) / pas) + 1;
     const labels = sv.labels || ["Fait"], done = sv.done || {};
-    const upTo = Math.min(per, sv.jours);
+    const upTo = key === DECL_KEY ? per : Math.min(per, sv.jours);
     const todo = [], late = [];
     for (let d = 1; d <= upTo; d++) {
       const got = done[String(d)] || [];
       const miss = labels.filter((_, i) => !got.includes(i));
       if (!miss.length) continue;
-      if (d === per) todo.push(...miss); else late.push({ d, miss });
+      if (d === per) todo.push(...miss); else if (key !== DECL_KEY) late.push({ d, miss });
     }
     if (todo.length || late.length) out.push({ key, sv, idx, per, pas, todo, late });
   });
@@ -657,10 +788,10 @@ function renderTasks() {
   if (open) {
     h += tasks.map((t) =>
       `<div class="dash-task"><div class="dash-task-t"><strong>${esc(t.sv.titre)}</strong>
-        <small>${t.per <= t.sv.jours ? `${t.pas > 1 ? "Semaine" : "Jour"} ${t.per}/${t.sv.jours}` : "À rattraper"}${t.todo.length ? " · à faire : " + esc(t.todo.join(", ")) : ""}</small>
+        <small>${t.key === DECL_KEY ? "Aujourd'hui" : t.per <= t.sv.jours ? `${t.pas > 1 ? "Semaine" : "Jour"} ${t.per}/${t.sv.jours}` : "À rattraper"}${t.todo.length ? " · à faire : " + esc(t.todo.join(", ")) : ""}</small>
         ${t.per <= t.sv.jours && (t.sv.cibles || [])[t.per - 1] ? `<small class="cible">👉 ${esc(t.sv.cibles[t.per - 1])}</small>` : ""}
         ${t.late.length ? `<small class="late">⚠ En retard : ${t.late.map((l) => `${t.pas > 1 ? "S" : "J"}${l.d} (${esc(l.miss.join(", "))})`).join(" ; ")}</small>` : ""}</div>
-        <button class="btn-primary" data-act="task-open" data-sk="${esc(t.key)}">Ouvrir</button></div>`).join("");
+        <div class="dash-task-b">${t.key === DECL_KEY ? (t.sv.labels || []).map((lb, i) => ((t.sv.done || {})[String(t.per)] || []).includes(i) ? "" : `<button class="btn-secondary" data-decl="tick" data-slot="${i}">✓ ${esc(lb)}</button>`).join("") : ""}<button class="btn-primary" data-act="task-open" data-sk="${esc(t.key)}">Ouvrir</button></div></div>`).join("");
   }
   box.innerHTML = h + "</div>";
 }
@@ -937,6 +1068,14 @@ function boot() {
   if (dash) dash.addEventListener("click", onClick);
   const dt = $("dashTasks");
   if (dt) dt.addEventListener("click", onClick);
+  const dr = $("declRoot");
+  if (dr) { dr.addEventListener("click", declAction); dr.addEventListener("click", ttsEvent); dr.addEventListener("change", ttsEvent); }
+  if (dt) dt.addEventListener("click", declAction);
+  root.addEventListener("click", ttsEvent);
+  root.addEventListener("change", ttsEvent);
+  document.addEventListener("click", (e) => { if (e.target.closest(".tab, .bnav-btn, [data-goto]") || (e.target.closest("[data-act]") && ["open", "back", "step"].includes(e.target.closest("[data-act]").dataset.act))) ttsStop(); }, true);
+  window.addEventListener("pagehide", () => ttsStop(false));
+  if (ttsOk() && speechSynthesis.addEventListener) speechSynthesis.addEventListener("voiceschanged", () => {});
   const zr = $("zonesPlanRoot");
   if (zr) {
     zr.addEventListener("change", (e) => { if (e.target.dataset && e.target.dataset.zp === "choisir") zpAction(e).catch((err) => console.error(err)); });
