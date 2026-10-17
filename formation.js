@@ -16,7 +16,7 @@ const MODULES = [
   { id: "m5", titre: "Bâtir le Caractère", ready: true },
   { id: "m6", titre: "Le Saint-Esprit", ready: true },
   { id: "m7", titre: "Victoire par la Prière", ready: true },
-  { id: "m8", titre: "Le Monde Spirituel" },
+  { id: "m8", titre: "Le Monde Spirituel", preview: true },
   { id: "m9", titre: "Évangélisation, Guérison, Délivrance" },
   { id: "m10", titre: "Les Ministères de Dieu" },
   { id: "m11", titre: "Maîtriser sa Santé et son Argent" },
