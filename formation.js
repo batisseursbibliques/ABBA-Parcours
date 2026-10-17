@@ -17,7 +17,7 @@ const MODULES = [
   { id: "m6", titre: "Le Saint-Esprit", ready: true },
   { id: "m7", titre: "Victoire par la Prière", ready: true },
   { id: "m8", titre: "Le Monde Spirituel", preview: true },
-  { id: "m9", titre: "Évangélisation, Guérison, Délivrance" },
+  { id: "m9", titre: "Évangélisation, Guérison, Délivrance", preview: true },
   { id: "m10", titre: "Les Ministères de Dieu" },
   { id: "m11", titre: "Maîtriser sa Santé et son Argent" },
   { id: "m12", titre: "Citoyenneté Responsable" },
