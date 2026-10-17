@@ -14,8 +14,8 @@ const MODULES = [
   { id: "m3", titre: "Cure d'Âme Personnelle", ready: true },
   { id: "m4", titre: "Aimer", ready: true },
   { id: "m5", titre: "Bâtir le Caractère", ready: true },
-  { id: "m6", titre: "Le Saint-Esprit", preview: true },
-  { id: "m7", titre: "Victoire par la Prière", preview: true },
+  { id: "m6", titre: "Le Saint-Esprit", ready: true },
+  { id: "m7", titre: "Victoire par la Prière", ready: true },
   { id: "m8", titre: "Le Monde Spirituel" },
   { id: "m9", titre: "Évangélisation, Guérison, Délivrance" },
   { id: "m10", titre: "Les Ministères de Dieu" },
@@ -36,7 +36,7 @@ const STEPS = [["lecture", "Lecture"], ["qcm", "Questions"], ["exercices", "Exer
 
 const st = {
   user: null, isAdmin: false, isCorrecteur: false,
-  meta: {}, prog: {}, parcours: [], lien: null, profile: {}, suivis: {}, focus: null, openEx: {}, tasksOpen: false, zp: { plan: {}, content: null, open: {} }, decl: null,
+  meta: {}, prog: {}, parcours: [], lien: null, profile: {}, suivis: {}, focus: null, openEx: {}, tasksOpen: false, zp: { plan: {}, content: null, open: {} }, decl: null, binome: { pair: null, last: "" }, loaded: { prog: false, meta: false },
   content: {}, view: { mod: null, step: "lecture" },
   cache: {}, msg: "",
   corr: { open: false, rows: null, loading: false },
@@ -52,7 +52,7 @@ function stop() {
   unsubs = [];
   if (st.adm && st.adm.unsub) { try { st.adm.unsub(); } catch (e) {} }
   st.adm = { open: false, correcteurs: [], liens: [], students: [], loaded: false };
-  st.user = null; st.meta = {}; st.prog = {}; st.suivis = {}; st.zp.plan = {}; st.parcours = []; st.lien = null;
+  st.user = null; st.meta = {}; st.prog = {}; st.suivis = {}; st.zp.plan = {}; st.binome = { pair: null, last: "" }; st.loaded = { prog: false, meta: false }; st.parcours = []; st.lien = null;
   st.isAdmin = false; st.isCorrecteur = false; st.view = { mod: null, step: "lecture" };
   render();
 }
@@ -69,8 +69,14 @@ async function start(user) {
   MODULES.filter((m) => m.ready).forEach((m) => loadContent(m.id).then(() => { render(); }));
   st.isCorrecteur = await S().amICorrecteur(user.email);
   st.lien = await S().getMyLien(user.uid);
-  unsubs.push(S().watchFormationMeta(user.uid, (m) => { st.meta = m || {}; afterProgress(); render(); }));
-  unsubs.push(S().watchFormationModules(user.uid, (p) => { st.prog = p || {}; afterProgress(); render(); }));
+  unsubs.push(S().watchFormationMeta(user.uid, (m) => { st.meta = m || {}; st.loaded.meta = true; afterProgress(); render(); }));
+  unsubs.push(S().watchFormationModules(user.uid, (p) => { st.prog = p || {}; st.loaded.prog = true; afterProgress(); render(); }));
+  S().findMyBinome(user.uid).then((pair) => {
+    if (!pair) return;
+    st.binome.pair = pair;
+    unsubs.push(S().watchBinome(pair.id, (p) => { st.binome.pair = p; renderBinomeProgress(); }));
+    pushProgress();
+  }).catch(() => {});
   unsubs.push(S().watchZonesPlan(user.uid, (p) => { st.zp.plan = p || {}; render(); }));
   loadZonesContent();
   loadDeclContent();
@@ -184,7 +190,8 @@ function renderField(f, scope, saved, readonly) {
     return `<label class="field"><span>${esc(f.label)}</span><input class="text-input" type="text" data-f="${key}" data-t="text" value="${esc(v || "")}" ${dis}></label>`;
   }
   if (f.type === "select") {
-    return `<label class="field"><span>${esc(f.label)}</span><select class="text-input" data-f="${key}" data-t="text" ${dis}><option value="">—</option>${(f.options || []).map((o) => `<option ${v === o ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></label>`;
+    const fb = f.bonne && v ? (v === f.bonne ? `<p class="fm-fb ok">✓ Bonne réponse. ${esc(f.explication || "")}</p>` : `<p class="fm-fb ko">Réponse attendue : <strong>${esc(f.bonne)}</strong>. ${esc(f.explication || "")}</p>`) : "";
+    return `<div class="field"><label><span>${esc(f.label)}</span><select class="text-input" data-f="${key}" data-t="text" ${dis}><option value="">—</option>${(f.options || []).map((o) => `<option ${v === o ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></label>${fb}</div>`;
   }
   if (f.type === "scale") {
     return `<div class="field"><span>${esc(f.label)}</span><div class="fm-scale">${[1, 2, 3, 4, 5].map((n) => `<label><input type="radio" name="${key}" data-f="${key}" data-t="num" value="${n}" ${String(v) === String(n) ? "checked" : ""} ${dis}><b>${n}</b></label>`).join("")}</div></div>`;
@@ -272,6 +279,7 @@ function renderIndicateurs(f, ans) {
 /* ---------- Écran principal ---------- */
 function render() {
   renderDash();
+  renderBinomeProgress();
   renderZonesPlan();
   renderDecl();
   const root = $("formationRoot");
@@ -441,7 +449,7 @@ function onFieldInput(el) {
     cur[el.dataset.i] = el.value;
     st.cache[k] = cur;
     if (Object.keys(cur).length >= 1) rerenderKeepScroll();
-  } else st.cache[k] = el.value;
+  } else { st.cache[k] = el.value; if (t === "text" && el.tagName === "SELECT" && el.closest(".field") && el.dataset.f) { const [sc, ...rest] = k.split(":"); const fid = rest[rest.length - 1]; const mm = st.content[st.view.mod]; const has = mm && (mm.exercices || []).some((ex) => (ex.champs || []).some((fd) => fd.id === fid && fd.bonne)); if (has) rerenderKeepScroll(); } }
 }
 function currentSaved(k) {
   const [scope, ...rest] = k.split(":");
@@ -556,7 +564,7 @@ async function saveFiche(send) {
 
 
 /* ---------- Lecture à voix haute (synthèse vocale de l'appareil, gratuite) ---------- */
-const TTS = { id: null, state: "stop", chunks: [], i: 0, tok: 0, rate: Number(localStorage.getItem("abba_tts_rate")) || 1, msg: "" };
+const TTS = { id: null, state: "stop", chunks: [], i: 0, tok: 0, rate: Number(localStorage.getItem("abba_tts_rate")) || 1, msg: "", title: "", wake: localStorage.getItem("abba_tts_wake") === "1" };
 const ttsOk = () => "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
 function ttsVoice() {
   const vs = speechSynthesis.getVoices() || [];
@@ -585,7 +593,7 @@ function htmlToSpeech(html) {
 }
 function ttsSpeakNext() {
   if (TTS.state !== "play") return;
-  if (TTS.i >= TTS.chunks.length) { TTS.state = "stop"; TTS.id = null; updateTtsUi(); return; }
+  if (TTS.i >= TTS.chunks.length) { TTS.state = "stop"; TTS.id = null; wakeRelease(); updateTtsUi(); return; }
   const tok = TTS.tok, u = new SpeechSynthesisUtterance(TTS.chunks[TTS.i]);
   u.lang = "fr-FR"; u.rate = TTS.rate;
   const v = ttsVoice(); if (v) u.voice = v;
@@ -603,27 +611,47 @@ function ttsPlay(id) {
   if (!ttsOk()) return;
   ttsStop(false);
   TTS.tok++; TTS.id = id; TTS.msg = ""; TTS.chunks = ttsChunks(ttsText(id)); TTS.i = 0; TTS.state = "play";
-  updateTtsUi(); ttsSpeakNext();
+  if (id === "decl") TTS.title = "Ma déclaration"; else { const [, mid, lid] = id.split(":"); const c = st.content[mid], l = c && (c.lecons || []).find((x) => x.id === lid); TTS.title = l ? l.titre : "Leçon"; }
+  updateTtsUi(); ttsSpeakNext(); wakeAcquire();
 }
 function ttsPause() { if (TTS.state !== "play") return; TTS.tok++; TTS.state = "pause"; speechSynthesis.cancel(); updateTtsUi(); }
-function ttsResume() { if (TTS.state !== "pause") return; TTS.tok++; TTS.state = "play"; updateTtsUi(); ttsSpeakNext(); }
-function ttsStop(ui = true) { TTS.tok++; TTS.state = "stop"; TTS.id = null; if (ttsOk()) speechSynthesis.cancel(); if (ui) updateTtsUi(); }
+function ttsResume() { if (TTS.state !== "pause") return; TTS.tok++; TTS.state = "play"; updateTtsUi(); ttsSpeakNext(); wakeAcquire(); }
+function ttsStop(ui = true) { TTS.tok++; TTS.state = "stop"; TTS.id = null; if (ttsOk()) speechSynthesis.cancel(); wakeRelease(); if (ui) updateTtsUi(); }
+const wakeOk = () => "wakeLock" in navigator;
+let wakeSentinel = null;
+async function wakeAcquire() {
+  if (!wakeOk() || !TTS.wake || TTS.state !== "play" || wakeSentinel) return;
+  try { wakeSentinel = await navigator.wakeLock.request("screen"); wakeSentinel.addEventListener("release", () => { wakeSentinel = null; }); }
+  catch (e) { TTS.msg = "Cet appareil n'autorise pas de garder l'écran allumé."; updateTtsUi(); }
+}
+function wakeRelease() { if (wakeSentinel) { try { wakeSentinel.release(); } catch (e) {} wakeSentinel = null; } }
 function ttsBar(id) {
   if (!ttsOk()) return '<p class="small">La lecture à voix haute n\'est pas disponible sur cet appareil.</p>';
   const active = TTS.id === id && TTS.state !== "stop";
-  let b = !active ? `<button class="btn-secondary" data-tts="play" data-id="${id}">🔊 Écouter</button>`
-    : TTS.state === "play" ? `<button class="btn-secondary" data-tts="pause">⏸ Pause</button><button class="btn-secondary" data-tts="stop">⏹ Arrêter</button>`
-    : `<button class="btn-secondary" data-tts="resume">▶ Reprendre</button><button class="btn-secondary" data-tts="stop">⏹ Arrêter</button>`;
-  b += `<select class="text-input fm-rate" data-tts="rate" aria-label="Vitesse de lecture">${[[0.85, "Lent"], [1, "Normal"], [1.15, "Rapide"]].map(([v, l]) => `<option value="${v}" ${TTS.rate === v ? "selected" : ""}>${l}</option>`).join("")}</select>`;
-  return b + (TTS.msg && active ? `<p class="small">${esc(TTS.msg)}</p>` : "");
+  return active ? '<span class="small">🔊 Lecture en cours : les commandes restent en bas de l\'écran</span>'
+    : `<button class="btn-secondary btn-compact" data-tts="play" data-id="${id}">🔊 Écouter</button>`;
 }
-function updateTtsUi() { document.querySelectorAll("[data-ttsbar]").forEach((el) => { el.innerHTML = ttsBar(el.dataset.ttsbar); }); }
+function ttsMiniHtml() {
+  const playing = TTS.state === "play";
+  return `<span class="tts-mini-t">🔊 ${esc(TTS.title || "Lecture")}</span>
+    <button class="tts-btn" data-tts="${playing ? "pause" : "resume"}" aria-label="${playing ? "Pause" : "Reprendre"}">${playing ? "⏸" : "▶"}</button>
+    <button class="tts-btn" data-tts="stop" aria-label="Arrêter">⏹</button>
+    <select class="tts-rate" data-tts="rate" aria-label="Vitesse">${[[0.85, "Lent"], [1, "Normal"], [1.15, "Rapide"]].map(([v, l]) => `<option value="${v}" ${TTS.rate === v ? "selected" : ""}>${l}</option>`).join("")}</select>
+    ${wakeOk() ? `<button class="tts-btn ${TTS.wake ? "on" : ""}" data-tts="wake" aria-label="Garder l'écran allumé" title="Garder l'écran allumé">☀</button>` : ""}
+    ${TTS.msg ? `<span class="tts-mini-m">${esc(TTS.msg)}</span>` : ""}`;
+}
+function updateTtsUi() {
+  document.querySelectorAll("[data-ttsbar]").forEach((el) => { el.innerHTML = ttsBar(el.dataset.ttsbar); });
+  const mini = $("ttsMini");
+  if (mini) { mini.hidden = TTS.state === "stop"; if (TTS.state !== "stop") mini.innerHTML = ttsMiniHtml(); }
+}
 function ttsEvent(e) {
   const b = e.target.closest("[data-tts]");
   if (!b) return;
   const a = b.dataset.tts;
   if (a === "rate") { if (e.type !== "change") return; TTS.rate = Number(b.value) || 1; localStorage.setItem("abba_tts_rate", String(TTS.rate)); if (TTS.state === "play") { TTS.tok++; speechSynthesis.cancel(); ttsSpeakNext(); } return; }
   if (e.type !== "click") return;
+  if (a === "wake") { TTS.wake = !TTS.wake; localStorage.setItem("abba_tts_wake", TTS.wake ? "1" : "0"); if (TTS.wake) wakeAcquire(); else wakeRelease(); updateTtsUi(); return; }
   if (a === "play") ttsPlay(b.dataset.id); else if (a === "pause") ttsPause(); else if (a === "resume") ttsResume(); else if (a === "stop") ttsStop();
 }
 
@@ -871,6 +899,32 @@ function moduleFraction(m) {
   const s = stepStatus(c, p);
   return ((s.lecture ? 1 : 0) + (s.qcm ? 1 : 0) + (s.exercices ? 1 : 0) + (p.ficheStatus === "validated" ? 1 : 0)) / 4;
 }
+const overallPct = () => Math.round(MODULES.reduce((a, m) => a + moduleFraction(m), 0) / MODULES.length * 100);
+const myFullName = () => { const p = st.profile || {}; return [p.prenom, p.nom].filter(Boolean).join(" ").trim() || (st.user && st.user.displayName) || (st.user && st.user.email.split("@")[0]) || ""; };
+function pushProgress() {
+  const pair = st.binome.pair;
+  if (!st.user || !pair || !st.loaded.prog || !st.loaded.meta) return;
+  if (!MODULES.filter((m) => m.ready).every((m) => st.content[m.id])) return;
+  const pct = overallPct(), faits = MODULES.filter((m) => isComplete(m.id)).length, nom = myFullName();
+  const key = `${pct}|${faits}|${nom}`;
+  if (key === st.binome.last) return;
+  st.binome.last = key;
+  S().saveMyProgress(pair.id, st.user.email, { pct, faits, nom }).catch(() => { st.binome.last = ""; });
+}
+function renderBinomeProgress() {
+  const box = $("binomeProgressRoot");
+  if (!box) return;
+  const pair = st.binome.pair;
+  if (!st.user || !pair) { box.innerHTML = ""; return; }
+  const me = st.user.email.toLowerCase(), partner = pair.membre1 === me ? pair.membre2 : pair.membre1;
+  const prog = pair.progress || {}, theirs = prog[partner];
+  const mine = overallPct(), pName = (theirs && theirs.nom) || partner;
+  const bar = (label, pct, cls) => `<div class="bm-row ${cls}"><span class="bm-n">${esc(label)}</span><div class="bm-bar"><i style="width:${pct == null ? 0 : pct}%"></i></div><b>${pct == null ? "—" : pct + " %"}</b></div>`;
+  let msg;
+  if (!theirs) msg = `${esc(pName)} n'a pas encore ouvert ses modules dans cette application.`;
+  else { const d = theirs.pct - mine; msg = d >= 5 ? `🏃 ${esc(pName)} a ${d} points d'avance. À toi de le rattraper !` : d <= -5 ? `💪 Tu as ${-d} points d'avance. Encourage ${esc(pName)} !` : "🤝 Vous avancez au même rythme. Continuez ensemble !"; }
+  box.innerHTML = `<div class="card"><p class="eyebrow">Barème de progression</p>${bar("Moi", mine, "me")}${bar(pName, theirs ? theirs.pct : null, "them")}<p class="settings-hint">${msg}</p></div>`;
+}
 function nextStepText() {
   if (!autoevalDone()) return ["Commence par ton auto-évaluation", "Elle te montre où tu en es avant de plonger dans les modules."];
   const i = MODULES.findIndex((m) => !isComplete(m.id));
@@ -892,7 +946,8 @@ function renderDash() {
   if (!st.user) { box.innerHTML = ""; return; }
   const prenom = (st.profile && st.profile.prenom) || (st.user.displayName || "").split(" ")[0] || "";
   hello.textContent = prenom ? `Bienvenue, ${prenom} 👋` : "Bienvenue 👋";
-  const pct = Math.round(MODULES.reduce((a, m) => a + moduleFraction(m), 0) / MODULES.length * 100);
+  const pct = overallPct();
+  pushProgress();
   const C = 2 * Math.PI * 52;
   const [t1, t2] = nextStepText();
   box.innerHTML = `<p class="eyebrow">Mon parcours</p>
@@ -1068,6 +1123,11 @@ function boot() {
   if (dash) dash.addEventListener("click", onClick);
   const dt = $("dashTasks");
   if (dt) dt.addEventListener("click", onClick);
+  const mini = document.createElement("div");
+  mini.id = "ttsMini"; mini.className = "tts-mini"; mini.hidden = true;
+  document.body.appendChild(mini);
+  mini.addEventListener("click", ttsEvent); mini.addEventListener("change", ttsEvent);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") wakeAcquire(); });
   const dr = $("declRoot");
   if (dr) { dr.addEventListener("click", declAction); dr.addEventListener("click", ttsEvent); dr.addEventListener("change", ttsEvent); }
   if (dt) dt.addEventListener("click", declAction);

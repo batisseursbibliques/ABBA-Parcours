@@ -127,6 +127,14 @@ async function saveMyFiche(pairId, myEmail, content) {
   }, { merge: true });
 }
 
+// Progression visible par le binôme : chacun n'écrit que SA propre entrée
+async function saveMyProgress(pairId, myEmail, data) {
+  const key = myEmail.trim().toLowerCase();
+  await setDoc(doc(db, "binomes", pairId), {
+    progress: { [key]: { ...data, updatedAt: serverTimestamp() } },
+  }, { merge: true });
+}
+
 /* ---------- GESTE DU MOIS (strictement privé — jamais visible par le binôme) ---------- */
 function watchMyGeste(uid, callback) {
   return onSnapshot(doc(db, "users", uid, "priv", "binomeGeste"), (snap) => {
@@ -354,5 +362,5 @@ window.AbbaSync = {
   setLien, deleteLien, loadAllLiens, getMyLien, loadMyStudents,
   watchFormationMeta, setAcquis, watchFormationModules, saveModulePart, loadStudentModules, reviewFiche,
   watchSuivis, startSuivi, updateSuivi, loadStudentSuivis,
-  watchZonesPlan, saveZonesPlan,
+  watchZonesPlan, saveZonesPlan, saveMyProgress,
 };
