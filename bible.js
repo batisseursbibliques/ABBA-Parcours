@@ -131,7 +131,7 @@ const S = {
   xref: null,
   vue: "lire", // lire | chercher
   options: false,
-  ecoute: false, courant: null, jeton: 0,
+  ecoute: false, enPause: false, courant: null, jeton: 0,
   vitesse: Number(lsGet("abba_bible_vitesse", "1")) || 1,
   enchainer: lsGet("abba_bible_enchainer", "oui") !== "non",
   ecranAllume: lsGet("abba_bible_ecran", "oui") !== "non",
@@ -183,6 +183,7 @@ function aller(l, c, v = null, { garderLecture = false } = {}) {
   if (!garderLecture) arreter();
   if (l !== S.livre) { S.xref = null; livreXrefAttendu = l; }
   S.livre = l; S.chap = c; S.verset = v;
+  if (garderLecture) S.courant = null;
   sauverPosition();
   rendreBarre();
   chargerChapitre().then(() => {
@@ -221,16 +222,17 @@ function arreter() {
   S.jeton += 1;
   if (synthOk()) window.speechSynthesis.cancel();
   const etait = S.ecoute;
-  S.ecoute = false; S.courant = null;
+  S.ecoute = false; S.courant = null; S.enPause = false;
   arrierePlanArreter();
   verrouLiberer();
   if (etait) { rendreBarre(); majSurbrillance(); }
+  majMini();
 }
 // Pause : on arrête, mais on retient le verset atteint pour reprendre exactement à cet endroit
 function pause() {
   const reste = S.courant;
   arreter();
-  if (reste) { S.verset = reste; sauverPosition(); rendreBarre(); majSurbrillance(); }
+  if (reste) { S.verset = reste; S.enPause = true; sauverPosition(); rendreBarre(); majSurbrillance(); majMini(); }
 }
 async function lire(depuis) {
   if (!audioOk() || !S.versets.length) return;
@@ -251,8 +253,9 @@ async function lire(depuis) {
   S.jeton += 1;
   const moi = S.jeton;
   const langue = langueV() === "en" ? "en" : "fr";
-  S.ecoute = true; S.alerte = "";
+  S.ecoute = true; S.enPause = false; S.alerte = "";
   rendreBarre();
+  majMini();
   const voixDispo = await attendreVoix();
   if (moi !== S.jeton) return;
   const voix = voixDispo.find((v) => (v.lang || "").toLowerCase().replace("_", "-").startsWith(langue));
@@ -277,6 +280,7 @@ async function lire(depuis) {
       S.courant = i + 1; S.verset = i + 1;
       sauverPosition();
       arrierePlanTitre(`${titre}, verset ${i + 1}`, details);
+      majMiniTitre();
       majSurbrillance();
       $(`bv${i + 1}`)?.scrollIntoView({ block: "center", behavior: "smooth" });
     };
@@ -284,6 +288,55 @@ async function lire(depuis) {
     u.onerror = (e) => { if (moi === S.jeton && e.error !== "interrupted" && e.error !== "canceled") arreter(); };
     window.speechSynthesis.speak(u);
   });
+}
+
+/* ---------- Lecteur flottant (même apparence que celui des leçons), visible sur tous les onglets ---------- */
+const titreMini = () => `📖 ${nomLivre(S.livre)} ${S.chap}${S.courant || S.verset ? ` · v. ${S.courant || S.verset}` : ""}`;
+function miniHtml() {
+  return `<span class="tts-mini-t">${esc(titreMini())}</span>
+    <button class="tts-btn" data-bm="${S.ecoute ? "pause" : "reprendre"}" aria-label="${S.ecoute ? "Pause" : "Reprendre"}">${S.ecoute ? "⏸" : "▶"}</button>
+    <button class="tts-btn" data-bm="stop" aria-label="Arrêter">⏹</button>
+    <select class="tts-rate" data-bm="vitesse" aria-label="Vitesse">${[[0.8, "Lent"], [1, "Normal"], [1.25, "Rapide"]].map(([v, l]) => `<option value="${v}"${S.vitesse === v ? " selected" : ""}>${l}</option>`).join("")}</select>
+    ${"wakeLock" in navigator ? `<button class="tts-btn ${S.ecranAllume ? "on" : ""}" data-bm="ecran" aria-label="Garder l'écran allumé" title="Garder l'écran allumé">☀</button>` : ""}
+    ${S.alerte ? `<span class="tts-mini-m">${esc(S.alerte)}</span>` : ""}`;
+}
+function miniEvent(e) {
+  const b = e.target.closest("[data-bm]");
+  if (!b) return;
+  const a = b.dataset.bm;
+  if (a === "vitesse") {
+    if (e.type !== "change") return;
+    S.vitesse = Number(b.value) || 1; lsSet("abba_bible_vitesse", String(S.vitesse));
+    if (S.ecoute) lire((S.courant || 1) - 1); else rendreOptions();
+    return;
+  }
+  if (e.type !== "click") return;
+  if (a === "pause") pause();
+  else if (a === "reprendre") lire((S.verset || 1) - 1);
+  else if (a === "stop") { arreter(); rendreBarre(); }
+  else if (a === "ecran") {
+    S.ecranAllume = !S.ecranAllume; lsSet("abba_bible_ecran", S.ecranAllume ? "oui" : "non");
+    if (S.ecranAllume && S.ecoute) verrouPrendre(); else if (!S.ecranAllume) verrouLiberer();
+    rendreOptions(); majMini();
+  }
+}
+function majMini() {
+  const visible = S.ecoute || S.enPause;
+  let el = $("bibMini");
+  if (!el) {
+    if (!visible) return;
+    el = document.createElement("div");
+    el.id = "bibMini"; el.className = "tts-mini";
+    el.addEventListener("click", miniEvent);
+    el.addEventListener("change", miniEvent);
+    document.body.appendChild(el);
+  }
+  el.hidden = !visible;
+  if (visible) el.innerHTML = miniHtml();
+}
+function majMiniTitre() {
+  const t = document.querySelector("#bibMini .tts-mini-t");
+  if (t) t.textContent = titreMini();
 }
 
 /* ---------- Écran gardé allumé pendant la lecture audio ---------- */
@@ -582,15 +635,15 @@ function brancher() {
         if (n) $(`bv${n}`)?.scrollIntoView({ block: "center", behavior: "smooth" });
         break;
       }
-      case "vitesse": S.vitesse = Number(t.value) || 1; lsSet("abba_bible_vitesse", String(S.vitesse)); break;
+      case "vitesse": S.vitesse = Number(t.value) || 1; lsSet("abba_bible_vitesse", String(S.vitesse)); if (S.ecoute) lire((S.courant || 1) - 1); else majMini(); break;
       case "enchainer": S.enchainer = t.checked; lsSet("abba_bible_enchainer", t.checked ? "oui" : "non"); break;
-      case "ecran": S.ecranAllume = t.checked; lsSet("abba_bible_ecran", t.checked ? "oui" : "non"); if (!t.checked) verrouLiberer(); break;
+      case "ecran": S.ecranAllume = t.checked; lsSet("abba_bible_ecran", t.checked ? "oui" : "non"); if (!t.checked) verrouLiberer(); else if (S.ecoute) verrouPrendre(); majMini(); break;
       default: break;
     }
   });
   racine().addEventListener("submit", (e) => { if (e.target.id === "bibForm") { e.preventDefault(); chercher(); } });
   // La voix est unique : si une leçon se met à parler, la Bible se tait
-  window.addEventListener("abba:voix-lecon", () => { if (S.ecoute) arreter(); });
+  window.addEventListener("abba:voix-lecon", () => { if (S.ecoute || S.enPause) arreter(); });
   window.addEventListener("pagehide", () => { if (synthOk() && S.ecoute) window.speechSynthesis.cancel(); });
 }
 

@@ -1160,7 +1160,6 @@ function boot() {
   if (dt) dt.addEventListener("click", declAction);
   root.addEventListener("click", ttsEvent);
   root.addEventListener("change", ttsEvent);
-  document.addEventListener("click", (e) => { if (e.target.closest(".tab, .bnav-btn, [data-goto]") || (e.target.closest("[data-act]") && ["open", "back", "step"].includes(e.target.closest("[data-act]").dataset.act))) ttsStop(); }, true);
   window.addEventListener("pagehide", () => ttsStop(false));
   window.addEventListener("abba:voix-bible", () => ttsStop(true));
   if (ttsOk() && speechSynthesis.addEventListener) speechSynthesis.addEventListener("voiceschanged", () => {});
