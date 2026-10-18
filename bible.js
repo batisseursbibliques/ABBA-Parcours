@@ -522,8 +522,17 @@ function ouvrirReferences(verset) {
   });
   document.body.appendChild(fond);
   dessiner();
+  reserverBas(fond);
 }
 function fermerPanneau() { $("bibPanneau")?.remove(); }
+// Si un lecteur flottant est affiché (Bible ou leçon), la fenêtre de versets s'arrête juste au-dessus : les deux restent visibles
+function reserverBas(fond) {
+  const mini = document.querySelector(".tts-mini:not([hidden])");
+  const r = mini ? mini.getBoundingClientRect() : null;
+  if (r && r.height > 0) { fond.style.setProperty("--bib-bas", `${Math.max(0, Math.round(window.innerHeight - r.top + 8))}px`); fond.classList.add("bib-fond-leve"); }
+  else { fond.style.removeProperty("--bib-bas"); fond.classList.remove("bib-fond-leve"); }
+}
+window.addEventListener("resize", () => { const f = $("bibPanneau"); if (f) reserverBas(f); });
 
 /* ---------- Recherche ---------- */
 function surligner(texte, termes) {
@@ -759,6 +768,7 @@ async function ouvrirVersets({ refs, texte = "", titre = "📎 Versets de réfé
   });
   document.body.appendChild(fond);
   dessiner();
+  reserverBas(fond);
   charger();
 }
 window.AbbaVersets = { ouvrir: ouvrirVersets, analyserRef };

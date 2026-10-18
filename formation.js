@@ -911,6 +911,8 @@ async function suiviNote(attr, val) {
 function tasksToday() {
   const out = [];
   Object.entries(st.suivis).forEach(([key, sv]) => {
+    // Ancien suivi « 7 jours » de la déclaration (avant qu'elle devienne permanente) : remplacé par le suivi permanent, on ne le compte plus
+    if (key !== DECL_KEY && sv.mid === "m1" && sv.exId === "declaration" && sv.fid === "suivi") return;
     const pas = sv.pas || 1, idx = dayIndex(sv.start);
     if (idx < 1 || idx > sv.jours * pas + 7) return;
     const per = Math.floor((idx - 1) / pas) + 1;
