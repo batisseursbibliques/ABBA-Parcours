@@ -921,3 +921,4 @@ document.addEventListener("click", (e) => {
 });
 document.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.classList?.contains("vref")) e.target.click(); });
 window.AbbaVersets.lier = lier;
+window.AbbaVersets.lierTexte = (t) => lier(esc(t ?? ""), "ex");

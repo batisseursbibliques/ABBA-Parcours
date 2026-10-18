@@ -31,6 +31,9 @@ const dayIndex = (start) => dayNum(todayStr()) - dayNum(start) + 1; // 1 = jour 
 const fmtDate = (start, k) => { const [y, m, d] = start.split("-").map(Number); const dt = new Date(Date.UTC(y, m - 1, d + k - 1)); return `${pad2(dt.getUTCDate())}/${pad2(dt.getUTCMonth() + 1)}`; };
 const suiviKey = (mid, exId, fid) => `${mid}_${exId}_${fid}`;
 const DECL_KEY = "declaration";
+// Texte brut → HTML sûr, avec les références bibliques rendues cliquables (exercices uniquement, pas les questions)
+const escV = (t) => (window.AbbaVersets ? window.AbbaVersets.lierTexte(t) : esc(t));
+const htmlV = (h) => (window.AbbaVersets ? window.AbbaVersets.lier(h, "ex") : h);
 const modTitle = (m) => `M${m.id.slice(1)} — ${m.titre}`;
 const STEPS = [["lecture", "Lecture"], ["qcm", "Questions"], ["exercices", "Exercices"], ["fiche", "Fiche"]];
 
@@ -324,7 +327,7 @@ function renderMinistereResult(f, ans) {
     ? `<p>Ce qui ressort le plus dans ta vie (${seuil} et plus) : <strong>${top.map((r) => esc(r.g.nom)).join(", ")}</strong>.</p>`
     : `<p>Aucun score n'atteint ${seuil} : tes capacités ministérielles sont encore à découvrir et à développer par le service. Voici tes deux scores les plus hauts.</p>`;
   focus.forEach((r) => {
-    h += `<div class="fm-advice"><p class="eyebrow">${esc(r.g.nom)} — ${r.total}/${r.g.items.length * 3}</p><p class="small">${esc(r.g.ref || "")}</p><p>${esc(r.g.cours || "")}</p><p><strong>Comment la développer</strong></p><ul>${(r.g.steps || []).map((s) => `<li>${esc(s)}</li>`).join("")}</ul></div>`;
+    h += `<div class="fm-advice"><p class="eyebrow">${esc(r.g.nom)} — ${r.total}/${r.g.items.length * 3}</p><p class="small">${escV(r.g.ref || "")}</p><p>${escV(r.g.cours || "")}</p><p><strong>Comment la développer</strong></p><ul>${(r.g.steps || []).map((s) => `<li>${escV(s)}</li>`).join("")}</ul></div>`;
   });
   return h + `<p class="small"><em>Ces résultats montrent des tendances, pas un appel officiel. Une fonction se confirme dans la pratique et par d'autres qui reconnaissent ce que tu as déjà reçu (Actes 13:1-3). Sers, observe et demande un retour.</em></p></div>`;
 }
@@ -371,9 +374,9 @@ function renderIndicateurs(f, ans) {
   (f.indicateurs || []).forEach((ind, i) => {
     let oui = 0, total = 0;
     for (let k = ind.a; k <= ind.b; k++) { total++; if (ans[String(k)] === "oui") oui++; }
-    h += `<p><strong>${esc(ind.t)}</strong> — ${oui} « Oui » sur ${total} (questions ${ind.a} à ${ind.b})<br><span class="small">${esc((f.resultats || [])[i] || "")}</span></p>`;
+    h += `<p><strong>${esc(ind.t)}</strong> — ${oui} « Oui » sur ${total} (questions ${ind.a} à ${ind.b})<br><span class="small">${escV((f.resultats || [])[i] || "")}</span></p>`;
   });
-  if (f.resultats && f.resultats[7]) h += `<p class="small"><em>${esc(f.resultats[7])}</em></p>`;
+  if (f.resultats && f.resultats[7]) h += `<p class="small"><em>${escV(f.resultats[7])}</em></p>`;
   return h + "</div>";
 }
 
@@ -501,7 +504,7 @@ function renderExercices(c, p, readonly) {
     const state = exerciseState(c, ex, p);
     const badge = { ok: "✓ Fait", cours: "En cours", afaire: "À faire" }[state];
     const open = !!st.openEx[c.id + ":" + ex.id];
-    h += `<details class="fm-ex ${state === "ok" ? "ok" : ""}" id="ex-${ex.id}" data-ex="${c.id}:${ex.id}" ${open ? "open" : ""}><summary><span class="fm-ex-n">${exIdx + 1}</span><span class="fm-ex-t">${esc(ex.titre)}</span><span class="fm-ex-b ${state}">${badge}</span></summary><div class="fm-ex-body"><p class="small">${esc(ex.consigne || "")}</p>${ex.intro_html ? (ex.directIntro ? `<div class="fm-texte">${ex.intro_html}</div>` : `<details class="fm-lecon"><summary>Lire le texte</summary><div class="fm-texte">${ex.intro_html}</div></details>`) : ""}`;
+    h += `<details class="fm-ex ${state === "ok" ? "ok" : ""}" id="ex-${ex.id}" data-ex="${c.id}:${ex.id}" ${open ? "open" : ""}><summary><span class="fm-ex-n">${exIdx + 1}</span><span class="fm-ex-t">${esc(ex.titre)}</span><span class="fm-ex-b ${state}">${badge}</span></summary><div class="fm-ex-body"><p class="small">${escV(ex.consigne || "")}</p>${ex.intro_html ? (ex.directIntro ? `<div class="fm-texte">${htmlV(ex.intro_html)}</div>` : `<details class="fm-lecon"><summary>Lire le texte</summary><div class="fm-texte">${htmlV(ex.intro_html)}</div></details>`) : ""}`;
     (ex.champs || []).forEach((f) => { if (f.si && getVal("ex:" + ex.id, f.si.champ, saved) !== f.si.val) return; h += renderField(f, "ex:" + ex.id, saved, readonly); });
     if (!readonly) h += `<button class="btn-secondary" data-act="ex-save" data-e="${ex.id}">Enregistrer</button>`;
     h += "</div></details>";
@@ -856,9 +859,9 @@ function renderZonesPlan() {
     const sel = choix[z.key], chosen = z.exercices.find((e) => e.id === sel);
     const count = (prat[z.key] || []).length, doneToday = (prat[z.key] || []).includes(today);
     h += `<details class="fm-ex ${chosen ? "ok" : ""}" data-zpk="${z.key}" ${st.zp.open[z.key] ? "open" : ""}><summary><span class="fm-ex-n">${i + 1}</span><span class="fm-ex-t">${esc(z.titre)}</span><span class="fm-ex-b ${chosen ? "ok" : "afaire"}">${chosen ? esc(chosen.id + " ✓") : "À choisir"}</span></summary><div class="fm-ex-body">
-      ${z.sous ? `<p class="small"><em>${esc(z.sous)}</em></p>` : ""}${z.verset ? `<p class="small">${esc(z.verset)}</p>` : ""}`;
+      ${z.sous ? `<p class="small"><em>${esc(z.sous)}</em></p>` : ""}${z.verset ? `<p class="small">${escV(z.verset)}</p>` : ""}`;
     z.exercices.forEach((e) => {
-      h += `<label class="zp-opt ${sel === e.id ? "on" : ""}"><input type="radio" name="zp-${z.key}" data-zp="choisir" data-z="${z.key}" value="${e.id}" ${sel === e.id ? "checked" : ""}><div><strong>${esc(e.id)} — ${esc(e.titre)}</strong><p>${esc(e.comment)}</p><p class="small">Fréquence : ${esc(e.frequence)}</p></div></label>`;
+      h += `<label class="zp-opt ${sel === e.id ? "on" : ""}"><input type="radio" name="zp-${z.key}" data-zp="choisir" data-z="${z.key}" value="${e.id}" ${sel === e.id ? "checked" : ""}><div><strong>${esc(e.id)} — ${esc(e.titre)}</strong><p>${escV(e.comment)}</p><p class="small">Fréquence : ${esc(e.frequence)}</p></div></label>`;
     });
     if (chosen) h += `<div class="zp-prat ${doneToday ? "done" : ""}"><button class="btn-secondary" data-zp="pratique" data-z="${z.key}">${doneToday ? "✓ Pratiqué aujourd'hui" : "Je l'ai pratiqué aujourd'hui"}</button><span class="small">${count} fois ce mois-ci</span></div>`;
     h += "</div></details>";
