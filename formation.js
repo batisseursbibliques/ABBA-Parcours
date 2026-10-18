@@ -20,7 +20,7 @@ const MODULES = [
   { id: "m9", titre: "Évangélisation, Guérison, Délivrance", ready: true },
   { id: "m10", titre: "Les Ministères de Dieu", ready: true },
   { id: "m11", titre: "Maîtriser sa Santé et son Argent", preview: true },
-  { id: "m12", titre: "Citoyenneté Responsable" },
+  { id: "m12", titre: "Citoyenneté Responsable", preview: true },
   { id: "m13", titre: "Les Gestes de Premiers Secours" },
   { id: "m14", titre: "Création de Richesse" },
 ];
