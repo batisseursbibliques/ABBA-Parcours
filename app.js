@@ -302,6 +302,7 @@ function goToTab(name) {
   document.getElementById(`panel-${name}`).classList.add("active");
   document.querySelectorAll(".tab, .bnav-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
   if (name === "coordination") renderCoordModules();
+  if (name === "bible") window.dispatchEvent(new Event("abba:bible-ouvert"));
   window.scrollTo({ top: 0 });
 }
 

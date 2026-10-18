@@ -636,6 +636,7 @@ function ttsText(id) {
 function ttsPlay(id) {
   if (!ttsOk()) return;
   ttsStop(false);
+  window.dispatchEvent(new Event("abba:voix-lecon")); // la Bible lue à voix haute s'arrête
   TTS.tok++; TTS.id = id; TTS.msg = ""; TTS.chunks = ttsChunks(ttsText(id)); TTS.i = 0; TTS.state = "play";
   if (id === "decl") TTS.title = "Ma déclaration"; else { const [, mid, lid] = id.split(":"); const c = st.content[mid], l = c && (c.lecons || []).find((x) => x.id === lid); TTS.title = l ? l.titre : "Leçon"; }
   updateTtsUi(); ttsSpeakNext(); wakeAcquire();
@@ -1161,6 +1162,7 @@ function boot() {
   root.addEventListener("change", ttsEvent);
   document.addEventListener("click", (e) => { if (e.target.closest(".tab, .bnav-btn, [data-goto]") || (e.target.closest("[data-act]") && ["open", "back", "step"].includes(e.target.closest("[data-act]").dataset.act))) ttsStop(); }, true);
   window.addEventListener("pagehide", () => ttsStop(false));
+  window.addEventListener("abba:voix-bible", () => ttsStop(true));
   if (ttsOk() && speechSynthesis.addEventListener) speechSynthesis.addEventListener("voiceschanged", () => {});
   const zr = $("zonesPlanRoot");
   if (zr) {
