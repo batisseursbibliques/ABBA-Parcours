@@ -1,1 +1,684 @@
-{"id": "m13", "n": 13, "titreManuel": "GESTES DE PREMIERS SECOURS", "lecons": [{"id": "l1", "titre": "Introduction", "html": "<p>Ce module ne remplace pas une formation certifiée aux premiers secours.</p><h3>Pourquoi ce module existe</h3><p>La question qu’on se pose souvent face à une urgence n’est pas « que faut-il faire ? » — c’est « est-ce que j’ai le droit d’intervenir, moi qui ne suis pas médecin ? ». Et cette question-là paralyse plus de gens que l’ignorance elle-même.</p><p>La réponse est simple. Oui. Vous avez non seulement le droit, vous avez l’obligation morale d’agir — dans les limites de ce que vous savez faire. Un chauffeur de taxi qui maintient la tête d’une victime d’accident dans le bon alignement en attendant les pompiers peut éviter une paralysie à vie. Une mère qui retire un aliment coincé dans la gorge de son enfant en moins de trente secondes peut éviter un arrêt cardiaque. Personne n’a besoin d’une blouse blanche pour ça.</p><p>Ce module n’est pas là pour faire de vous des infirmiers. Il est là pour que vous ne soyez pas debout, les bras ballants, au moment où quelqu’un a besoin que vous fassiez quelque chose.</p><p>Ce module a trois parties. Chacune a un objectif précis. La première : comprendre la logique d’intervention et maîtriser les urgences les plus fréquentes. La deuxième : reconnaître les urgences silencieuses, celles qu’on rate parce qu’on ne sait pas les lire. La troisième : ancrer tout ça dans des réflexes réels, par la pratique mentale.</p><h3>Comprendre avant d’agir</h3><h3>Le principe fondamental : évaluer avant d’agir</h3><p>Le premier réflexe d’une personne non formée face à une urgence, c’est de courir vers la victime. C’est humain. C’est aussi, parfois, dangereux.</p><p>Avant de toucher quiconque, il y a deux questions à se poser, dans cet ordre-là.</p><h3>Étape 1 — Est-ce que la scène est sûre pour moi ?</h3><p>Un accident de voiture sur une route fréquentée. Un immeuble qui brûle. Un câble électrique tombé par terre. Si vous foncez et que vous devenez vous-même une victime, vous doublez le problème sans régler le premier. Regardez autour de vous. Dix secondes. C’est tout ce qu’il faut.</p><p>Si la scène n’est pas sûre, restez à distance, appelez les secours immédiatement, et guidez les gens pour qu’ils s’écartent. C’est déjà beaucoup.</p><h3>Étape 2 — Dans quel état est la victime ?</h3><p>Deux choses à vérifier rapidement : est-elle consciente ? Est-ce qu’elle respire ? Pour vérifier la conscience, parlez-lui fort — « Vous m’entendez ? » — en lui touchant l’épaule. Si elle ne répond pas, vérifiez la respiration en regardant si la poitrine se soulève, pendant dix secondes maximum.</p><p>Ces deux réponses vont décider de tout ce qui suit.</p><h3>Appeler les secours : ce qu’on dit exactement</h3><p>Beaucoup de gens appellent les secours et perdent un temps précieux parce qu’ils ne savent pas quoi dire. Le régulateur qui répond a besoin d’informations dans un ordre précis. Voici cet ordre.</p><ul><li>Votre localisation exacte — pas « près du marché », mais l’adresse complète, le quartier, un repère visible. Si vous êtes dans une zone sans adresse claire, décrivez : « Je suis sur la route de Porto-Novo, après le pont de Godomey, du côté droit en direction de Calavi. »</li><li>Ce qui s’est passé — une phrase suffit : accident, personne inconsciente, enfant qui s’étouffe, homme qui convulse.</li><li>Combien de personnes sont concernées.</li><li>L’état apparent de la victime — consciente ou non, respire ou non, saigne beaucoup ou non.</li><li>Votre numéro de téléphone — en cas de coupure, ils vous rappellent.</li></ul><p>Ne raccrochez pas avant qu’on vous le dise. Le régulateur peut vous guider en temps réel pendant que les secours arrivent.</p><h3>Les numéros d’urgence au Bénin</h3><p>Tous ces numéros sont gratuits depuis n’importe quel opérateur, 24h/24 et 7j/7.</p><div class=\"fm-tbl\"><table><tr><td>Service</td><td>Numéro</td><td>Notes</td></tr><tr><td>SAMU (urgences médicales vitales)</td><td>112</td><td>Gratuit, 24h/24, tous opérateurs</td></tr><tr><td>SAMU Cotonou (direct)</td><td>+229 01 68 30 00 00</td><td>Numéro fixe direct</td></tr><tr><td>Pompiers / Sapeurs-pompiers (ABPC)</td><td>118</td><td>Gratuit, 24h/24, tous opérateurs</td></tr><tr><td>Police Républicaine</td><td>117</td><td>Gratuit, 24h/24, tous opérateurs</td></tr><tr><td>Police Républicaine (alt.)</td><td>116</td><td>Gratuit, 24h/24, tous opérateurs</td></tr><tr><td>Santé publique / infos sanitaires</td><td>136</td><td>Gratuit, 24h/24, tous opérateurs</td></tr><tr><td>Numéro vert national (polyvalent)</td><td>166</td><td>Gratuit, 24h/24, tous opérateurs</td></tr><tr><td>Brigade des mineurs</td><td>160</td><td>Urgences impliquant des enfants</td></tr><tr><td>CNHU Cotonou (hôpital national)</td><td>+229 01 21 30 06 56</td><td>Centre Hospitalier National</td></tr><tr><td>Hôpital de zone Mènontin</td><td>+229 21 38 63 85</td><td>Cotonou</td></tr><tr><td>Urgences Padre Pio</td><td>+229 21 33 43 19</td><td>Cotonou</td></tr><tr><td>Hôpital Saint Luc</td><td>+229 21 38 18 81</td><td>Cotonou</td></tr><tr><td>Ambulance Cotonou</td><td>+229 21 30 17 69</td><td>Cotonou</td></tr></table></div><p>Conseil pratique : enregistrez ces numéros dans votre téléphone maintenant, avant d’en avoir besoin. Et imprimez la liste — si votre téléphone est mort ou cassé dans un accident, le papier reste.</p><h3>L’étouffement chez l’adulte et l’enfant de plus de 1 an</h3><p>C’est l’urgence la plus fréquente dans les repas en famille, les restaurants, les cérémonies. Un morceau de viande, un os de poisson, un bonbon. La victime porte les mains à sa gorge, ne peut pas parler, ne peut pas tousser, son visage commence à virer au rouge puis au bleu.</p><p>Vous avez entre deux et cinq minutes avant que le cerveau commence à souffrir du manque d’oxygène. Il n’y a pas de temps à perdre.</p><h3>La manœuvre de Heimlich</h3><h3>Étape 1 — Placez-vous derrière la victime.</h3><h3>Étape 2 — Passez vos deux bras autour de sa taille.</h3><p>Étape 3 — Fermez votre poing dominant. Pouce vers l’intérieur. Placez-le entre le nombril et le bas du sternum, légèrement au-dessus du nombril.</p><h3>Étape 4 — Couvrez ce poing de l’autre main.</h3><p>Étape 5 — Donnez des compressions rapides, vers l’intérieur et vers le haut. Sec. Puissant. Répétez jusqu’à ce que l’objet soit expulsé ou que la victime perde conscience.</p><p>Attention : Si la victime perd conscience, allongez-la doucement sur le sol et commencez la réanimation cardio-pulmonaire. Appelez le 112 si ce n’est pas encore fait.</p><h3>Pour un nourrisson de moins de 1 an</h3><p>La manœuvre de Heimlich ne s’applique pas. La technique est différente : cinq tapes dans le dos (entre les omoplates, avec le talon de la main, tête du bébé vers le bas), alternées avec cinq compressions thoraciques avec deux doigts au centre de la poitrine. Répétez jusqu’à expulsion ou perte de conscience.</p><p>Scénario — étouffement au restaurant : Votre voisin de table se lève brusquement, porte les mains à sa gorge, ne peut pas parler. Il ne tousse pas. Que faites-vous en premier ? Vous demandez fort, en le regardant : « Vous vous étouffez ? » — si il hoche la tête ou ne peut pas répondre, vous vous placez derrière lui immédiatement et commencez la manœuvre de Heimlich. Vous n’attendez pas. Vous ne cherchez pas votre téléphone d’abord.</p><h3>L’hémorragie</h3><p>Une hémorragie, c’est un saignement abondant qui ne s’arrête pas tout seul. La règle est simple et elle ne change pas : appuyer, maintenir, ne pas lâcher.</p><h3>Ce qu’on fait</h3><ul><li>Mettez des gants si vous en avez. Sinon, utilisez un sac plastique propre, un tissu épais, n’importe quoi entre votre peau et le sang — la transmission de maladies par contact sanguin est réelle.</li><li>Posez une compresse propre ou un tissu épais directement sur la plaie.</li><li>Appuyez fermement avec toute la paume. Pas du bout des doigts.</li><li>Si elle est traversée par le sang, posez une autre compresse par-dessus sans retirer la première. Maintenez la pression sans lever la compresse.</li><li>Élevez le membre blessé au-dessus du niveau du cœur si c’est un bras ou une jambe.</li><li>Appelez le 112 ou demandez à quelqu’un d’appeler pendant que vous maintenez la pression.</li></ul><p>Attention : Ne retirez pas un objet planté dans le corps. Une lame, un éclat de verre, n’importe quoi d’enfoncé dans la chair doit rester en place jusqu’à l’arrivée des secours. Le retirer peut aggraver le saignement.</p><h3>Le garrot improvisé</h3><p>Le garrot n’est utilisé qu’en dernier recours, quand la pression directe ne suffit pas et que le saignement est massif — membre arraché, coupure d’artère. Utilisez une ceinture, un tissu roulé, une sangle — serrez au-dessus de la plaie (côté cœur), assez fort pour stopper le saignement. Notez l’heure. Ne desserrez pas avant l’arrivée des secours.</p><h3>Les brûlures</h3><p>Le premier réflexe face à une brûlure doit être l’eau froide courante. Pas froide comme de la glace — froide comme l’eau du robinet. Pendant quinze à vingt minutes minimum.</p><p>Eau froide courante pendant 15 à 20 minutes. C’est tout ce qu’on fait dans les premières minutes. Rien d’autre.</p><p>Ce qu’on ne fait pas — jamais : pas de beurre, pas d’huile, pas de dentifrice, pas de blanc d’œuf, pas de feuilles de plantes. Ces remèdes courants gardent la chaleur dans la brûlure au lieu de la dissiper, et peuvent provoquer des infections graves.</p><p>Après le refroidissement : recouvrez la brûlure d’un film alimentaire propre ou d’un tissu très propre. Ne percez pas les cloques. Consultez un médecin pour toute brûlure plus grande que la paume de la main, ou toute brûlure sur le visage, les mains, les pieds, les organes génitaux.</p><p>Scénario — huile bouillante : Quelqu’un reverse une casserole d’huile bouillante sur son avant-bras. Le premier réflexe : le conduire au robinet et mettre l’avant-bras sous l’eau froide courante. Pas d’eau glacée, pas de glaçons. Pendant vingt minutes. Pendant ce temps, on l’aide à rester calme et on appelle le médecin ou le 136 pour évaluer la gravité.</p><h3>Les urgences silencieuses</h3><p>Les urgences silencieuses sont celles qu’on rate — non par manque de courage, mais par manque de lecture. Un arrêt cardiaque peut ressembler à quelqu’un qui dort. Un AVC peut ressembler à quelqu’un d’ivre. Une crise convulsive peut paniquer tous les témoins au point que personne n’aide vraiment. Ce chapitre est là pour ça : apprendre à lire ce qu’on voit.</p><h3>L’AVC — Accident Vasculaire Cérébral</h3><p>Un AVC, c’est une interruption brutale du flux sanguin dans une partie du cerveau. Chaque minute compte — littéralement. Pour chaque minute sans traitement, deux millions de neurones meurent. Les séquelles dépendent en grande partie de la rapidité de l’intervention médicale.</p><p>Le problème, c’est qu’un AVC est discret au début. La personne peut sembler simplement fatiguée, ou confuse, ou avoir trop bu. L’outil de reconnaissance s’appelle VITE.</p><h3>Le test VITE</h3><ul><li>Demandez à la personne de sourire. Un côté du visage reste-t-il immobile ou affaissé ? V comme Visage.</li><li>Demandez-lui de lever les deux bras en même temps. L’un retombe-t-il ? I comme cIseau (bras).</li><li>Demandez-lui de dire une phrase simple : « Il fait beau aujourd’hui. » Le discours est-il flou, incompréhensible, ou y a-t-il une difficulté à trouver les mots ? T comme Troubles de la parole.</li><li>Si un seul de ces trois signes est présent, appelez le 112 immédiatement. E comme Éveil d’urgence.</li></ul><p>Attention : Ne donnez rien à boire ni à manger. Ne laissez pas la personne conduire. Ne lui dites pas d’« attendre que ça passe ». Un AVC ne passe pas tout seul.</p><p>Allongez la personne, tête légèrement surélevée. Couvrez-la si elle frissonne. Parlez-lui calmement. Attendez les secours sans la déplacer.</p><p>Scénario — AVC chez un proche : Votre oncle, pendant le repas du dimanche, laisse tomber sa fourchette. Il essaie de parler mais les mots ne sortent pas bien. Son sourire est asymétrique. Vous faites le test VITE : visage asymétrique — oui. Bras : le gauche retombe — oui. Parole floue — oui. Vous appelez le 112 immédiatement, vous lui dites de ne pas bouger, vous l’allongez légèrement. Vous ne lui donnez pas d’eau. Vous ne lui dites pas que ça va passer.</p><h3>L’arrêt cardiaque et la réanimation cardio-pulmonaire (RCP)</h3><p>L’arrêt cardiaque, c’est le moment où le cœur cesse de pomper le sang. Le cerveau peut survivre quatre à six minutes sans oxygène. Après, les dommages deviennent irréversibles. La RCP ne remplace pas le cœur — elle le maintient en attendant les secours. Elle peut doubler ou tripler les chances de survie.</p><h3>Comment reconnaître un arrêt cardiaque</h3><ul><li>La personne est inconsciente et ne répond pas à la voix ni au toucher.</li><li>Elle ne respire pas, ou elle a une respiration agonale — des gasps bruyants, irréguliers, qui ne ressemblent pas à une respiration normale.</li><li>Son visage peut être gris ou bleuté.</li></ul><h3>La RCP — mode d’emploi</h3><p>Voici la RCP expliquée pas à pas, pour que vous puissiez visualiser chaque geste.</p><h3>Étape 1 — Allongez la victime sur le dos, sur une surface dure.</h3><h3>Étape 2 — Appelez le 112 ou demandez à quelqu’un de le faire pendant que vous commencez.</h3><p>Étape 3 — Positionnez vos mains. Entrelacez les doigts. Placez le talon de votre main dominante au centre de la poitrine, sur la moitié inférieure du sternum. Le talon seulement — pas les doigts, pas toute la paume.</p><p>Étape 4 — Bras tendus, verticalement au-dessus de la poitrine. Votre poids, pas votre force. Vous utilisez votre corps entier.</p><p>Étape 5 — Compressions. Enfoncez la poitrine de cinq à six centimètres. Vite — cent à cent vingt compressions par minute, soit environ deux par seconde. Laissez la poitrine se relever complètement entre chaque compression.</p><h3>Étape 6 — Continuez sans arrêter jusqu’à l’arrivée des secours ou jusqu’à ce que la victime retrouve une respiration normale.</h3><p>Le rythme des compressions : la chanson « Stayin’ Alive » des Bee Gees est à exactement cent trois battements par minute. Si vous connaissez ce rythme, chantez-le mentalement pendant les compressions. Ça peut sembler incongru — ça marche.</p><p>Attention : La RCP peut fracturer des côtes. C’est désagréable à savoir, mais ce n’est pas une raison de s’arrêter. Une côte cassée se répare. Un cerveau privé d’oxygène trop longtemps, non.</p>"}, {"id": "l2", "titre": "Introduction — La crise convulsive", "html": "<h3>La crise convulsive</h3><p>Une crise convulsive — une crise d’épilepsie — fait peur à voir. La personne tombe, son corps se raidit puis tremble violemment, elle peut perdre le contrôle de sa vessie, ses yeux peuvent se révulser. C’est impressionnant. Et c’est précisément pour ça que les gens autour paniquent et font parfois exactement ce qu’il ne faut pas faire.</p><h3>Ce qu’on fait</h3><ul><li>Mettez quelque chose de mou en dessous — un vêtement plié, votre main. Ne l’immobilisez pas. Protégez la tête.</li><li>Écartez les objets durs ou tranchants à portée.</li><li>Notez l’heure du début de la crise.</li><li>Après la crise, mettez la personne en position latérale de sécurité (voir ci-dessous).</li><li>Appelez le 112 si la crise dure plus de cinq minutes, si c’est la première crise de la personne, ou si elle ne reprend pas conscience après la crise.</li></ul><p>Ce qu’on ne fait pas — jamais : ne mettez rien dans la bouche de la personne. Pas une cuillère, pas vos doigts, pas un tissu. On dit souvent qu’il faut « empêcher la personne de se mordre la langue » — c’est faux. On ne peut pas avaler sa langue. Mais on peut casser les dents de la personne, ou perdre ses propres doigts.</p><h3>Le malaise diabétique (hypoglycémie)</h3><p>Quelqu’un qui devient brusquement tremblant, confus, pâle, qui transpire sans raison, qui répond de façon incohérente — peut-être en train de faire une hypoglycémie. Le taux de sucre dans le sang a trop chuté.</p><h3>Ce qu’on fait si la personne est consciente</h3><p>Donnez-lui du sucre rapide immédiatement : un verre de jus de fruit sucré, un soda, des morceaux de sucre, du miel. Pas de chocolat noir, pas d’eau plate. Attendez quinze minutes. Si ça ne s’améliore pas, appelez le 112.</p><p>Attention : Si la personne est inconsciente, ne donnez rien à boire ni à manger. Mettez-la en position latérale de sécurité et appelez le 112 immédiatement.</p><h3>La noyade</h3><p>En cas de noyade, la première règle est celle qu’on oublie le plus souvent : n’entrez pas dans l’eau si vous n’êtes pas un nageur confirmé. Un noyé en panique peut noyer son sauveteur. Cherchez d’abord une alternative : une corde, une bouée, un vêtement noué, une planche.</p><p>Une fois la victime hors de l’eau, vérifiez sa conscience et sa respiration. Si elle est inconsciente et ne respire pas : commencez la RCP immédiatement. Cinq insufflations en bouche-à-bouche pour commencer (si vous le maîtrisez), puis trente compressions, puis deux insufflations — répétez. Appelez le 112.</p><h3>La position latérale de sécurité (PLS)</h3><p>La PLS est utilisée pour toute personne inconsciente qui respire encore. Elle empêche la personne de s’étouffer avec ses propres vomissements ou sa salive.</p><h3>Étape 1 — Agenouillez-vous à côté de la victime, allongée sur le dos.</h3><h3>Étape 2 — Placez le bras le plus proche de vous à angle droit, coude plié, paume vers le haut.</h3><p>Étape 3 — Ramenez l’autre bras sur la poitrine. Paume contre la joue opposée à vous.</p><h3>Étape 4 — Pliez le genou de la jambe éloignée de vous.</h3><p>Étape 5 — Faites basculer la victime vers vous en tirant sur le genou plié. Elle se retrouve sur le côté.</p><p>Étape 6 — Ajustez la main sous la joue pour maintenir la tête en légère extension. Cela maintient les voies respiratoires ouvertes.</p><h3>Étape 7 — Vérifiez régulièrement la respiration en attendant les secours.</h3><p>Scénario — urgence silencieuse : Vous trouvez votre voisine allongée dans sa cour, inconsciente. Vous lui parlez fort et touchez son épaule — pas de réaction. Vous regardez sa poitrine : elle respire, lentement. Vous ne voyez pas de blessure visible. Vous appelez le 112 immédiatement, vous lui mettez la tête légèrement en arrière pour dégager les voies respiratoires, vous la mettez en PLS, et vous attendez les secours à côté d’elle en vérifiant sa respiration toutes les deux minutes.</p><h3>Ancrer par la pratique mentale</h3><p>Cette dernière partie ne présente pas de nouveau contenu. Elle fait autre chose : elle transforme ce que vous avez appris en réflexes. Parce que dans une vraie urgence, vous n’aurez pas le temps de vous souvenir d’une liste. Vous aurez besoin que le bon geste vienne tout seul.</p><p>La simulation mentale guidée est reconnue par les formateurs aux premiers secours comme un outil efficace pour créer des réflexes sans mannequin. C’est ce que nous vous proposons ici : des scénarios, un par un. Lisez la situation. Dites à voix haute — ou dans votre tête — ce que vous faites en premier, en deuxième, en troisième.</p><p>Pas de pression. Pas de compétition. L’objectif, c’est que la prochaine fois que vous vous retrouvez dans une de ces situations, votre corps sache déjà quoi faire.</p><h3>Les scénarios</h3><h3>Scénario 1 — Le restaurant</h3><p>Vous déjeunez avec un ami dans un maquis. À la table voisine, un homme de cinquante ans pose brusquement sa fourchette, se lève à moitié, porte ses deux mains à sa gorge. Son visage vire au rouge. Il ne tousse pas. Il ne crie pas.</p><p>Question : Que faites-vous en premier ? En deuxième ? En troisième ?</p><p>Réponse attendue : Demandez fort s’il s’étouffe. S’il acquiesce ou ne peut pas répondre, placez-vous derrière lui et commencez la manœuvre de Heimlich. Demandez à quelqu’un d’appeler le 112 pendant que vous agissez. Ne perdez pas de temps à chercher votre téléphone vous-même.</p><h3>Scénario 2 — La rue</h3><p>Vous marchez sur la voie publique. Quelqu’un devant vous s’effondre soudainement sur le trottoir. Vous vous approchez. Il ne répond pas à la voix ni au toucher. Sa poitrine ne se soulève pas.</p><p>Question : Quelle est votre première action ? Comment vérifiez-vous qu’il ne respire pas ? Que faites-vous ensuite ?</p><p>Réponse attendue : Crier pour attirer l’attention et demander à quelqu’un d’appeler le 112. Vérifier la respiration (dix secondes, regarder la poitrine). Commencer la RCP immédiatement — mains au centre de la poitrine, bras tendus, compressions profondes et rapides. Continuer jusqu’à l’arrivée des secours.</p><h3>Scénario 3 — La maison</h3><p>Un enfant de sept ans joue dans la cour. Vous entendez un cri, puis le silence. Vous trouvez l’enfant par terre, qui tremble violemment — bras et jambes en mouvements incontrôlés, yeux révulsés, mousse à la bouche.</p><p>Question : Qu’est-ce que vous faites ? Qu’est-ce que vous ne faites surtout pas ?</p><p>Réponse attendue : On protège la tête avec quelque chose de mou. On écarte les objets durs. On note l’heure. On ne met rien dans la bouche. On n’immobilise pas l’enfant. On appelle le 112 si la crise dure plus de cinq minutes ou si c’est la première fois. Après la crise, on met l’enfant en PLS et on attend les secours.</p><h3>Scénario 4 — La fête de famille</h3><p>Pendant un repas familial, votre grand-mère de soixante-huit ans se plaint d’une douleur dans le bras gauche. Elle est pâle, transpire, dit qu’elle ne se sent pas bien. Deux minutes plus tard, elle perd conscience.</p><p>Question : Que pensez-vous qu’il se passe ? Quelles sont vos actions ?</p><p>Réponse attendue : Suspicion d’arrêt cardiaque (la douleur dans le bras gauche et les sueurs précèdent souvent un infarctus). On appelle le 112 immédiatement. On vérifie la conscience et la respiration. Si elle ne respire pas, on commence la RCP. On ne lui donne rien à boire. On ne l’installe pas dans un fauteuil.</p><h3>Scénario 5 — L’enfant qui brûle</h3><p>Un enfant de quatre ans attrape une casserole d’eau chaude sur le feu. L’eau bouillante se renverse sur son bras et son épaule. Il pleure, la peau est rouge et commence à former des cloques.</p><p>Question : Quelle est votre toute première action ? Qu’est-ce que vous n’utilisez pas ?</p><p>Réponse attendue : Mettre le bras sous l’eau froide courante (pas glacée) pendant quinze à vingt minutes minimum. Pas de beurre, pas d’huile, pas de dentifrice, pas de plantes. Retirer les vêtements autour de la brûlure si possible, sauf s’ils collent. Couvrir avec un film propre. Appeler le médecin ou le 136 pour évaluer la gravité.</p><h3>Règles générales à retenir</h3><p>Ces règles s’appliquent dans presque toutes les urgences. Mémorisez-les.</p><ul><li>Évaluez la scène avant d’intervenir. Votre sécurité d’abord.</li><li>Appelez le 112 tôt, pas à la fin. Le régulateur peut vous guider en temps réel.</li><li>Soyez précis sur votre localisation. C’est la chose la plus importante que vous direz.</li><li>Ne bougez pas une victime sauf si elle est en danger immédiat (feu, noyade, effondrement imminent).</li><li>Ne donnez rien à boire ni à manger à quelqu’un d’inconscient ou qui convulse.</li><li>Ne retirez pas un objet planté dans le corps.</li><li>Maintenez la pression sur une hémorragie sans jamais la relâcher pour regarder.</li><li>Continuez la RCP sans interruption jusqu’à l’arrivée des secours. La fatigue est normale. Si vous êtes plusieurs, alternez toutes les deux minutes.</li></ul><h3>Le kit de base accessible localement</h3><p>Voici ce qu’il est raisonnable d’avoir à la maison ou dans son sac. Ce sont des articles qu’on trouve dans n’importe quelle pharmacie au Bénin, pour un coût modéré.</p><div class=\"fm-tbl\"><table><tr><td>Article</td><td>À quoi ça sert</td></tr><tr><td>Gants jetables (latex ou vinyle)</td><td>Manipuler une victime sans risque de contamination</td></tr><tr><td>Compresses stériles</td><td>Appuyer sur une plaie, nettoyer</td></tr><tr><td>Bande de gaze</td><td>Maintenir un pansement</td></tr><tr><td>Sparadrap médical</td><td>Fixer un pansement</td></tr><tr><td>Solution antiseptique (Bétadine ou Dakin)</td><td>Nettoyer une plaie avant de panser</td></tr><tr><td>Paire de ciseaux à bout arrondi</td><td>Couper des vêtements ou des bandages</td></tr><tr><td>Thermomètre</td><td>Évaluer une fièvre</td></tr><tr><td>Couverture de survie (si possible)</td><td>Protéger du choc thermique</td></tr><tr><td>Liste des numéros d’urgence imprimée</td><td>Disponible même sans réseau ou batterie</td></tr><tr><td>Médicaments personnels de base</td><td>Paracétamol, antihistaminique</td></tr></table></div><p>Un conseil supplémentaire : discutez de ce kit avec votre famille. Chaque adulte dans le foyer doit savoir où il se trouve. Un kit caché que personne ne connaît ne sert à rien dans l’urgence.</p><h3>Mot de conclusion du module</h3><p>Les premiers secours ne demandent pas de l’héroïsme. Ils demandent de la présence d’esprit et quelques gestes appris à l’avance.</p><p>La plupart des gens qui n’interviennent pas lors d’une urgence n’ont pas peur de la mort. Ils ont peur de mal faire. Or, un geste imparfait vaut presque toujours mieux que l’absence de geste. Le cerveau d’un adulte en arrêt cardiaque commence à souffrir après quatre minutes. Vous avez quatre minutes pour décider d’agir ou non.</p><p>Ce que vous avez appris dans ces trois parties — reconnaître, appeler, agir — c’est exactement ce qu’il faut pour occuper utilement ces quatre minutes. Pas plus. Mais pas moins non plus.</p><p>Le vrai test n’est pas la fin de ce module. C’est le jour où, dans un restaurant, dans une rue, dans votre propre salon, quelqu’un aura besoin que vous ne soyez pas paralysé. Ce jour-là, ce que vous aurez appris ici sera là.</p>"}]}
+{
+ "id": "m13",
+ "n": 13,
+ "titreManuel": "GESTES DE PREMIERS SECOURS",
+ "lecons": [
+  {
+   "id": "l1",
+   "titre": "Pourquoi ce module existe",
+   "html": "<p><em>Ce module ne remplace pas une formation certifiée aux premiers secours.</em></p><p>La question qu’on se pose souvent face à une urgence n’est pas « que faut-il faire ? » — c’est « est-ce que j’ai le droit d’intervenir, moi qui ne suis pas médecin ? ». Et cette question-là paralyse plus de gens que l’ignorance elle-même.</p><p>La réponse est simple. Oui. Vous avez non seulement le droit, vous avez l’obligation morale d’agir — dans les limites de ce que vous savez faire. Un chauffeur de taxi qui maintient la tête d’une victime d’accident dans le bon alignement en attendant les pompiers peut éviter une paralysie à vie. Une mère qui retire un aliment coincé dans la gorge de son enfant en moins de trente secondes peut éviter un arrêt cardiaque. Personne n’a besoin d’une blouse blanche pour ça.</p><p>Ce module n’est pas là pour faire de vous des infirmiers. Il est là pour que vous ne soyez pas debout, les bras ballants, au moment où quelqu’un a besoin que vous fassiez quelque chose.</p><p>Ce module a trois parties. Chacune a un objectif précis. La première : comprendre la logique d’intervention et maîtriser les urgences les plus fréquentes. La deuxième : reconnaître les urgences silencieuses, celles qu’on rate parce qu’on ne sait pas les lire. La troisième : ancrer tout ça dans des réflexes réels, par la pratique mentale.</p>"
+  },
+  {
+   "id": "l2",
+   "titre": "Évaluer avant d’agir",
+   "html": "<h4>Le principe fondamental : évaluer avant d’agir</h4><p>Le premier réflexe d’une personne non formée face à une urgence, c’est de courir vers la victime. C’est humain. C’est aussi, parfois, dangereux.</p><p>Avant de toucher quiconque, il y a deux questions à se poser, dans cet ordre-là.</p><h4>Étape 1 — Est-ce que la scène est sûre pour moi ?</h4><p>Un accident de voiture sur une route fréquentée. Un immeuble qui brûle. Un câble électrique tombé par terre. Si vous foncez et que vous devenez vous-même une victime, vous doublez le problème sans régler le premier. Regardez autour de vous. Dix secondes. C’est tout ce qu’il faut.</p><p>Si la scène n’est pas sûre, restez à distance, appelez les secours immédiatement, et guidez les gens pour qu’ils s’écartent. C’est déjà beaucoup.</p><h4>Étape 2 — Dans quel état est la victime ?</h4><p>Deux choses à vérifier rapidement : est-elle consciente ? Est-ce qu’elle respire ? Pour vérifier la conscience, parlez-lui fort — « Vous m’entendez ? » — en lui touchant l’épaule. Si elle ne répond pas, vérifiez la respiration en regardant si la poitrine se soulève, pendant dix secondes maximum.</p><p>Ces deux réponses vont décider de tout ce qui suit.</p>"
+  },
+  {
+   "id": "l3",
+   "titre": "Appeler les secours",
+   "html": "<p>Beaucoup de gens appellent les secours et perdent un temps précieux parce qu’ils ne savent pas quoi dire. Le régulateur qui répond a besoin d’informations dans un ordre précis. Voici cet ordre.</p><ol type=\"1\"><li>Votre localisation exacte — pas « près du marché », mais l’adresse complète, le quartier, un repère visible. Si vous êtes dans une zone sans adresse claire, décrivez : « Je suis sur la route de Porto-Novo, après le pont de Godomey, du côté droit en direction de Calavi. »</li><li>Ce qui s’est passé — une phrase suffit : accident, personne inconsciente, enfant qui s’étouffe, homme qui convulse.</li><li>Combien de personnes sont concernées.</li><li>L’état apparent de la victime — consciente ou non, respire ou non, saigne beaucoup ou non.</li><li>Votre numéro de téléphone — en cas de coupure, ils vous rappellent.</li></ol><p>Ne raccrochez pas avant qu’on vous le dise. Le régulateur peut vous guider en temps réel pendant que les secours arrivent.</p><h4>Les numéros d’urgence au Bénin</h4><p><em>Tous ces numéros sont gratuits depuis n’importe quel opérateur, 24h/24 et 7j/7.</em></p><div class=\"fm-tbl\"><table><tr><td><strong>Service</strong></td><td><strong>Numéro</strong></td><td><strong>Notes</strong></td></tr><tr><td><strong>SAMU (urgences médicales vitales)</strong></td><td>112</td><td>Gratuit, 24h/24, tous opérateurs</td></tr><tr><td><strong>SAMU Cotonou (direct)</strong></td><td>+229 01 68 30 00 00</td><td>Numéro fixe direct</td></tr><tr><td><strong>Pompiers / Sapeurs-pompiers (ABPC)</strong></td><td>118</td><td>Gratuit, 24h/24, tous opérateurs</td></tr><tr><td><strong>Police Républicaine</strong></td><td>117</td><td>Gratuit, 24h/24, tous opérateurs</td></tr><tr><td><strong>Police Républicaine (alt.)</strong></td><td>116</td><td>Gratuit, 24h/24, tous opérateurs</td></tr><tr><td><strong>Santé publique / infos sanitaires</strong></td><td>136</td><td>Gratuit, 24h/24, tous opérateurs</td></tr><tr><td><strong>Numéro vert national (polyvalent)</strong></td><td>166</td><td>Gratuit, 24h/24, tous opérateurs</td></tr><tr><td><strong>Brigade des mineurs</strong></td><td>160</td><td>Urgences impliquant des enfants</td></tr><tr><td><strong>CNHU Cotonou (hôpital national)</strong></td><td>+229 01 21 30 06 56</td><td>Centre Hospitalier National</td></tr><tr><td><strong>Hôpital de zone Mènontin</strong></td><td>+229 21 38 63 85</td><td>Cotonou</td></tr><tr><td><strong>Urgences Padre Pio</strong></td><td>+229 21 33 43 19</td><td>Cotonou</td></tr><tr><td><strong>Hôpital Saint Luc</strong></td><td>+229 21 38 18 81</td><td>Cotonou</td></tr><tr><td><strong>Ambulance Cotonou</strong></td><td>+229 21 30 17 69</td><td>Cotonou</td></tr></table></div><p>Conseil pratique : enregistrez ces numéros dans votre téléphone maintenant, avant d’en avoir besoin. Et imprimez la liste — si votre téléphone est mort ou cassé dans un accident, le papier reste.</p>"
+  },
+  {
+   "id": "l4",
+   "titre": "L’étouffement",
+   "html": "<p>C’est l’urgence la plus fréquente dans les repas en famille, les restaurants, les cérémonies. Un morceau de viande, un os de poisson, un bonbon. La victime porte les mains à sa gorge, ne peut pas parler, ne peut pas tousser, son visage commence à virer au rouge puis au bleu.</p><p>Vous avez entre deux et cinq minutes avant que le cerveau commence à souffrir du manque d’oxygène. Il n’y a pas de temps à perdre.</p><h4>La manœuvre de Heimlich</h4><h4>Étape 1 — Placez-vous derrière la victime.</h4><h4>Étape 2 — Passez vos deux bras autour de sa taille.</h4><p><strong>Étape 3 — Fermez votre poing dominant.</strong> Pouce vers l’intérieur. Placez-le entre le nombril et le bas du sternum, légèrement au-dessus du nombril.</p><h4>Étape 4 — Couvrez ce poing de l’autre main.</h4><p><strong>Étape 5 — Donnez des compressions rapides, vers l’intérieur et vers le haut.</strong> Sec. Puissant. Répétez jusqu’à ce que l’objet soit expulsé ou que la victime perde conscience.</p><p><strong>Attention :</strong> Si la victime perd conscience, allongez-la doucement sur le sol et commencez la réanimation cardio-pulmonaire. Appelez le 112 si ce n’est pas encore fait.</p><h4>Pour un nourrisson de moins de 1 an</h4><p>La manœuvre de Heimlich ne s’applique pas. La technique est différente : cinq tapes dans le dos (entre les omoplates, avec le talon de la main, tête du bébé vers le bas), alternées avec cinq compressions thoraciques avec deux doigts au centre de la poitrine. Répétez jusqu’à expulsion ou perte de conscience.</p><p><strong>Scénario — étouffement au restaurant :</strong> <em>Votre voisin de table se lève brusquement, porte les mains à sa gorge, ne peut pas parler. Il ne tousse pas. Que faites-vous en premier ? Vous demandez fort, en le regardant : « Vous vous étouffez ? » — si il hoche la tête ou ne peut pas répondre, vous vous placez derrière lui immédiatement et commencez la manœuvre de Heimlich. Vous n’attendez pas. Vous ne cherchez pas votre téléphone d’abord.</em></p>"
+  },
+  {
+   "id": "l5",
+   "titre": "L’hémorragie",
+   "html": "<p>Une hémorragie, c’est un saignement abondant qui ne s’arrête pas tout seul. La règle est simple et elle ne change pas : appuyer, maintenir, ne pas lâcher.</p><h4>Ce qu’on fait</h4><ol type=\"1\"><li>Mettez des gants si vous en avez. Sinon, utilisez un sac plastique propre, un tissu épais, n’importe quoi entre votre peau et le sang — la transmission de maladies par contact sanguin est réelle.</li><li>Posez une compresse propre ou un tissu épais directement sur la plaie.</li><li>Appuyez fermement avec toute la paume. Pas du bout des doigts.</li><li><strong>Si elle est traversée par le sang, posez une autre compresse par-dessus sans retirer la première.</strong> Maintenez la pression sans lever la compresse.</li><li>Élevez le membre blessé au-dessus du niveau du cœur si c’est un bras ou une jambe.</li><li>Appelez le 112 ou demandez à quelqu’un d’appeler pendant que vous maintenez la pression.</li></ol><p><strong>Attention :</strong> Ne retirez pas un objet planté dans le corps. Une lame, un éclat de verre, n’importe quoi d’enfoncé dans la chair doit rester en place jusqu’à l’arrivée des secours. Le retirer peut aggraver le saignement.</p><h4>Le garrot improvisé</h4><p>Le garrot n’est utilisé qu’en dernier recours, quand la pression directe ne suffit pas et que le saignement est massif — membre arraché, coupure d’artère. Utilisez une ceinture, un tissu roulé, une sangle — serrez au-dessus de la plaie (côté cœur), assez fort pour stopper le saignement. Notez l’heure. Ne desserrez pas avant l’arrivée des secours.</p>"
+  },
+  {
+   "id": "l6",
+   "titre": "Les brûlures",
+   "html": "<p>Le premier réflexe face à une brûlure doit être l’eau froide courante. Pas froide comme de la glace — froide comme l’eau du robinet. Pendant quinze à vingt minutes minimum.</p><p>Eau froide courante pendant 15 à 20 minutes. C’est tout ce qu’on fait dans les premières minutes. Rien d’autre.</p><p>Ce qu’on ne fait pas — jamais : pas de beurre, pas d’huile, pas de dentifrice, pas de blanc d’œuf, pas de feuilles de plantes. Ces remèdes courants gardent la chaleur dans la brûlure au lieu de la dissiper, et peuvent provoquer des infections graves.</p><p>Après le refroidissement : recouvrez la brûlure d’un film alimentaire propre ou d’un tissu très propre. Ne percez pas les cloques. Consultez un médecin pour toute brûlure plus grande que la paume de la main, ou toute brûlure sur le visage, les mains, les pieds, les organes génitaux.</p><p><strong>Scénario — huile bouillante :</strong> <em>Quelqu’un reverse une casserole d’huile bouillante sur son avant-bras. Le premier réflexe : le conduire au robinet et mettre l’avant-bras sous l’eau froide courante. Pas d’eau glacée, pas de glaçons. Pendant vingt minutes. Pendant ce temps, on l’aide à rester calme et on appelle le médecin ou le 136 pour évaluer la gravité.</em></p>"
+  },
+  {
+   "id": "l7",
+   "titre": "L’AVC : les urgences silencieuses",
+   "html": "<p>Les urgences silencieuses sont celles qu’on rate — non par manque de courage, mais par manque de lecture. Un arrêt cardiaque peut ressembler à quelqu’un qui dort. Un AVC peut ressembler à quelqu’un d’ivre. Une crise convulsive peut paniquer tous les témoins au point que personne n’aide vraiment. Ce chapitre est là pour ça : apprendre à lire ce qu’on voit.</p><h4>L’AVC — Accident Vasculaire Cérébral</h4><p>Un AVC, c’est une interruption brutale du flux sanguin dans une partie du cerveau. Chaque minute compte — littéralement. Pour chaque minute sans traitement, deux millions de neurones meurent. Les séquelles dépendent en grande partie de la rapidité de l’intervention médicale.</p><p>Le problème, c’est qu’un AVC est discret au début. La personne peut sembler simplement fatiguée, ou confuse, ou avoir trop bu. L’outil de reconnaissance s’appelle VITE.</p><h4>Le test VITE</h4><ul><li><strong>Demandez à la personne de sourire. Un côté du visage reste-t-il immobile ou affaissé ?</strong> V comme Visage.</li><li><strong>Demandez-lui de lever les deux bras en même temps. L’un retombe-t-il ?</strong> I comme cIseau (bras).</li><li><strong>Demandez-lui de dire une phrase simple : « Il fait beau aujourd’hui. » Le discours est-il flou, incompréhensible, ou y a-t-il une difficulté à trouver les mots ?</strong> T comme Troubles de la parole.</li><li><strong>Si un seul de ces trois signes est présent, appelez le 112 immédiatement.</strong> E comme Éveil d’urgence.</li></ul><p><strong>Attention :</strong> Ne donnez rien à boire ni à manger. Ne laissez pas la personne conduire. Ne lui dites pas d’« attendre que ça passe ». Un AVC ne passe pas tout seul.</p><p>Allongez la personne, tête légèrement surélevée. Couvrez-la si elle frissonne. Parlez-lui calmement. Attendez les secours sans la déplacer.</p><p><strong>Scénario — AVC chez un proche :</strong> <em>Votre oncle, pendant le repas du dimanche, laisse tomber sa fourchette. Il essaie de parler mais les mots ne sortent pas bien. Son sourire est asymétrique. Vous faites le test VITE : visage asymétrique — oui. Bras : le gauche retombe — oui. Parole floue — oui. Vous appelez le 112 immédiatement, vous lui dites de ne pas bouger, vous l’allongez légèrement. Vous ne lui donnez pas d’eau. Vous ne lui dites pas que ça va passer.</em></p>"
+  },
+  {
+   "id": "l8",
+   "titre": "L’arrêt cardiaque et la réanimation (RCP)",
+   "html": "<p>L’arrêt cardiaque, c’est le moment où le cœur cesse de pomper le sang. Le cerveau peut survivre quatre à six minutes sans oxygène. Après, les dommages deviennent irréversibles. La RCP ne remplace pas le cœur — elle le maintient en attendant les secours. Elle peut doubler ou tripler les chances de survie.</p><h4>Comment reconnaître un arrêt cardiaque</h4><ul><li>La personne est inconsciente et ne répond pas à la voix ni au toucher.</li><li>Elle ne respire pas, ou elle a une respiration agonale — des gasps bruyants, irréguliers, qui ne ressemblent pas à une respiration normale.</li><li>Son visage peut être gris ou bleuté.</li></ul><h4>La RCP — mode d’emploi</h4><p>Voici la RCP expliquée pas à pas, pour que vous puissiez visualiser chaque geste.</p><h4>Étape 1 — Allongez la victime sur le dos, sur une surface dure.</h4><h4>Étape 2 — Appelez le 112 ou demandez à quelqu’un de le faire pendant que vous commencez.</h4><p><strong>Étape 3 — Positionnez vos mains.</strong> Entrelacez les doigts. Placez le talon de votre main dominante au centre de la poitrine, sur la moitié inférieure du sternum. Le talon seulement — pas les doigts, pas toute la paume.</p><p><strong>Étape 4 — Bras tendus, verticalement au-dessus de la poitrine.</strong> Votre poids, pas votre force. Vous utilisez votre corps entier.</p><p><strong>Étape 5 — Compressions.</strong> Enfoncez la poitrine de cinq à six centimètres. Vite — cent à cent vingt compressions par minute, soit environ deux par seconde. Laissez la poitrine se relever complètement entre chaque compression.</p><h4>Étape 6 — Continuez sans arrêter jusqu’à l’arrivée des secours ou jusqu’à ce que la victime retrouve une respiration normale.</h4><p>Le rythme des compressions : la chanson « Stayin’ Alive » des Bee Gees est à exactement cent trois battements par minute. Si vous connaissez ce rythme, chantez-le mentalement pendant les compressions. Ça peut sembler incongru — ça marche.</p><p><strong>Attention :</strong> La RCP peut fracturer des côtes. C’est désagréable à savoir, mais ce n’est pas une raison de s’arrêter. Une côte cassée se répare. Un cerveau privé d’oxygène trop longtemps, non.</p>"
+  },
+  {
+   "id": "l9",
+   "titre": "La crise convulsive",
+   "html": "<p>Une crise convulsive — une crise d’épilepsie — fait peur à voir. La personne tombe, son corps se raidit puis tremble violemment, elle peut perdre le contrôle de sa vessie, ses yeux peuvent se révulser. C’est impressionnant. Et c’est précisément pour ça que les gens autour paniquent et font parfois exactement ce qu’il ne faut pas faire.</p><h4>Ce qu’on fait</h4><ol type=\"1\"><li><strong>Mettez quelque chose de mou en dessous — un vêtement plié, votre main. Ne l’immobilisez pas.</strong> Protégez la tête.</li><li>Écartez les objets durs ou tranchants à portée.</li><li>Notez l’heure du début de la crise.</li><li>Après la crise, mettez la personne en position latérale de sécurité (voir ci-dessous).</li><li>Appelez le 112 si la crise dure plus de cinq minutes, si c’est la première crise de la personne, ou si elle ne reprend pas conscience après la crise.</li></ol><p>Ce qu’on ne fait pas — jamais : ne mettez rien dans la bouche de la personne. Pas une cuillère, pas vos doigts, pas un tissu. On dit souvent qu’il faut « empêcher la personne de se mordre la langue » — c’est faux. On ne peut pas avaler sa langue. Mais on peut casser les dents de la personne, ou perdre ses propres doigts.</p>"
+  },
+  {
+   "id": "l10",
+   "titre": "Le malaise diabétique et la noyade",
+   "html": "<p>Quelqu’un qui devient brusquement tremblant, confus, pâle, qui transpire sans raison, qui répond de façon incohérente — peut-être en train de faire une hypoglycémie. Le taux de sucre dans le sang a trop chuté.</p><h4>Ce qu’on fait si la personne est consciente</h4><p>Donnez-lui du sucre rapide immédiatement : un verre de jus de fruit sucré, un soda, des morceaux de sucre, du miel. Pas de chocolat noir, pas d’eau plate. Attendez quinze minutes. Si ça ne s’améliore pas, appelez le 112.</p><p><strong>Attention :</strong> Si la personne est inconsciente, ne donnez rien à boire ni à manger. Mettez-la en position latérale de sécurité et appelez le 112 immédiatement.</p><h4>La noyade</h4><p>En cas de noyade, la première règle est celle qu’on oublie le plus souvent : n’entrez pas dans l’eau si vous n’êtes pas un nageur confirmé. Un noyé en panique peut noyer son sauveteur. Cherchez d’abord une alternative : une corde, une bouée, un vêtement noué, une planche.</p><p>Une fois la victime hors de l’eau, vérifiez sa conscience et sa respiration. Si elle est inconsciente et ne respire pas : commencez la RCP immédiatement. Cinq insufflations en bouche-à-bouche pour commencer (si vous le maîtrisez), puis trente compressions, puis deux insufflations — répétez. Appelez le 112.</p>"
+  },
+  {
+   "id": "l11",
+   "titre": "La position latérale de sécurité (PLS)",
+   "html": "<p>La PLS est utilisée pour toute personne inconsciente qui respire encore. Elle empêche la personne de s’étouffer avec ses propres vomissements ou sa salive.</p><h4>Étape 1 — Agenouillez-vous à côté de la victime, allongée sur le dos.</h4><h4>Étape 2 — Placez le bras le plus proche de vous à angle droit, coude plié, paume vers le haut.</h4><p><strong>Étape 3 — Ramenez l’autre bras sur la poitrine.</strong> Paume contre la joue opposée à vous.</p><h4>Étape 4 — Pliez le genou de la jambe éloignée de vous.</h4><p><strong>Étape 5 — Faites basculer la victime vers vous en tirant sur le genou plié.</strong> Elle se retrouve sur le côté.</p><p><strong>Étape 6 — Ajustez la main sous la joue pour maintenir la tête en légère extension.</strong> Cela maintient les voies respiratoires ouvertes.</p><h4>Étape 7 — Vérifiez régulièrement la respiration en attendant les secours.</h4><p><strong>Scénario — urgence silencieuse :</strong> <em>Vous trouvez votre voisine allongée dans sa cour, inconsciente. Vous lui parlez fort et touchez son épaule — pas de réaction. Vous regardez sa poitrine : elle respire, lentement. Vous ne voyez pas de blessure visible. Vous appelez le 112 immédiatement, vous lui mettez la tête légèrement en arrière pour dégager les voies respiratoires, vous la mettez en PLS, et vous attendez les secours à côté d’elle en vérifiant sa respiration toutes les deux minutes.</em></p>"
+  },
+  {
+   "id": "l12",
+   "titre": "Ancrer par la pratique mentale",
+   "html": "<p>Cette dernière partie ne présente pas de nouveau contenu. Elle fait autre chose : elle transforme ce que vous avez appris en réflexes. Parce que dans une vraie urgence, vous n’aurez pas le temps de vous souvenir d’une liste. Vous aurez besoin que le bon geste vienne tout seul.</p><p>La simulation mentale guidée est reconnue par les formateurs aux premiers secours comme un outil efficace pour créer des réflexes sans mannequin. C’est ce que nous vous proposons ici : des scénarios, un par un. Lisez la situation. Dites à voix haute — ou dans votre tête — ce que vous faites en premier, en deuxième, en troisième.</p><p>Pas de pression. Pas de compétition. L’objectif, c’est que la prochaine fois que vous vous retrouvez dans une de ces situations, votre corps sache déjà quoi faire.</p>"
+  },
+  {
+   "id": "l13",
+   "titre": "Règles générales, kit de base et conclusion",
+   "html": "<h4>Règles générales à retenir</h4><p>Ces règles s’appliquent dans presque toutes les urgences. Mémorisez-les.</p><ul><li>Évaluez la scène avant d’intervenir. Votre sécurité d’abord.</li><li>Appelez le 112 tôt, pas à la fin. Le régulateur peut vous guider en temps réel.</li><li>Soyez précis sur votre localisation. C’est la chose la plus importante que vous direz.</li><li>Ne bougez pas une victime sauf si elle est en danger immédiat (feu, noyade, effondrement imminent).</li><li>Ne donnez rien à boire ni à manger à quelqu’un d’inconscient ou qui convulse.</li><li>Ne retirez pas un objet planté dans le corps.</li><li>Maintenez la pression sur une hémorragie sans jamais la relâcher pour regarder.</li><li>Continuez la RCP sans interruption jusqu’à l’arrivée des secours. La fatigue est normale. Si vous êtes plusieurs, alternez toutes les deux minutes.</li></ul><h4>Le kit de base accessible localement</h4><p>Voici ce qu’il est raisonnable d’avoir à la maison ou dans son sac. Ce sont des articles qu’on trouve dans n’importe quelle pharmacie au Bénin, pour un coût modéré.</p><div class=\"fm-tbl\"><table><tr><td><strong>Article</strong></td><td><strong>À quoi ça sert</strong></td></tr><tr><td><strong>Gants jetables (latex ou vinyle)</strong></td><td>Manipuler une victime sans risque de contamination</td></tr><tr><td><strong>Compresses stériles</strong></td><td>Appuyer sur une plaie, nettoyer</td></tr><tr><td><strong>Bande de gaze</strong></td><td>Maintenir un pansement</td></tr><tr><td><strong>Sparadrap médical</strong></td><td>Fixer un pansement</td></tr><tr><td><strong>Solution antiseptique (Bétadine ou Dakin)</strong></td><td>Nettoyer une plaie avant de panser</td></tr><tr><td><strong>Paire de ciseaux à bout arrondi</strong></td><td>Couper des vêtements ou des bandages</td></tr><tr><td><strong>Thermomètre</strong></td><td>Évaluer une fièvre</td></tr><tr><td><strong>Couverture de survie (si possible)</strong></td><td>Protéger du choc thermique</td></tr><tr><td><strong>Liste des numéros d’urgence imprimée</strong></td><td>Disponible même sans réseau ou batterie</td></tr><tr><td><strong>Médicaments personnels de base</strong></td><td>Paracétamol, antihistaminique</td></tr></table></div><p>Un conseil supplémentaire : discutez de ce kit avec votre famille. Chaque adulte dans le foyer doit savoir où il se trouve. Un kit caché que personne ne connaît ne sert à rien dans l’urgence.</p><h4>Mot de conclusion du module</h4><p>Les premiers secours ne demandent pas de l’héroïsme. Ils demandent de la présence d’esprit et quelques gestes appris à l’avance.</p><p>La plupart des gens qui n’interviennent pas lors d’une urgence n’ont pas peur de la mort. Ils ont peur de mal faire. Or, un geste imparfait vaut presque toujours mieux que l’absence de geste. Le cerveau d’un adulte en arrêt cardiaque commence à souffrir après quatre minutes. Vous avez quatre minutes pour décider d’agir ou non.</p><p>Ce que vous avez appris dans ces trois parties — reconnaître, appeler, agir — c’est exactement ce qu’il faut pour occuper utilement ces quatre minutes. Pas plus. Mais pas moins non plus.</p><p>Le vrai test n’est pas la fin de ce module. C’est le jour où, dans un restaurant, dans une rue, dans votre propre salon, quelqu’un aura besoin que vous ne soyez pas paralysé. Ce jour-là, ce que vous aurez appris ici sera là.</p>"
+  }
+ ],
+ "titre": "M13 — Les Gestes de Premiers Secours",
+ "objectifs": [
+  "✦  Tu sais que tu as le droit, et l’obligation morale, d’agir dans les limites de ce que tu sais faire.",
+  "✦  Tu évalues la scène avant d’intervenir : ta sécurité d’abord, puis l’état de la victime.",
+  "✦  Tu sais appeler les secours en donnant les bonnes informations, dans le bon ordre.",
+  "✦  Tu sais agir face à un étouffement, une hémorragie et une brûlure.",
+  "✦  Tu reconnais un AVC, un arrêt cardiaque, une crise convulsive, un malaise diabétique et une noyade, et tu sais quoi faire.",
+  "✦  Tu sais mettre une personne inconsciente qui respire en position latérale de sécurité.",
+  "✦  Tu as chez toi un kit de base et la liste des numéros d’urgence, et ta famille sait où ils sont."
+ ],
+ "seuil": 70,
+ "qcm": [
+  {
+   "q": "Face à une urgence, quelle est la toute première question à te poser, avant de toucher la victime ?",
+   "c": [
+    "Est-ce que j’ai le droit d’intervenir sans être médecin ?",
+    "Est-ce que la scène est sûre pour moi ?",
+    "Est-ce que je connais la victime ?",
+    "Est-ce que quelqu’un d’autre a déjà appelé ?"
+   ],
+   "b": 1,
+   "e": "Si tu deviens toi-même une victime, tu doubles le problème sans régler le premier. Regarde autour de toi dix secondes. Si la scène n’est pas sûre : reste à distance, appelle les secours et guide les gens pour qu’ils s’écartent."
+  },
+  {
+   "q": "Quand tu appelles les secours, quelle information donnes-tu en premier ?",
+   "c": [
+    "Ton prénom et ton métier",
+    "Ton numéro de téléphone",
+    "Le nombre de personnes concernées",
+    "Ta localisation exacte : adresse complète, quartier, repère visible"
+   ],
+   "b": 3,
+   "e": "L’ordre : localisation exacte, ce qui s’est passé, combien de personnes, l’état apparent de la victime, ton numéro de téléphone. Ne raccroche pas avant qu’on te le dise : le régulateur peut te guider en temps réel."
+  },
+  {
+   "q": "Un adulte s’étouffe, ne peut ni parler ni tousser. Où placer le poing pour la manœuvre de Heimlich ?",
+   "c": [
+    "Entre le nombril et le bas du sternum, légèrement au-dessus du nombril, avec des compressions vers l’intérieur et vers le haut",
+    "Au milieu de la poitrine, avec des compressions vers le bas",
+    "Sur le haut du ventre, à plat, avec des mouvements doux",
+    "Dans le dos, entre les omoplates, avec le talon de la main uniquement"
+   ],
+   "b": 0,
+   "e": "Tu te places derrière la victime, tu passes les bras autour de sa taille, tu couvres ton poing de l’autre main et tu donnes des compressions sèches, jusqu’à expulsion ou perte de conscience. Pour un nourrisson de moins d’un an, la technique est différente : tapes dans le dos et compressions thoraciques à deux doigts."
+  },
+  {
+   "q": "Une plaie saigne abondamment et la compresse est déjà traversée par le sang. Que fais-tu ?",
+   "c": [
+    "Je retire la compresse et j’en mets une propre",
+    "Je lève la compresse pour regarder si le saignement continue",
+    "Je pose une autre compresse par-dessus, sans retirer la première, et je maintiens la pression",
+    "Je desserre un peu pour que le sang circule"
+   ],
+   "b": 2,
+   "e": "Appuyer, maintenir, ne pas lâcher. Si un objet est planté dans le corps, on ne le retire pas : il reste en place jusqu’à l’arrivée des secours."
+  },
+  {
+   "q": "Quelqu’un s’est brûlé l’avant-bras avec de l’huile bouillante. Quel est le premier geste ?",
+   "c": [
+    "Appliquer du beurre ou de l’huile pour calmer la douleur",
+    "Mettre l’avant-bras sous l’eau froide courante, 15 à 20 minutes minimum",
+    "Mettre des glaçons sur la brûlure",
+    "Percer les cloques pour évacuer le liquide"
+   ],
+   "b": 1,
+   "e": "Eau froide courante, pas glacée. Jamais de beurre, d’huile, de dentifrice, de blanc d’œuf ni de plantes : ils gardent la chaleur et peuvent provoquer des infections graves. Ensuite, un film propre ou un tissu très propre, et un médecin pour toute brûlure plus grande que la paume ou sur le visage, les mains, les pieds ou les organes génitaux."
+  },
+  {
+   "q": "Test VITE : combien de signes faut-il pour appeler le 112 immédiatement ?",
+   "c": [
+    "Les trois en même temps",
+    "Au moins deux",
+    "Aucun, tant que la personne reste consciente",
+    "Un seul suffit"
+   ],
+   "b": 3,
+   "e": "V : le visage (un côté affaissé quand elle sourit). I : les bras (l’un retombe quand elle lève les deux). T : les troubles de la parole. E : l’éveil d’urgence, on appelle. On ne donne ni à boire ni à manger, on ne laisse pas la personne conduire, on ne dit pas « attends que ça passe »."
+  },
+  {
+   "q": "Un adulte est inconsciente et ne respire pas. Comment fais-tu les compressions de la RCP ?",
+   "c": [
+    "Du bout des doigts, doucement, environ 1 par seconde",
+    "Talon d’une main au centre de la poitrine, bras tendus, 5 à 6 cm de profondeur, 100 à 120 par minute",
+    "Avec la paume sur le ventre, 5 à 6 cm de profondeur",
+    "Sur le côté gauche de la poitrine, 2 cm de profondeur"
+   ],
+   "b": 1,
+   "e": "Tu allonges la victime sur le dos, sur une surface dure, tu appelles le 112 (ou tu demandes à quelqu’un de le faire) et tu laisses la poitrine se relever entre chaque compression. Tu continues jusqu’à l’arrivée des secours. Une côte cassée se répare, un cerveau privé d’oxygène non."
+  },
+  {
+   "q": "Un enfant fait une crise convulsive. Que ne fais-tu surtout pas ?",
+   "c": [
+    "Protéger sa tête avec quelque chose de mou",
+    "Noter l’heure du début de la crise",
+    "Mettre quelque chose dans sa bouche pour qu’il ne se morde pas la langue",
+    "L’installer en position latérale de sécurité après la crise"
+   ],
+   "b": 2,
+   "e": "On ne peut pas avaler sa langue. En revanche, on peut casser les dents de la personne ou perdre ses propres doigts. On appelle le 112 si la crise dure plus de cinq minutes, si c’est la première crise ou si la personne ne reprend pas conscience."
+  },
+  {
+   "q": "Une personne consciente devient tremblante, pâle, confuse et transpire sans raison (hypoglycémie). Que lui donnes-tu ?",
+   "c": [
+    "De l’eau plate",
+    "Rien du tout, on attend les secours",
+    "Du chocolat noir",
+    "Du sucre rapide : jus de fruit sucré, soda, morceaux de sucre ou miel"
+   ],
+   "b": 3,
+   "e": "Tu attends quinze minutes : sans amélioration, tu appelles le 112. Si la personne est inconsciente, tu ne donnes rien à boire ni à manger, tu la mets en position latérale de sécurité et tu appelles le 112 tout de suite."
+  },
+  {
+   "q": "Un enfant se noie dans une rivière et tu nages mal. Que fais-tu d’abord ?",
+   "c": [
+    "J’entre dans l’eau tout de suite : chaque seconde compte",
+    "Je cherche une alternative : corde, bouée, vêtement noué, planche, et j’appelle le 112",
+    "Je reste immobile en attendant qu’il remonte",
+    "J’attends de voir s’il sait nager"
+   ],
+   "b": 1,
+   "e": "Un noyé en panique peut noyer son sauveteur. Une fois la victime hors de l’eau, tu vérifies conscience et respiration. Si elle est inconsciente et ne respire pas : RCP (cinq insufflations pour commencer si tu sais le faire, puis trente compressions et deux insufflations) et appel du 112."
+  },
+  {
+   "q": "Pour quelle personne utilise-t-on la position latérale de sécurité (PLS) ?",
+   "c": [
+    "Une personne inconsciente qui respire encore",
+    "Une personne en arrêt cardiaque",
+    "Une personne qui s’étouffe et peut encore tousser",
+    "Toute personne blessée, par principe"
+   ],
+   "b": 0,
+   "e": "La PLS empêche la personne de s’étouffer avec ses vomissements ou sa salive. Tu continues à vérifier sa respiration régulièrement en attendant les secours. Si elle ne respire pas, ce n’est plus la PLS : c’est la RCP."
+  },
+  {
+   "q": "Quelle règle générale vaut dans presque toutes les urgences ?",
+   "c": [
+    "Déplacer rapidement toute victime pour la mettre à l’aise",
+    "Donner à boire à la victime pour la calmer",
+    "Appeler le 112 à la fin, quand on a tout essayé",
+    "Appeler le 112 tôt, être précis sur sa localisation, et ne déplacer la victime que si elle est en danger immédiat"
+   ],
+   "b": 3,
+   "e": "Le régulateur peut te guider en temps réel. Ne bouge pas une victime sauf danger immédiat (feu, noyade, effondrement imminent). Un geste imparfait vaut presque toujours mieux que l’absence de geste."
+  }
+ ],
+ "exercices": [
+  {
+   "id": "numeros",
+   "titre": "Les numéros d’urgence : lequel appeler ?",
+   "consigne": "Cinq situations : choisis le bon numéro. Après chaque choix, tu vois la réponse attendue. Puis enregistre la liste dans ton téléphone et sur papier.",
+   "champs": [
+    {
+     "id": "n1",
+     "type": "select",
+     "label": "Une personne est inconsciente et ne respire pas. Quel numéro composes-tu ?",
+     "options": [
+      "112 (SAMU)",
+      "117 (Police Républicaine)",
+      "136 (Santé publique)",
+      "160 (Brigade des mineurs)"
+     ],
+     "required": true,
+     "bonne": "112 (SAMU)",
+     "explication": "Le 112 est le numéro des urgences médicales vitales : gratuit, 24 h sur 24, depuis tous les opérateurs."
+    },
+    {
+     "id": "n2",
+     "type": "select",
+     "label": "Une maison prend feu. Quel numéro composes-tu ?",
+     "options": [
+      "112 (SAMU)",
+      "118 (Pompiers)",
+      "117 (Police Républicaine)",
+      "136 (Santé publique)"
+     ],
+     "required": true,
+     "bonne": "118 (Pompiers)",
+     "explication": "Le 118 est celui des sapeurs-pompiers (ABPC), gratuit, 24 h sur 24."
+    },
+    {
+     "id": "n3",
+     "type": "select",
+     "label": "Tu veux signaler une agression dans la rue. Quel numéro composes-tu ?",
+     "options": [
+      "118 (Pompiers)",
+      "136 (Santé publique)",
+      "117 (Police Républicaine)",
+      "160 (Brigade des mineurs)"
+     ],
+     "required": true,
+     "bonne": "117 (Police Républicaine)",
+     "explication": "Le 117 (et le 116 en alternative) est celui de la Police Républicaine."
+    },
+    {
+     "id": "n4",
+     "type": "select",
+     "label": "Un enfant s’est légèrement brûlé et tu veux faire évaluer la gravité par un professionnel de santé. Quel numéro peux-tu appeler ?",
+     "options": [
+      "160 (Brigade des mineurs)",
+      "136 (Santé publique)",
+      "117 (Police Républicaine)",
+      "118 (Pompiers)"
+     ],
+     "required": true,
+     "bonne": "136 (Santé publique)",
+     "explication": "Le 136 donne des informations sanitaires. Le manuel le cite aussi pour évaluer la gravité d’une brûlure."
+    },
+    {
+     "id": "n5",
+     "type": "select",
+     "label": "Une urgence implique un enfant en danger. Quel numéro est prévu pour ces urgences ?",
+     "options": [
+      "160 (Brigade des mineurs)",
+      "112 (SAMU)",
+      "118 (Pompiers)",
+      "166 (Numéro vert national)"
+     ],
+     "required": true,
+     "bonne": "160 (Brigade des mineurs)",
+     "explication": "Le 160 est celui de la Brigade des mineurs, pour les urgences impliquant des enfants."
+    },
+    {
+     "id": "n6",
+     "type": "check",
+     "label": "J’ai enregistré ces numéros dans mon téléphone (SAMU 112, pompiers 118, police 117, santé 136, numéro vert 166, brigade des mineurs 160).",
+     "required": true
+    },
+    {
+     "id": "n7",
+     "type": "check",
+     "label": "J’ai écrit la liste sur papier et je l’ai mise à un endroit que tout le monde connaît à la maison : si mon téléphone est mort ou cassé, le papier reste.",
+     "required": true
+    }
+   ]
+  },
+  {
+   "id": "scenarios",
+   "titre": "Simulation mentale : sept scénarios",
+   "consigne": "Lis chaque situation et dis à voix haute, ou dans ta tête, ce que tu fais en premier, en deuxième, en troisième. Puis choisis ta réponse et compare avec celle qui est attendue. Pas de pression, pas de compétition : l’objectif est que ton corps sache déjà quoi faire. Relis au besoin les leçons concernées.",
+   "champs": [
+    {
+     "id": "c1",
+     "type": "select",
+     "label": "Scénario 1 : au restaurant. Un homme de cinquante ans, à la table voisine, se lève à moitié, porte les deux mains à sa gorge et devient rouge. Il ne tousse pas et ne crie pas. Que fais-tu ?",
+     "options": [
+      "Je demande fort s’il s’étouffe ; s’il acquiesce ou ne peut pas répondre, je me place derrière lui et je commence la manœuvre de Heimlich, en demandant à quelqu’un d’appeler le 112",
+      "Je cherche d’abord mon téléphone pour appeler le 112",
+      "Je lui donne de l’eau à boire",
+      "Je l’allonge au sol et je commence les compressions sur la poitrine"
+     ],
+     "required": true,
+     "bonne": "Je demande fort s’il s’étouffe ; s’il acquiesce ou ne peut pas répondre, je me place derrière lui et je commence la manœuvre de Heimlich, en demandant à quelqu’un d’appeler le 112",
+     "explication": "Tu ne perds pas de temps à chercher ton téléphone : tu agis, et quelqu’un d’autre appelle. La RCP ne commence que s’il perd conscience."
+    },
+    {
+     "id": "c2",
+     "type": "select",
+     "label": "Scénario 2 : dans la rue. Quelqu’un devant toi s’effondre sur le trottoir. Il ne répond ni à la voix ni au toucher, et sa poitrine ne se soulève pas. Que fais-tu ?",
+     "options": [
+      "Je le mets en position latérale de sécurité et j’attends",
+      "Je crie pour attirer l’attention et demander à quelqu’un d’appeler le 112, je vérifie la respiration (dix secondes) et je commence la RCP tout de suite, sans arrêter avant l’arrivée des secours",
+      "Je lui donne des claques pour le réveiller pendant plusieurs minutes",
+      "Je m’éloigne : je ne suis pas médecin"
+     ],
+     "required": true,
+     "bonne": "Je crie pour attirer l’attention et demander à quelqu’un d’appeler le 112, je vérifie la respiration (dix secondes) et je commence la RCP tout de suite, sans arrêter avant l’arrivée des secours",
+     "explication": "Mains au centre de la poitrine, bras tendus, compressions profondes et rapides. La PLS est réservée à la personne inconsciente qui respire. Et tu as le droit, et même l’obligation morale, d’agir."
+    },
+    {
+     "id": "c3",
+     "type": "select",
+     "label": "Scénario 3 : à la maison. Un enfant de sept ans, dans la cour, tremble violemment : bras et jambes incontrôlables, yeux révulsés, mousse à la bouche. Que fais-tu ?",
+     "options": [
+      "Je mets une cuillère dans sa bouche pour qu’il ne se morde pas la langue",
+      "Je le tiens fermement pour arrêter les secousses",
+      "Je protège sa tête avec quelque chose de mou, j’écarte les objets durs, je note l’heure, je ne mets rien dans sa bouche, et après la crise je le mets en PLS",
+      "Je lui verse de l’eau sur le visage"
+     ],
+     "required": true,
+     "bonne": "Je protège sa tête avec quelque chose de mou, j’écarte les objets durs, je note l’heure, je ne mets rien dans sa bouche, et après la crise je le mets en PLS",
+     "explication": "Tu appelles le 112 si la crise dure plus de cinq minutes ou si c’est la première fois, puis tu attends les secours."
+    },
+    {
+     "id": "c4",
+     "type": "select",
+     "label": "Scénario 4 : fête de famille. Ta grand-mère de 68 ans se plaint d’une douleur dans le bras gauche, elle est pâle et transpire. Deux minutes plus tard, elle perd conscience. Que fais-tu ?",
+     "options": [
+      "Je l’installe dans un fauteuil et je lui donne de l’eau sucrée",
+      "Je la fais marcher un peu pour qu’elle se détende",
+      "Je laisse passer : elle a déjà eu des malaises",
+      "J’appelle le 112 immédiatement, je vérifie conscience et respiration, et si elle ne respire pas je commence la RCP ; je ne lui donne rien à boire"
+     ],
+     "required": true,
+     "bonne": "J’appelle le 112 immédiatement, je vérifie conscience et respiration, et si elle ne respire pas je commence la RCP ; je ne lui donne rien à boire",
+     "explication": "La douleur dans le bras gauche et les sueurs précèdent souvent un infarctus : c’est une suspicion d’arrêt cardiaque."
+    },
+    {
+     "id": "c5",
+     "type": "select",
+     "label": "Scénario 5 : un enfant de quatre ans attrape une casserole d’eau chaude. L’eau se renverse sur son bras et son épaule : peau rouge, début de cloques. Que fais-tu en tout premier ?",
+     "options": [
+      "J’applique du beurre ou de l’huile pour calmer la douleur",
+      "Je mets des glaçons sur la brûlure",
+      "Je mets le bras sous l’eau froide courante (pas glacée), 15 à 20 minutes minimum, puis je couvre avec un film propre et j’appelle un médecin ou le 136",
+      "Je perce les cloques"
+     ],
+     "required": true,
+     "bonne": "Je mets le bras sous l’eau froide courante (pas glacée), 15 à 20 minutes minimum, puis je couvre avec un film propre et j’appelle un médecin ou le 136",
+     "explication": "Pas de beurre, pas d’huile, pas de dentifrice, pas de plantes. Tu retires les vêtements autour de la brûlure si possible, sauf s’ils collent."
+    },
+    {
+     "id": "c6",
+     "type": "select",
+     "label": "Scénario 6 : au marché, une femme devient brusquement tremblante, pâle, confuse, en sueur. Elle est consciente et dit qu’elle est diabétique. Que fais-tu ?",
+     "options": [
+      "Je lui donne un verre de jus de fruit sucré (ou du sucre, du miel), j’attends quinze minutes et j’appelle le 112 si ça ne s’améliore pas",
+      "Je lui donne de l’eau plate et je l’invite à se reposer",
+      "Je lui donne du chocolat noir",
+      "Je ne fais rien : il faut attendre les secours"
+     ],
+     "required": true,
+     "bonne": "Je lui donne un verre de jus de fruit sucré (ou du sucre, du miel), j’attends quinze minutes et j’appelle le 112 si ça ne s’améliore pas",
+     "explication": "Pas d’eau plate, pas de chocolat noir. Si elle perd conscience, tu ne donnes plus rien à boire : position latérale de sécurité et 112 immédiatement."
+    },
+    {
+     "id": "c7",
+     "type": "select",
+     "label": "Scénario 7 : un enfant tombe dans une rivière et ne revient pas à la surface. Tu nages mal. Que fais-tu ?",
+     "options": [
+      "Je plonge pour le sortir, il n’y a pas de temps à perdre",
+      "Je cherche une corde, une bouée, un vêtement noué ou une planche à lui tendre, et je demande à quelqu’un d’appeler le 112",
+      "J’attends qu’il remonte tout seul",
+      "Je rentre chez moi chercher du secours"
+     ],
+     "required": true,
+     "bonne": "Je cherche une corde, une bouée, un vêtement noué ou une planche à lui tendre, et je demande à quelqu’un d’appeler le 112",
+     "explication": "N’entre pas dans l’eau si tu n’es pas un nageur confirmé : un noyé en panique peut noyer son sauveteur. Une fois l’enfant hors de l’eau, tu vérifies conscience et respiration, et au besoin tu commences la RCP."
+    },
+    {
+     "id": "c8",
+     "type": "check",
+     "label": "J’ai dit à voix haute, pour chaque scénario, mes trois premiers gestes, avant de regarder la réponse.",
+     "required": true
+    }
+   ]
+  },
+  {
+   "id": "faire",
+   "titre": "Ce qu’on fait, ce qu’on ne fait jamais",
+   "consigne": "Dix gestes : à faire ou à ne jamais faire ? Après chaque choix, tu vois l’explication.",
+   "champs": [
+    {
+     "id": "v1",
+     "type": "select",
+     "label": "1. Mettre une cuillère ou un tissu dans la bouche d’une personne en crise convulsive.",
+     "options": [
+      "À faire",
+      "À ne jamais faire"
+     ],
+     "required": true,
+     "bonne": "À ne jamais faire",
+     "explication": "On ne peut pas avaler sa langue, et on risque de casser les dents de la personne ou de perdre ses doigts."
+    },
+    {
+     "id": "v2",
+     "type": "select",
+     "label": "2. Mettre du beurre, de l’huile ou du dentifrice sur une brûlure.",
+     "options": [
+      "À faire",
+      "À ne jamais faire"
+     ],
+     "required": true,
+     "bonne": "À ne jamais faire",
+     "explication": "Ces remèdes gardent la chaleur dans la brûlure et peuvent provoquer des infections graves. Seule l’eau froide courante, 15 à 20 minutes."
+    },
+    {
+     "id": "v3",
+     "type": "select",
+     "label": "3. Retirer une lame ou un éclat de verre planté dans le corps.",
+     "options": [
+      "À faire",
+      "À ne jamais faire"
+     ],
+     "required": true,
+     "bonne": "À ne jamais faire",
+     "explication": "L’objet reste en place jusqu’à l’arrivée des secours : le retirer peut aggraver le saignement."
+    },
+    {
+     "id": "v4",
+     "type": "select",
+     "label": "4. Maintenir la pression sur une hémorragie sans jamais la relâcher pour regarder.",
+     "options": [
+      "À faire",
+      "À ne jamais faire"
+     ],
+     "required": true,
+     "bonne": "À faire",
+     "explication": "Appuyer, maintenir, ne pas lâcher. Si la compresse est traversée, on en pose une autre par-dessus sans retirer la première."
+    },
+    {
+     "id": "v5",
+     "type": "select",
+     "label": "5. Donner à boire à une personne qui fait peut-être un AVC.",
+     "options": [
+      "À faire",
+      "À ne jamais faire"
+     ],
+     "required": true,
+     "bonne": "À ne jamais faire",
+     "explication": "On ne donne ni à boire ni à manger, on ne laisse pas la personne conduire, et on ne lui dit pas d’attendre que ça passe."
+    },
+    {
+     "id": "v6",
+     "type": "select",
+     "label": "6. Continuer la RCP même si une côte craque.",
+     "options": [
+      "À faire",
+      "À ne jamais faire"
+     ],
+     "required": true,
+     "bonne": "À faire",
+     "explication": "Une côte cassée se répare. Un cerveau privé d’oxygène trop longtemps, non."
+    },
+    {
+     "id": "v7",
+     "type": "select",
+     "label": "7. Se jeter à l’eau pour sauver un noyé quand on nage mal.",
+     "options": [
+      "À faire",
+      "À ne jamais faire"
+     ],
+     "required": true,
+     "bonne": "À ne jamais faire",
+     "explication": "On cherche d’abord une alternative : corde, bouée, vêtement noué, planche."
+    },
+    {
+     "id": "v8",
+     "type": "select",
+     "label": "8. Appeler le 112 tôt, au début de l’urgence.",
+     "options": [
+      "À faire",
+      "À ne jamais faire"
+     ],
+     "required": true,
+     "bonne": "À faire",
+     "explication": "Le régulateur peut te guider en temps réel pendant que les secours arrivent."
+    },
+    {
+     "id": "v9",
+     "type": "select",
+     "label": "9. Donner un verre de jus de fruit sucré à une personne consciente en hypoglycémie.",
+     "options": [
+      "À faire",
+      "À ne jamais faire"
+     ],
+     "required": true,
+     "bonne": "À faire",
+     "explication": "Du sucre rapide, puis on attend quinze minutes. Sans amélioration : 112."
+    },
+    {
+     "id": "v10",
+     "type": "select",
+     "label": "10. Déplacer une victime d’accident pour qu’elle soit plus à l’aise.",
+     "options": [
+      "À faire",
+      "À ne jamais faire"
+     ],
+     "required": true,
+     "bonne": "À ne jamais faire",
+     "explication": "On ne bouge pas une victime sauf danger immédiat : feu, noyade, effondrement imminent."
+    }
+   ]
+  },
+  {
+   "id": "appel",
+   "titre": "Mon appel aux secours",
+   "consigne": "Prépare ton appel à l’avance, parce que dans l’urgence tu n’auras pas le temps de chercher les mots. Relis la leçon « Appeler les secours ».",
+   "champs": [
+    {
+     "id": "loc",
+     "type": "textarea",
+     "label": "Ma localisation, telle que je la dirais au régulateur depuis chez moi : l’adresse complète ou, à défaut, le quartier et un repère visible (pas « près du marché »)",
+     "required": true
+    },
+    {
+     "id": "message",
+     "type": "textarea",
+     "label": "Mon appel complet pour cette situation : mon neveu de 5 ans s’étouffe avec un morceau de nourriture et ne peut plus respirer. Écris, dans l’ordre, tout ce que tu dis (localisation, ce qui s’est passé, combien de personnes, état de la victime, ton numéro)",
+     "required": true
+    },
+    {
+     "id": "raccroche",
+     "type": "text",
+     "label": "À quel moment puis-je raccrocher ?",
+     "required": true
+    }
+   ]
+  },
+  {
+   "id": "kit",
+   "titre": "Mon kit de premiers secours",
+   "consigne": "Fais l’inventaire du kit de base de la leçon sur les règles générales. Ce sont des articles qu’on trouve dans n’importe quelle pharmacie au Bénin, pour un coût modéré. Un kit caché que personne ne connaît ne sert à rien dans l’urgence.",
+   "champs": [
+    {
+     "id": "kit",
+     "type": "cases",
+     "label": "Ce que j’ai déjà dans mon kit ou dans mon sac (coche ce qui est là)",
+     "items": [
+      "Gants jetables (latex ou vinyle)",
+      "Compresses stériles",
+      "Bande de gaze",
+      "Sparadrap médical",
+      "Solution antiseptique (Bétadine ou Dakin)",
+      "Paire de ciseaux à bout arrondi",
+      "Thermomètre",
+      "Couverture de survie (si possible)",
+      "Liste des numéros d’urgence imprimée",
+      "Médicaments personnels de base (paracétamol, antihistaminique)"
+     ],
+     "required": false
+    },
+    {
+     "id": "manque",
+     "type": "textarea",
+     "label": "Ce qui me manque et comment je me le procure (pharmacie), ou « rien ne manque »",
+     "required": true
+    },
+    {
+     "id": "famille",
+     "type": "textarea",
+     "label": "Où se trouve le kit, et qui dans mon foyer sait où il est ? Sinon, comment je m’y prends pour que chaque adulte le sache ?",
+     "required": true
+    }
+   ]
+  },
+  {
+   "id": "transmettre",
+   "titre": "Transmettre un geste à un proche",
+   "consigne": "Choisis un geste de ce module et explique-le à quelqu’un de ton entourage : conjoint, enfant assez grand, voisin, collègue. Expliquer, c’est le meilleur moyen de retenir, et c’est une personne de plus qui saura quoi faire.",
+   "champs": [
+    {
+     "id": "geste",
+     "type": "select",
+     "label": "Le geste que je choisis d’expliquer",
+     "options": [
+      "La manœuvre de Heimlich",
+      "L’hémorragie : appuyer, maintenir, ne pas lâcher",
+      "La brûlure : eau froide courante",
+      "Le test VITE (AVC)",
+      "La RCP",
+      "La crise convulsive : ce qu’on fait et ce qu’on ne fait pas",
+      "La position latérale de sécurité",
+      "Comment appeler les secours"
+     ],
+     "required": true
+    },
+    {
+     "id": "qui",
+     "type": "text",
+     "label": "La personne à qui je l’explique (prénom, lien avec moi)",
+     "required": true
+    },
+    {
+     "id": "fait",
+     "type": "check",
+     "label": "Je le lui ai expliqué et montré, et je lui ai demandé de me le redire avec ses mots.",
+     "required": true
+    },
+    {
+     "id": "retenu",
+     "type": "textarea",
+     "label": "Ce qu’elle a bien retenu, ce qu’elle a oublié, et ce que j’ai compris moi-même en l’expliquant",
+     "required": true
+    }
+   ]
+  }
+ ],
+ "fiche": {
+  "titre": "Fiche de premiers secours — M13",
+  "champs": [
+   {
+    "id": "peur",
+    "type": "textarea",
+    "label": "Ce qui me retenait d’intervenir avant ce module (peur de mal faire, de ne pas avoir le droit, de ne pas savoir) et ce qui a changé",
+    "required": true
+   },
+   {
+    "id": "numeros",
+    "type": "textarea",
+    "label": "Les numéros d’urgence que je connais de mémoire, et où est affichée ma liste",
+    "required": true
+   },
+   {
+    "id": "maitrise",
+    "type": "textarea",
+    "label": "Le geste que je maîtrise le mieux, et celui que je dois encore revoir (et comment)",
+    "required": true
+   },
+   {
+    "id": "maison",
+    "type": "textarea",
+    "label": "Ce que j’ai changé chez moi : kit, liste affichée, discussion avec ma famille",
+    "required": true
+   },
+   {
+    "id": "transmis",
+    "type": "textarea",
+    "label": "La personne à qui j’ai transmis un geste, et ce qui m’a le plus marqué",
+    "required": true
+   }
+  ]
+ }
+}

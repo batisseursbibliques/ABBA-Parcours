@@ -21,7 +21,7 @@ const MODULES = [
   { id: "m10", titre: "Les Ministères de Dieu", ready: true },
   { id: "m11", titre: "Maîtriser sa Santé et son Argent", preview: true },
   { id: "m12", titre: "Citoyenneté Responsable", preview: true },
-  { id: "m13", titre: "Les Gestes de Premiers Secours" },
+  { id: "m13", titre: "Les Gestes de Premiers Secours", preview: true },
   { id: "m14", titre: "Création de Richesse" },
 ];
 const pad2 = (n) => String(n).padStart(2, "0");
