@@ -653,7 +653,8 @@ async function submitQcm() {
   if (answers.some((a) => a == null)) { st.msg = "Réponds à toutes les questions avant de valider."; render(); return; }
   const score = answers.filter((a, i) => a === q[i].b).length;
   const pct = Math.round((score / q.length) * 100);
-  const qcm = { answers, score, total: q.length, pct, ok: pct >= (c.seuil || 70), at: new Date().toISOString() };
+  const essais = ((((st.prog[mid] || {}).qcm) || {}).essais || 0) + 1;
+  const qcm = { answers, score, total: q.length, pct, ok: pct >= (c.seuil || 70), essais, at: new Date().toISOString() };
   st.qcmDraft = {};
   await S().saveModulePart(st.user.uid, mid, { qcm });
 }
@@ -1341,4 +1342,63 @@ function boot() {
   S().watchAuth((user) => { if (user) start(user); else stop(); });
 }
 if (window.AbbaSync) boot(); else window.addEventListener("load", boot);
-window.Formation = { start, stop };
+
+/* ---------- Coordination : travail réel d'un Bâtisseur (lecture seule) ---------- */
+const toMs = (x) => { if (!x) return 0; if (typeof x.toMillis === "function") return x.toMillis(); if (typeof x.seconds === "number") return x.seconds * 1000; const t = Date.parse(x); return isNaN(t) ? 0 : t; };
+function declStats(sv) {
+  if (!sv) return null;
+  const n = (sv.labels || ["Matin", "Soir"]).length, idx = dayIndex(sv.start), done = sv.done || {};
+  const full = (d) => (done[String(d)] || []).length >= n;
+  let ok = 0, tot = 0, streak = 0;
+  for (let d = Math.max(1, idx - 6); d <= idx; d++) { if (d === idx && !full(d)) continue; tot++; if (full(d)) ok++; }
+  for (let d = idx; d >= 1; d--) { if (full(d)) streak++; else if (d === idx) continue; else break; }
+  return { ok, tot, streak, idx };
+}
+async function coordAnalyse(uid) {
+  const [prog, suivis, meta] = await Promise.all([
+    S().loadStudentModules(uid), S().loadStudentSuivis(uid),
+    new Promise((res) => { const u = S().watchFormationMeta(uid, (m) => { try { u(); } catch (e) {} res(m || {}); }); }),
+  ]);
+  const mods = MODULES.filter((m) => m.ready || m.preview);
+  await Promise.all(mods.map((m) => loadContent(m.id)));
+  const acq = meta.acquis || [];
+  const keep = st.suivis; st.suivis = suivis;
+  let rows = [];
+  try {
+    rows = mods.map((m) => {
+      const p = prog[m.id] || {}, c = st.content[m.id], ok = c && !c.error;
+      const complete = acq.includes(m.id) || (p.ficheStatus === "validated" && !!(p.qcm && p.qcm.ok));
+      const exTot = ok ? (c.exercices || []).length : 0;
+      const exOk = ok ? (c.exercices || []).filter((ex) => exerciseState(c, ex, p) === "ok").length : 0;
+      const q = p.qcm || null;
+      return {
+        id: m.id, n: Number(m.id.slice(1)), acq: acq.includes(m.id), complete,
+        lu: (p.lu || []).length, nLecons: ok ? (c.lecons || []).length : 0,
+        qcm: q ? { pct: q.pct, ok: !!q.ok, essais: q.essais || 0 } : null,
+        exOk, exTot, fiche: p.ficheStatus || "",
+        submittedAt: toMs(p.submittedAt), validatedAt: toMs(p.validatedAt),
+        started: !!((p.lu && p.lu.length) || p.qcm || p.exercices || p.ficheStatus),
+      };
+    });
+  } finally { st.suivis = keep; }
+  const cur = rows.find((r) => !r.complete) || null;
+  let last = 0;
+  Object.values(prog).forEach((p) => { last = Math.max(last, toMs(p.updatedAt), toMs(p.submittedAt), toMs(p.qcm && p.qcm.at)); });
+  Object.values(suivis).forEach((sv) => { last = Math.max(last, toMs(sv.updatedAt)); });
+  const ref = Math.max(toMs(prog.autoeval && prog.autoeval.doneAt), ...rows.map((r) => r.validatedAt));
+  const enCours = [];
+  Object.entries(suivis).forEach(([key, sv]) => {
+    if (key === DECL_KEY || (sv.mid === "m1" && sv.exId === "declaration")) return;
+    const pas = sv.pas || 1, idx = dayIndex(sv.start), per = Math.floor((idx - 1) / pas) + 1, n = (sv.labels || ["Fait"]).length, done = sv.done || {};
+    const upTo = Math.min(per, sv.jours); let rates = 0, faits = 0;
+    for (let d = 1; d <= upTo; d++) { if ((done[String(d)] || []).length >= n) faits++; else if (d < per) rates++; }
+    if (faits >= sv.jours) return;
+    enCours.push({ titre: sv.titre || key, jour: upTo, jours: sv.jours, rates });
+  });
+  return {
+    modules: rows, current: cur, valides: rows.filter((r) => r.complete).length, total: rows.length,
+    decl: declStats(suivis[DECL_KEY]), enCours, lastMs: last, refMs: ref,
+    autoeval: !!(meta.autoevalFaite || (prog.autoeval && prog.autoeval.done)),
+  };
+}
+window.Formation = { start, stop, analyse: coordAnalyse };

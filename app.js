@@ -413,42 +413,108 @@ function setupCoordModules() {
   const btn = document.getElementById("refreshCoordModules");
   if (btn) btn.addEventListener("click", renderCoordModules);
 }
+const escC = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const FICHE_TXT = { draft: "fiche en préparation", submitted: "fiche envoyée, en correction", returned: "fiche à reprendre", validated: "fiche validée" };
+function etapeTexte(a) {
+  const m = a.current;
+  if (!m) return "tous les modules validés";
+  if (!m.started) return `M${m.n} · pas commencé`;
+  if (m.lu < m.nLecons) return `M${m.n} · lecture ${m.lu}/${m.nLecons}`;
+  if (!m.qcm || !m.qcm.ok) return `M${m.n} · questions${m.qcm ? " " + m.qcm.pct + "%" : ""}`;
+  if (m.exOk < m.exTot) return `M${m.n} · exercices ${m.exOk}/${m.exTot}`;
+  return `M${m.n} · ${FICHE_TXT[m.fiche] || "fiche à remplir"}`;
+}
+function joursDepuis(ms) { return ms ? Math.floor((Date.now() - ms) / 86400000) : null; }
+function activiteTexte(ms) {
+  const d = joursDepuis(ms);
+  if (d === null) return "—";
+  return d <= 0 ? "aujourd'hui" : d === 1 ? "hier" : `il y a ${d} j`;
+}
+function absencesDeSuite(uid) {
+  const marques = SEANCES.filter(s => (s.presences || {})[uid]).sort((x, y) => (x.date || "").localeCompare(y.date || ""));
+  const n = marques.length;
+  return n >= 2 && !marques[n - 1].presences[uid].present && !marques[n - 2].presences[uid].present;
+}
+function alertesDe(r) {
+  const a = r.a, out = [];
+  if (!a) return out;
+  const d = joursDepuis(a.lastMs);
+  if (d !== null && d >= 7) out.push(`sans activité depuis ${d} jours`);
+  a.modules.forEach(m => {
+    if (m.fiche === "submitted" && m.submittedAt && joursDepuis(m.submittedAt) >= 3) out.push(`fiche du module ${m.n} en attente de correction depuis ${joursDepuis(m.submittedAt)} jours`);
+  });
+  if (a.decl && a.decl.idx >= 7 && a.decl.ok < 4) out.push(`déclaration faite ${a.decl.ok} jour(s) sur ${a.decl.tot}`);
+  if (absencesDeSuite(r.uid)) out.push("absent aux deux dernières séances");
+  if (a.current && a.refMs && joursDepuis(a.refMs) >= 21 && a.current.started) out.push(`bloqué sur le module ${a.current.n} depuis plus de 3 semaines`);
+  if (a.current && a.current.qcm && !a.current.qcm.ok && a.current.qcm.essais >= 3) out.push(`questions du module ${a.current.n} ratées ${a.current.qcm.essais} fois`);
+  return out;
+}
+function detailEleve(r) {
+  const a = r.a;
+  if (!a) return "<p class=\"settings-hint\">Données indisponibles.</p>";
+  let h = "";
+  const fait = a.modules.filter(m => m.started || m.complete);
+  if (!fait.length) h += `<p class="small">Aucun module commencé.</p>`;
+  fait.forEach(m => {
+    const q = m.qcm ? `questions ${m.qcm.pct}%${m.qcm.essais ? ` (${m.qcm.essais} essai${m.qcm.essais > 1 ? "s" : ""})` : ""}` : "questions —";
+    h += `<p class="small"><strong>M${m.n}</strong> ${m.complete ? "✅ validé" : ""}${m.acq ? " (acquis en séance)" : ""}<br>lecture ${m.lu}/${m.nLecons} · ${q} · exercices ${m.exOk}/${m.exTot} · ${FICHE_TXT[m.fiche] || "fiche —"}</p>`;
+  });
+  if (a.enCours.length) h += `<p class="small"><strong>Suivis en cours</strong><br>${a.enCours.map(e => `${escC(e.titre)} : jour ${e.jour}/${e.jours}${e.rates ? `, ${e.rates} jour(s) raté(s)` : ""}`).join("<br>")}</p>`;
+  if (a.decl) h += `<p class="small"><strong>Déclaration</strong> : ${a.decl.ok}/${a.decl.tot} jours sur les 7 derniers${a.decl.streak >= 2 ? ` · 🔥 ${a.decl.streak} jours de suite` : ""}</p>`;
+  else h += `<p class="small"><strong>Déclaration</strong> : pas commencée</p>`;
+  h += `<p class="small"><strong>Correcteur</strong> : ${escC(r.correcteur || "non attribué")}</p>`;
+  return h;
+}
 async function renderCoordModules() {
   if (!IS_ADMIN) return;
   const body = document.getElementById("coordModulesBody");
   const emptyHint = document.getElementById("coordModulesEmpty");
-  body.innerHTML = `<tr><td colspan="8">Chargement…</td></tr>`;
+  const alertsBox = document.getElementById("coordAlerts");
+  body.innerHTML = `<tr><td colspan="5">Chargement…</td></tr>`;
   try {
-    const rows = await window.AbbaSync.loadAllSummaries();
-    rows.sort((a, b) => (b.modulesFaits || 0) - (a.modulesFaits || 0));
+    const [sums, liens] = await Promise.all([window.AbbaSync.loadAllSummaries(), window.AbbaSync.loadAllLiens().catch(() => [])]);
+    const rows = sums.filter(r => r.email || r.nom);
+    await Promise.all(rows.map(async r => {
+      try { r.a = await window.Formation.analyse(r.uid); } catch (e) { console.error("analyse", r.uid, e); r.a = null; }
+      const l = liens.find(x => (x.uid || x.id) === r.uid);
+      r.correcteur = l ? (l.correcteurNom || l.correcteurEmail || "") : "";
+      if (r.a) {
+        r.modulesFaits = r.a.valides; r.modulesTotal = r.a.total;
+        r.declPct7 = r.a.decl && r.a.decl.tot ? Math.round((r.a.decl.ok / r.a.decl.tot) * 100) : undefined;
+      } else { r.modulesFaits = 0; r.modulesTotal = 0; }
+      r.alertes = alertesDe(r);
+    }));
+    rows.sort((x, y) => (y.modulesFaits || 0) - (x.modulesFaits || 0) || ((y.a && y.a.lastMs) || 0) - ((x.a && x.a.lastMs) || 0));
     LAST_COORD_ROWS = rows;
     body.innerHTML = "";
     emptyHint.style.display = rows.length === 0 ? "block" : "none";
-    const mk = currentMonthKey();
     rows.forEach(r => {
-      const tr = document.createElement("tr");
-      const dimPct = r.dimensionsMoisRef === mk ? `${r.dimensionsPct || 0}%` : "—";
       let marquees = 0, presentes = 0;
-      SEANCES.forEach(s => {
-        const rec = (s.presences || {})[r.uid];
-        if (rec) { marquees++; if (rec.present) presentes++; }
-      });
+      SEANCES.forEach(s => { const rec = (s.presences || {})[r.uid]; if (rec) { marquees++; if (rec.present) presentes++; } });
       const presPct = marquees > 0 ? `${Math.round((presentes / marquees) * 100)}%` : "—";
+      const a = r.a, d = a ? joursDepuis(a.lastMs) : null;
+      const decl = a && a.decl ? `${a.decl.ok}/${a.decl.tot}${a.decl.streak >= 2 ? `<small>🔥${a.decl.streak}</small>` : ""}` : "—";
+      const tr = document.createElement("tr");
+      tr.className = "coord-row";
       tr.innerHTML = `
-        <td>${r.nom || r.email || "—"}</td>
-        <td>${r.telephone || "—"}</td>
-        <td>${r.modulesTotal ? `${r.modulesFaits || 0}/${r.modulesTotal}` : "—"}</td>
-        <td>${r.zonesMoisFait === mk ? "✓" : "—"}</td>
-        <td>${dimPct}</td>
+        <td>${r.alertes.length ? "⚠ " : ""}${escC(r.nom || r.email || "—")}<small>${escC(r.telephone || "")}</small></td>
+        <td>${a ? `<b>${a.valides}/${a.total}</b><small>${escC(etapeTexte(a))}</small>` : "—"}</td>
+        <td>${decl}</td>
         <td>${presPct}</td>
-        <td>${r.pctToday !== undefined ? r.pctToday + "%" : "—"}</td>
-        <td>${r.streak !== undefined ? r.streak + "j" : "—"}</td>
-      `;
-      body.appendChild(tr);
+        <td class="${d !== null && d >= 7 ? "warn" : ""}">${a ? activiteTexte(a.lastMs) : "—"}</td>`;
+      const det = document.createElement("tr");
+      det.className = "coord-detail"; det.style.display = "none";
+      det.innerHTML = `<td colspan="5">${detailEleve(r)}</td>`;
+      tr.addEventListener("click", () => { det.style.display = det.style.display === "none" ? "" : "none"; });
+      body.appendChild(tr); body.appendChild(det);
     });
+    const avec = rows.filter(r => r.alertes.length);
+    alertsBox.innerHTML = avec.length
+      ? avec.map(r => `<p class="small"><strong>${escC(r.nom || r.email)}</strong> — ${r.alertes.map(escC).join(" · ")}</p>`).join("")
+      : `<p class="settings-hint">Rien à signaler pour l'instant ✓</p>`;
     renderCoordProfils(rows);
   } catch (err) {
-    body.innerHTML = `<tr><td colspan="8">Erreur de chargement.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="5">Erreur de chargement.</td></tr>`;
     console.error(err);
   }
 }
@@ -1079,11 +1145,7 @@ function generateResume() {
   const modulesPctParPersonne = rows.map(r => r.modulesTotal ? (r.modulesFaits / r.modulesTotal) * 100 : null);
   const moyModules = moyenne(modulesPctParPersonne.filter(v => v !== null));
 
-  const dimPctParPersonne = rows.filter(r => r.dimensionsMoisRef === mk).map(r => r.dimensionsPct || 0);
-  const moyDim = moyenne(dimPctParPersonne);
-
-  const espritPctParPersonne = rows.map(r => r.pctToday);
-  const moyEsprit = moyenne(espritPctParPersonne);
+  const moyDecl = moyenne(rows.map(r => r.declPct7).filter(v => v !== undefined));
 
   let presencesParPersonne = [];
   rows.forEach(r => {
@@ -1115,9 +1177,8 @@ Taux de présence moyen : ${moyPresence}%
   dont ${sous80} Bâtisseur(s) sous le seuil de 80% exigé par la charte
 
 ÉTAT ACTUEL (au ${dateStr}, non rattaché à la période ci-dessus) :
-Avancement modules (moyenne) : ${moyModules}%
-Régularité spirituelle du jour (moyenne) : ${moyEsprit}%
-Dimensions de l'Homme Fait — objectifs atteints ce mois-ci (moyenne) : ${moyDim}%
+Modules validés (moyenne) : ${moyModules}%
+Déclaration quotidienne sur les 7 derniers jours (moyenne) : ${moyDecl}%
 Bâtisseurs ayant renseigné leur profil (MBTI) : ${avecMbti}/${total}
 ———————————————————————————`;
 

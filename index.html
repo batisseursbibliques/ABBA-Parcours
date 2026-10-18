@@ -285,7 +285,7 @@
         <h1>Coordination</h1>
         <button class="btn-secondary" id="refreshCoordModules">Actualiser</button>
       </div>
-      <p class="settings-hint">Avancement des Bâtisseurs — modules du Parcours et régularité spirituelle (ABBA Life).</p>
+      <p class="settings-hint">Avancement des Bâtisseurs : travail réel dans les modules, déclaration quotidienne et présence. Touche une ligne pour voir le détail.</p>
 
       <!-- Demandes d'accès -->
       <div class="card">
@@ -324,10 +324,16 @@
         </div>
       </div>
 
+      <!-- À surveiller -->
+      <div class="card">
+        <p class="eyebrow">À surveiller</p>
+        <div id="coordAlerts"><p class="settings-hint">Chargement…</p></div>
+      </div>
+
       <!-- Tableau d'avancement -->
       <div class="card">
-        <table class="tx-table" id="coordModulesTable">
-          <thead><tr><th>Bât.</th><th>Tél.</th><th>Mod.</th><th>Car.</th><th>Dim.</th><th>Prés.</th><th>Esprit</th><th>Série</th></tr></thead>
+        <table class="tx-table coord-table" id="coordModulesTable">
+          <thead><tr><th>Bâtisseur</th><th>Parcours</th><th>Décl.</th><th>Prés.</th><th>Activité</th></tr></thead>
           <tbody id="coordModulesBody"></tbody>
         </table>
         <p class="empty-hint" id="coordModulesEmpty">Aucun Bâtisseur pour l'instant.</p>

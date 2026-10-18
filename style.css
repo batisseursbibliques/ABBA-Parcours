@@ -854,3 +854,13 @@ details.fm-ex>summary .fm-ex-t{flex:1;}
 /* ===== Lecture qui défile : bloc lu surligné ; titre du lecteur cliquable ===== */
 .tts-now{background:rgba(201,162,39,.26);border-radius:6px;box-shadow:0 0 0 4px rgba(201,162,39,.26);transition:background .25s;}
 button.tts-mini-t{background:none;border:none;color:inherit;font:inherit;font-size:13px;font-weight:600;text-align:left;cursor:pointer;padding:0;}
+
+/* Coordination : tableau qui reste dans le cadre */
+.coord-table{table-layout:fixed;width:100%;font-size:12.5px;}
+.coord-table th,.coord-table td{padding:8px 3px;overflow-wrap:anywhere;word-break:break-word;vertical-align:top;text-align:left;}
+.coord-table th:nth-child(1){width:31%;} .coord-table th:nth-child(2){width:29%;}
+.coord-table th:nth-child(3){width:13%;} .coord-table th:nth-child(4){width:12%;} .coord-table th:nth-child(5){width:15%;}
+.coord-table small{display:block;font-size:11px;color:var(--muted,#6b6b6b);font-weight:400;}
+.coord-row{cursor:pointer;}
+.coord-table td.warn{color:#b3261e;font-weight:600;}
+.coord-detail td{background:var(--paper);padding:8px 10px;}
