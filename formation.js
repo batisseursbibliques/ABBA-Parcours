@@ -452,7 +452,7 @@ function renderLecture(c, p) {
   h += `<p class="settings-hint">${lu.length}/${c.lecons.length} leçons lues. Ouvre chaque leçon, lis-la, puis touche « J'ai lu ».</p>`;
   c.lecons.forEach((l) => {
     const done = lu.includes(l.id);
-    h += `<details class="fm-lecon ${done ? "done" : ""}"><summary>${done ? "✓ " : ""}${esc(l.titre)}</summary><div class="fm-tts" data-ttsbar="les:${c.id}:${l.id}">${ttsBar(`les:${c.id}:${l.id}`)}</div><div class="fm-texte">${l.html}</div>
+    h += `<details class="fm-lecon ${done ? "done" : ""}"><summary>${done ? "✓ " : ""}${esc(l.titre)}</summary><div class="fm-tts" data-ttsbar="les:${c.id}:${l.id}">${ttsBar(`les:${c.id}:${l.id}`)}</div><div class="fm-texte">${window.AbbaVersets ? window.AbbaVersets.lier(l.html, c.id) : l.html}</div>
       ${done ? '<p class="small">Leçon lue.</p>' : `<button class="btn-primary" data-act="lu" data-l="${l.id}">J'ai lu cette leçon</button>`}</details>`;
   });
   if (lu.length >= c.lecons.length) h += '<button class="btn-primary full" data-act="step" data-s="qcm">Passer aux questions →</button>';

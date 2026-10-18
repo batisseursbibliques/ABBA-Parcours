@@ -693,9 +693,10 @@ function trouverLivre(nom) {
   const m = /^([123])(.+)$/.exec(q);
   let i = LIVRES.findIndex((n) => normNom(n) === q);
   if (i < 0) i = LIVRES.findIndex((n) => normNom(n).startsWith(q));
-  if (i < 0 && m) { // numéro + abréviation : « 1Cor », « 2Tim », « 1Pi »
-    const [, num, ab] = m;
-    i = LIVRES.findIndex((n) => /^[123]/.test(n) && n[0] === num && normNom(n.slice(1)).startsWith(ab));
+  if (i < 0 && m) { // numéro + abréviation : « 1 Co », « 2 Tm », « 1 Jn », « 1 P »
+    const NUM = { co: "Corinthiens", cor: "Corinthiens", th: "Thessaloniciens", thes: "Thessaloniciens", tm: "Timothée", tim: "Timothée", p: "Pierre", pi: "Pierre", pie: "Pierre", jn: "Jean", s: "Samuel", sa: "Samuel", sam: "Samuel", r: "Rois", ro: "Rois", ch: "Chroniques", chr: "Chroniques" };
+    const nom = NUM[m[2]] || m[2];
+    i = LIVRES.findIndex((n) => /^[123] /.test(n) && n[0] === m[1] && normNom(n.slice(2)).startsWith(normNom(nom)));
   }
   if (i < 0 && ABREV[q]) i = LIVRES.indexOf(ABREV[q]);
   return i + 1;
@@ -742,3 +743,74 @@ async function ouvrirVersets({ refs, texte = "", titre = "📎 Versets de réfé
   charger();
 }
 window.AbbaVersets = { ouvrir: ouvrirVersets, analyserRef };
+
+/* ---------- Versets cliquables dans les leçons : repérés automatiquement dans le texte ---------- */
+// Pour l'instant : seulement les modules listés ici (le reste s'affiche comme avant).
+const MODULES_VERSETS = new Set(["m1"]);
+const jolie = (livre, chap, v, fin) => `${LIVRES[livre - 1]} ${chap}:${v}${fin && fin !== v ? `–${fin}` : ""}`;
+// « Jean 15:16 ; Gal 5:22-23 » ou « 1 Cor 12:31 ; 14:1 » → [{ texte, ref }] ou null si un morceau n'est pas compris
+function lireGroupe(contenu) {
+  const morceaux = contenu.split(/(\s*[;,]\s*)/);
+  const items = [];
+  let livre = 0, chap = 0, nouveau = true;
+  for (let k = 0; k < morceaux.length; k++) {
+    if (k % 2 === 1) { nouveau = morceaux[k].includes(";"); continue; }
+    const p = morceaux[k].trim();
+    if (!p) return null;
+    let m;
+    if ((m = /^(\d+)[:.](\d+)(?:\s*[-–]\s*(\d+))?$/.exec(p))) { // « 14:1 »
+      if (!livre) return null;
+      chap = +m[1]; items.push({ texte: morceaux[k], ref: jolie(livre, chap, +m[2], m[3] ? +m[3] : 0) });
+    } else if (!nouveau && (m = /^(\d+)(?:\s*[-–]\s*(\d+))?$/.exec(p))) { // « , 18 » : autre verset du même chapitre
+      if (!livre || !chap) return null;
+      items.push({ texte: morceaux[k], ref: jolie(livre, chap, +m[1], m[2] ? +m[2] : 0) });
+    } else if ((m = /^(.+?)\s+(\d+)[:.](\d+)(?:\s*[-–]\s*(\d+))?$/.exec(p))) { // « Jean 3:16 »
+      livre = trouverLivre(m[1]);
+      if (!livre) return null;
+      chap = +m[2]; items.push({ texte: morceaux[k], ref: jolie(livre, chap, +m[3], m[4] ? +m[4] : 0) });
+    } else if ((m = /^(.+?)\s+(\d+)(?:\s*[-–]\s*(\d+))?$/.exec(p)) && [31, 57, 63, 64, 65].includes(trouverLivre(m[1]))) { // « Jude 20-21 »
+      livre = trouverLivre(m[1]); chap = 1;
+      items.push({ texte: morceaux[k], ref: jolie(livre, 1, +m[2], m[3] ? +m[3] : 0) });
+    } else return null;
+    nouveau = false;
+  }
+  return items.length ? items : null;
+}
+function lier(html, moduleId, rapport) {
+  if (!MODULES_VERSETS.has(moduleId) && !rapport) return html;
+  const racine = document.createElement("div");
+  racine.innerHTML = html;
+  const noeuds = [];
+  const w = document.createTreeWalker(racine, NodeFilter.SHOW_TEXT);
+  while (w.nextNode()) if (!w.currentNode.parentElement.closest("a,button,.vref")) noeuds.push(w.currentNode);
+  noeuds.forEach((n) => {
+    const t = n.nodeValue;
+    if (!/\d[:.]\d/.test(t)) return;
+    let fin = 0, sortie = "", change = false;
+    t.replace(/\(([^()]*\d[:.]\d[^()]*)\)/g, (tout, contenu, pos) => {
+      const items = lireGroupe(contenu);
+      if (!items) { rapport?.echecs.push(contenu); return tout; }
+      rapport && (rapport.groupes += 1, rapport.refs += items.length);
+      sortie += esc(t.slice(fin, pos)) + "(";
+      sortie += items.map((x, i) => `${i ? contenu.split(/(\s*[;,]\s*)/)[2 * i - 1] : ""}<span class="vref" role="button" tabindex="0" data-vr="${esc(x.ref)}">${esc(x.texte)}</span>`).join("");
+      if (items.length > 1) sortie += ` <button type="button" class="vref-all" data-vg="${esc(JSON.stringify(items.map((x) => x.ref)))}" aria-label="Voir tous les versets" title="Voir tous les versets">📎</button>`;
+      sortie += ")";
+      fin = pos + tout.length; change = true;
+      return tout;
+    });
+    if (!change) return;
+    sortie += esc(t.slice(fin));
+    const span = document.createElement("span");
+    span.innerHTML = sortie;
+    n.replaceWith(...span.childNodes);
+  });
+  return racine.innerHTML;
+}
+document.addEventListener("click", (e) => {
+  const one = e.target.closest(".vref");
+  const all = e.target.closest(".vref-all");
+  if (one) { e.preventDefault(); ouvrirVersets({ refs: [one.dataset.vr], titre: `📖 ${one.dataset.vr}` }); }
+  else if (all) { e.preventDefault(); try { ouvrirVersets({ refs: JSON.parse(all.dataset.vg), titre: "📎 Tous les versets" }); } catch { /* ignoré */ } }
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.classList?.contains("vref")) e.target.click(); });
+window.AbbaVersets.lier = lier;
