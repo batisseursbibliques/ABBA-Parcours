@@ -218,6 +218,11 @@ function renderField(f, scope, saved, readonly) {
     if (f.pct) h += `<div class="fm-tb-row fm-tb-tot"><p class="fm-tb-l">${esc(f.pct)}</p><div class="fm-tb-cells"><div class="fm-tb-c"><small>Ce qui reste (%)</small>${out("ps", c.pctSolde, " %")}</div><div class="fm-tb-c"><small>Sur 100 000 F</small>${out("psf", c.pctSolde * 1000)}</div></div></div>`;
     return h + "</div>";
   }
+  if (f.type === "choix") {
+    const ok = f.bonne && v;
+    const fb = ok ? (v === f.bonne ? `<p class="fm-fb ok">✓ Bonne réponse. ${esc(f.explication || "")}</p>` : `<p class="fm-fb ko">✗ Ce n'est pas la bonne réponse. ${esc(f.explication || "")}</p>`) : "";
+    return `<div class="field"><p><strong>${esc(f.label)}</strong></p>` + (f.options || []).map((o) => `<label class="fm-opt"><input type="radio" name="${key}" data-f="${key}" data-t="text" value="${esc(o)}" ${v === o ? "checked" : ""} ${dis}><span>${esc(o)}</span></label>`).join("") + `${fb}</div>`;
+  }
   if (f.type === "scale") {
     return `<div class="field"><span>${esc(f.label)}</span><div class="fm-scale">${[1, 2, 3, 4, 5].map((n) => `<label><input type="radio" name="${key}" data-f="${key}" data-t="num" value="${n}" ${String(v) === String(n) ? "checked" : ""} ${dis}><b>${n}</b></label>`).join("")}</div></div>`;
   }
@@ -562,7 +567,7 @@ function onFieldInput(el) {
     cur[el.dataset.i] = el.value;
     st.cache[k] = cur;
     if (Object.keys(cur).length >= 1) rerenderKeepScroll();
-  } else { st.cache[k] = el.value; if (t === "text" && el.tagName === "SELECT" && el.closest(".field") && el.dataset.f) { const [sc, ...rest] = k.split(":"); const fid = rest[rest.length - 1]; const mm = st.content[st.view.mod]; const has = mm && (mm.exercices || []).some((ex) => (ex.champs || []).some((fd) => (fd.id === fid && fd.bonne) || (fd.si && fd.si.champ === fid))); if (has) rerenderKeepScroll(); } }
+  } else { st.cache[k] = el.value; if (t === "text" && (el.tagName === "SELECT" || el.type === "radio") && el.closest(".field") && el.dataset.f) { const [sc, ...rest] = k.split(":"); const fid = rest[rest.length - 1]; const mm = st.content[st.view.mod]; const has = mm && (mm.exercices || []).some((ex) => (ex.champs || []).some((fd) => (fd.id === fid && fd.bonne) || (fd.si && fd.si.champ === fid))); if (has) rerenderKeepScroll(); } }
 }
 function currentSaved(k) {
   const [scope, ...rest] = k.split(":");
