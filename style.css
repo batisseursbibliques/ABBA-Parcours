@@ -829,3 +829,28 @@ details.fm-ex>summary .fm-ex-t{flex:1;}
 .bib-ref-texte{white-space:pre-line;}
 .bib-fond{padding-bottom:var(--bib-bas,0px);}
 .bib-fond-leve .bib-feuille{border-radius:16px;max-height:calc(100vh - var(--bib-bas) - 24px);max-height:calc(100dvh - var(--bib-bas) - 24px);padding-bottom:16px;}
+
+/* ===== Taille du texte (variable --tl, réglée par le bouton « Aa ») ===== */
+.fm-texte{font-size:calc(15px*var(--tl,1));}
+.fm-texte h3{font-size:calc(17px*var(--tl,1));}
+.fm-texte h4{font-size:calc(14px*var(--tl,1));}
+.decl-text{font-size:calc(17px*var(--tl,1));}
+.bib-texte{font-size:calc(16px*var(--tl,1));}
+.bib-texte h3{font-size:calc(19px*var(--tl,1));}
+.bib-ref-texte{font-size:calc(14px*var(--tl,1));}
+.fm-q,.fm-ex-body{font-size:calc(15px*var(--tl,1));}
+.fm-q .small,.fm-ex-body .small{font-size:calc(13px*var(--tl,1));}
+.taille-aa{font-weight:700;font-size:14px;}
+.taille-box{position:fixed;top:64px;right:12px;z-index:90;display:flex;align-items:center;gap:8px;background:var(--card-bg);border:1px solid var(--line);border-radius:14px;padding:8px 12px;box-shadow:0 6px 20px rgba(0,0,0,.2);}
+.taille-box[hidden]{display:none;}
+.taille-t{font-size:12px;color:var(--ink-soft);}
+.taille-v{min-width:44px;text-align:center;font-size:13px;font-weight:600;}
+.taille-b,.taille-r{border:1px solid var(--line);background:var(--paper);color:var(--navy);border-radius:10px;font-weight:700;font-size:15px;min-width:40px;height:36px;cursor:pointer;}
+/* ===== Texte justifié (leçons, déclaration, Bible) avec coupure des mots ===== */
+.fm-texte p,.fm-texte li,.decl-text p,.bib-verset,.bib-ref-texte{text-align:justify;hyphens:auto;-webkit-hyphens:auto;overflow-wrap:break-word;}
+/* ===== Protection contre le copier-coller : leçons, questions, exercices (champs de saisie libres) ===== */
+#formationRoot .fm-lecon:not([data-mbti]) .fm-texte,#formationRoot .fm-q,#formationRoot .fm-ex-body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
+#formationRoot .fm-ex-body input,#formationRoot .fm-ex-body textarea,#formationRoot .fm-ex-body select{-webkit-user-select:text;user-select:text;}
+/* ===== Lecture qui défile : bloc lu surligné ; titre du lecteur cliquable ===== */
+.tts-now{background:rgba(201,162,39,.26);border-radius:6px;box-shadow:0 0 0 4px rgba(201,162,39,.26);transition:background .25s;}
+button.tts-mini-t{background:none;border:none;color:inherit;font:inherit;font-size:13px;font-weight:600;text-align:left;cursor:pointer;padding:0;}

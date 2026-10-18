@@ -391,6 +391,7 @@ function render() {
   renderBinomeProgress();
   renderZonesPlan();
   renderDecl();
+  ttsRestore();
   const root = $("formationRoot");
   if (!root) return;
   if (!st.user) { root.innerHTML = ""; return; }
@@ -401,6 +402,7 @@ function render() {
   if (st.isCorrecteur || st.isAdmin) h += renderCorrCard();
   if (st.isAdmin) h += renderAdminCard();
   root.innerHTML = h;
+  ttsRestore();
   if (st.msg) { const m = root.querySelector(".fm-msg"); if (m) setTimeout(() => { st.msg = ""; if (m.parentNode) m.remove(); }, 4000); }
   if (st.view.mod && !st.content[st.view.mod]) loadContent(st.view.mod).then(render);
   if (st.focus) { const el = document.getElementById("ex-" + st.focus); if (el) { st.focus = null; setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 60); } }
@@ -682,7 +684,7 @@ async function saveFiche(send) {
 
 
 /* ---------- Lecture à voix haute (synthèse vocale de l'appareil, gratuite) ---------- */
-const TTS = { id: null, state: "stop", chunks: [], i: 0, tok: 0, rate: Number(localStorage.getItem("abba_tts_rate")) || 1, msg: "", title: "", wake: localStorage.getItem("abba_tts_wake") === "1" };
+const TTS = { id: null, state: "stop", chunks: [], i: 0, tok: 0, rate: Number(localStorage.getItem("abba_tts_rate")) || 1, msg: "", title: "", freeze: 0, wake: localStorage.getItem("abba_tts_wake") === "1" };
 const ttsOk = () => "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
 function ttsVoice() {
   const vs = speechSynthesis.getVoices() || [];
@@ -709,10 +711,64 @@ function htmlToSpeech(html) {
   d.querySelectorAll("li,p").forEach((p) => { p.textContent = p.textContent + " "; });
   return d.textContent || "";
 }
+/* Lecture « qui défile » : chaque bloc du texte (paragraphe, titre, puces) est surligné pendant qu'il est lu */
+const BLOC_SEL = "h1,h2,h3,h4,h5,h6,p,li,blockquote,dt,dd,td,th,figcaption";
+function ttsContainer(id) {
+  if (id === "decl") return document.querySelector("#declRoot .decl-text");
+  const bar = document.querySelector(`[data-ttsbar="${id}"]`);
+  return bar && bar.parentElement ? bar.parentElement.querySelector(":scope > .fm-texte") : null;
+}
+const ttsBlocks = (cont) => Array.from(cont.querySelectorAll(BLOC_SEL));
+function ttsOwnText(b) {
+  const c = b.cloneNode(true);
+  c.querySelectorAll(`${BLOC_SEL},button,.vref-all,script,style`).forEach((n) => n.remove());
+  let t = c.textContent || "";
+  if (/^H[1-6]$/.test(b.tagName)) t = t.replace(/[.:\s]*$/, "") + ". ";
+  return t;
+}
+function ttsBuildChunks(id) {
+  const cont = ttsContainer(id), out = [];
+  if (!cont) return ttsChunks(ttsText(id)).map((t) => ({ t, b: -1 }));
+  if (id !== "decl") { const [, mid, lid] = id.split(":"), c = st.content[mid], l = c && (c.lecons || []).find((x) => x.id === lid); if (l) out.push({ t: ttsClean(l.titre + "."), b: -1 }); }
+  ttsBlocks(cont).forEach((b, k) => ttsChunks(ttsOwnText(b)).forEach((t) => out.push({ t, b: k })));
+  return out;
+}
+function ttsHighlight(scroll) {
+  document.querySelectorAll(".tts-now").forEach((e) => e.classList.remove("tts-now"));
+  if (!TTS.id || TTS.state === "stop") return;
+  const ch = TTS.chunks[TTS.i];
+  if (!ch || ch.b < 0) return;
+  const cont = ttsContainer(TTS.id);
+  const el = cont && ttsBlocks(cont)[ch.b];
+  if (!el) return;
+  el.classList.add("tts-now");
+  if (scroll && Date.now() > TTS.freeze) {
+    const r = el.getBoundingClientRect();
+    if (r.height > 0 && (r.top < 90 || r.bottom > window.innerHeight * 0.62)) el.scrollIntoView({ block: "center", behavior: "smooth" });
+  }
+}
+function ttsRestore() {
+  if (TTS.id && TTS.state !== "stop" && TTS.id !== "decl") { const bar = document.querySelector(`[data-ttsbar="${TTS.id}"]`), d = bar && bar.closest("details"); if (d && !d.open) d.open = true; }
+  ttsHighlight(false);
+}
+// Revenir à l'endroit lu : depuis n'importe quel onglet, un clic sur le titre du lecteur ramène au texte
+function ttsGoto() {
+  if (!TTS.id) return;
+  TTS.freeze = 0;
+  if (TTS.id === "decl") document.querySelector('.tab[data-tab="declaration"]')?.click();
+  else {
+    const mid = TTS.id.split(":")[1];
+    if (st.view.mod !== mid || st.view.step !== "lecture") { st.view = { mod: mid, step: "lecture" }; st.cache = {}; render(); }
+    document.querySelector('.tab[data-tab="parcours"]')?.click();
+  }
+  setTimeout(() => { ttsRestore(); ttsHighlight(true); }, 120);
+}
+["wheel", "touchmove", "keydown"].forEach((ev) => window.addEventListener(ev, () => { TTS.freeze = Date.now() + 5000; }, { passive: true }));
 function ttsSpeakNext() {
   if (TTS.state !== "play") return;
   if (TTS.i >= TTS.chunks.length) { TTS.state = "stop"; TTS.id = null; wakeRelease(); updateTtsUi(); return; }
-  const tok = TTS.tok, u = new SpeechSynthesisUtterance(TTS.chunks[TTS.i]);
+  ttsHighlight(true);
+  const tok = TTS.tok, u = new SpeechSynthesisUtterance(TTS.chunks[TTS.i].t);
   u.lang = "fr-FR"; u.rate = TTS.rate;
   const v = ttsVoice(); if (v) u.voice = v;
   u.onend = () => { if (tok === TTS.tok && TTS.state === "play") { TTS.i++; ttsSpeakNext(); } };
@@ -729,7 +785,7 @@ function ttsPlay(id) {
   if (!ttsOk()) return;
   ttsStop(false);
   window.dispatchEvent(new Event("abba:voix-lecon")); // la Bible lue à voix haute s'arrête
-  TTS.tok++; TTS.id = id; TTS.msg = ""; TTS.chunks = ttsChunks(ttsText(id)); TTS.i = 0; TTS.state = "play";
+  TTS.tok++; TTS.id = id; TTS.msg = ""; TTS.chunks = ttsBuildChunks(id); TTS.i = 0; TTS.state = "play"; TTS.freeze = 0;
   if (id === "decl") TTS.title = "Ma déclaration"; else { const [, mid, lid] = id.split(":"); const c = st.content[mid], l = c && (c.lecons || []).find((x) => x.id === lid); TTS.title = l ? l.titre : "Leçon"; }
   updateTtsUi(); ttsSpeakNext(); wakeAcquire();
 }
@@ -752,7 +808,7 @@ function ttsBar(id) {
 }
 function ttsMiniHtml() {
   const playing = TTS.state === "play";
-  return `<span class="tts-mini-t">🔊 ${esc(TTS.title || "Lecture")}</span>
+  return `<button type="button" class="tts-mini-t" data-tts="goto" title="Revenir au texte lu">🔊 ${esc(TTS.title || "Lecture")} ↗</button>
     <button class="tts-btn" data-tts="${playing ? "pause" : "resume"}" aria-label="${playing ? "Pause" : "Reprendre"}">${playing ? "⏸" : "▶"}</button>
     <button class="tts-btn" data-tts="stop" aria-label="Arrêter">⏹</button>
     <select class="tts-rate" data-tts="rate" aria-label="Vitesse">${[[0.85, "Lent"], [1, "Normal"], [1.15, "Rapide"]].map(([v, l]) => `<option value="${v}" ${TTS.rate === v ? "selected" : ""}>${l}</option>`).join("")}</select>
@@ -763,6 +819,7 @@ function updateTtsUi() {
   document.querySelectorAll("[data-ttsbar]").forEach((el) => { el.innerHTML = ttsBar(el.dataset.ttsbar); });
   const mini = $("ttsMini");
   if (mini) { mini.hidden = TTS.state === "stop"; if (TTS.state !== "stop") mini.innerHTML = ttsMiniHtml(); }
+  ttsHighlight(false);
 }
 function ttsEvent(e) {
   const b = e.target.closest("[data-tts]");
@@ -770,6 +827,7 @@ function ttsEvent(e) {
   const a = b.dataset.tts;
   if (a === "rate") { if (e.type !== "change") return; TTS.rate = Number(b.value) || 1; localStorage.setItem("abba_tts_rate", String(TTS.rate)); if (TTS.state === "play") { TTS.tok++; speechSynthesis.cancel(); ttsSpeakNext(); } return; }
   if (e.type !== "click") return;
+  if (a === "goto") { ttsGoto(); return; }
   if (a === "wake") { TTS.wake = !TTS.wake; localStorage.setItem("abba_tts_wake", TTS.wake ? "1" : "0"); if (TTS.wake) wakeAcquire(); else wakeRelease(); updateTtsUi(); return; }
   if (a === "play") ttsPlay(b.dataset.id); else if (a === "pause") ttsPause(); else if (a === "resume") ttsResume(); else if (a === "stop") ttsStop();
 }

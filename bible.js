@@ -293,7 +293,7 @@ async function lire(depuis) {
 /* ---------- Lecteur flottant (même apparence que celui des leçons), visible sur tous les onglets ---------- */
 const titreMini = () => `📖 ${nomLivre(S.livre)} ${S.chap}${S.courant || S.verset ? ` · v. ${S.courant || S.verset}` : ""}`;
 function miniHtml() {
-  return `<span class="tts-mini-t">${esc(titreMini())}</span>
+  return `<button type="button" class="tts-mini-t" data-bm="aller" title="Revenir au texte lu">${esc(titreMini())} ↗</button>
     <button class="tts-btn" data-bm="${S.ecoute ? "pause" : "reprendre"}" aria-label="${S.ecoute ? "Pause" : "Reprendre"}">${S.ecoute ? "⏸" : "▶"}</button>
     <button class="tts-btn" data-bm="stop" aria-label="Arrêter">⏹</button>
     <select class="tts-rate" data-bm="vitesse" aria-label="Vitesse">${[[0.8, "Lent"], [1, "Normal"], [1.25, "Rapide"]].map(([v, l]) => `<option value="${v}"${S.vitesse === v ? " selected" : ""}>${l}</option>`).join("")}</select>
@@ -304,6 +304,12 @@ function miniEvent(e) {
   const b = e.target.closest("[data-bm]");
   if (!b) return;
   const a = b.dataset.bm;
+  if (a === "aller") {
+    if (e.type !== "click") return;
+    document.querySelector('.tab[data-tab="bible"]')?.click();
+    setTimeout(() => $(`bv${S.courant || S.verset || 1}`)?.scrollIntoView({ block: "center", behavior: "smooth" }), 150);
+    return;
+  }
   if (a === "vitesse") {
     if (e.type !== "change") return;
     S.vitesse = Number(b.value) || 1; lsSet("abba_bible_vitesse", String(S.vitesse));
@@ -336,7 +342,7 @@ function majMini() {
 }
 function majMiniTitre() {
   const t = document.querySelector("#bibMini .tts-mini-t");
-  if (t) t.textContent = titreMini();
+  if (t) t.textContent = `${titreMini()} ↗`;
 }
 
 /* ---------- Écran gardé allumé pendant la lecture audio ---------- */

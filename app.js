@@ -91,6 +91,8 @@ let MY_GESTE = "";
 
 document.addEventListener("DOMContentLoaded", () => {
   setupTheme();
+  setupTaille();
+  setupProtection();
   setupTabs();
   setupAuthScreen();
   setupModulesEditor();
@@ -1237,3 +1239,53 @@ window.toggleAccord = function(bodyId, arrowId) {
   body.style.display = isHidden ? "block" : "none";
   if (arrow) arrow.textContent = isHidden ? "▾" : "▸";
 };
+
+
+/* ============================================================
+   TAILLE DU TEXTE (bouton « Aa » en haut) — retenue sur l'appareil
+   ============================================================ */
+const TAILLES = [1, 1.15, 1.3, 1.5, 1.7];
+function appliquerTaille(i) {
+  const n = Math.min(TAILLES.length - 1, Math.max(0, i));
+  document.documentElement.style.setProperty("--tl", String(TAILLES[n]));
+  try { localStorage.setItem("abba_taille_texte", String(n)); } catch { /* ignoré */ }
+  const lib = document.getElementById("tailleVal");
+  if (lib) lib.textContent = `${Math.round(TAILLES[n] * 100)} %`;
+  return n;
+}
+function setupTaille() {
+  let idx = Number(localStorage.getItem("abba_taille_texte"));
+  idx = appliquerTaille(Number.isFinite(idx) ? idx : 0);
+  const bouton = document.getElementById("tailleToggle");
+  if (!bouton) return;
+  const boite = document.createElement("div");
+  boite.id = "tailleBox"; boite.className = "taille-box"; boite.hidden = true;
+  boite.innerHTML = `<span class="taille-t">Taille du texte</span>
+    <button type="button" class="taille-b" data-t="-" aria-label="Réduire le texte">A−</button>
+    <span id="tailleVal" class="taille-v"></span>
+    <button type="button" class="taille-b" data-t="+" aria-label="Agrandir le texte">A+</button>
+    <button type="button" class="taille-r" data-t="0" aria-label="Taille normale">↺</button>`;
+  document.body.appendChild(boite);
+  appliquerTaille(idx);
+  bouton.addEventListener("click", (e) => { e.stopPropagation(); boite.hidden = !boite.hidden; });
+  boite.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-t]");
+    if (!b) return;
+    idx = appliquerTaille(b.dataset.t === "+" ? idx + 1 : b.dataset.t === "-" ? idx - 1 : 0);
+  });
+  document.addEventListener("click", (e) => { if (!boite.hidden && !boite.contains(e.target)) boite.hidden = true; });
+}
+
+/* ============================================================
+   PROTECTION DES LEÇONS, QUESTIONS ET EXERCICES contre le copier-coller
+   (pas la Bible, ni les profils MBTI, ni la déclaration ; les champs de saisie restent libres)
+   ============================================================ */
+const ZONE_PROTEGEE = "#formationRoot .fm-lecon:not([data-mbti]) .fm-texte, #formationRoot .fm-q, #formationRoot .fm-ex-body";
+function setupProtection() {
+  const dans = (n) => { const el = n && (n.nodeType === 1 ? n : n.parentElement); return el && el.closest(ZONE_PROTEGEE) && !el.closest("input,textarea,select,[contenteditable='true']"); };
+  ["contextmenu", "dragstart", "selectstart"].forEach((ev) => document.addEventListener(ev, (e) => { if (dans(e.target)) e.preventDefault(); }, true));
+  ["copy", "cut"].forEach((ev) => document.addEventListener(ev, (e) => {
+    const s = window.getSelection && window.getSelection();
+    if (dans(e.target) || (s && s.anchorNode && dans(s.anchorNode))) { e.preventDefault(); if (e.clipboardData) e.clipboardData.setData("text/plain", ""); }
+  }, true));
+}
