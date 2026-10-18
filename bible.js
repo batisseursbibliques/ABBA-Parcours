@@ -474,9 +474,9 @@ function rendreNav() {
 }
 
 /* ---------- Références croisées ---------- */
-async function texteDeReference(ref) {
+async function texteDeReference(ref, version = S.version) {
   try {
-    const versets = (await chargerLivre(S.version, ref.livre))[ref.chapitre - 1] || [];
+    const versets = (await chargerLivre(version, ref.livre))[ref.chapitre - 1] || [];
     const out = [];
     for (let v = ref.verset; v <= Math.min(ref.fin, ref.verset + 9); v++) if (versets[v - 1]) out.push(ref.fin > ref.verset ? `${v} ${versets[v - 1]}` : versets[v - 1]);
     return out.join(" ");
@@ -680,3 +680,65 @@ async function ouvrirOnglet() {
 
 window.addEventListener("abba:bible-ouvert", ouvrirOnglet);
 window.AbbaBible = { ouvrir: ouvrirOnglet, aller: (l, c, v) => { ouvrirOnglet().then(() => aller(l, c, v)); } };
+
+/* ============================================================
+   FENÊTRE DE VERSETS (déclaration, leçons) : « 📎 » ou référence cliquée.
+   Chaque référence est citée en entier avec son texte, dans la version choisie.
+   ============================================================ */
+const ABREV = { mt: "Matthieu", mc: "Marc", lc: "Luc", jn: "Jean", ac: "Actes", rm: "Romains", rom: "Romains", ga: "Galates", gal: "Galates", ep: "Éphésiens", eph: "Éphésiens", ph: "Philippiens", php: "Philippiens", col: "Colossiens", he: "Hébreux", heb: "Hébreux", jc: "Jacques", ja: "Jacques", ap: "Apocalypse", ps: "Psaumes", pr: "Proverbes", es: "Ésaïe", esa: "Ésaïe", jr: "Jérémie", jer: "Jérémie", ez: "Ézéchiel", dn: "Daniel", gn: "Genèse", ge: "Genèse", ex: "Exode", lv: "Lévitique", lev: "Lévitique", nb: "Nombres", nom: "Nombres", dt: "Deutéronome", deut: "Deutéronome", jos: "Josué", jg: "Juges", ne: "Néhémie", est: "Esther", ec: "Ecclésiaste", ct: "Cantique des Cantiques", os: "Osée", jl: "Joël", am: "Amos", jon: "Jonas", mi: "Michée", na: "Nahum", ha: "Habacuc", so: "Sophonie", ag: "Aggée", za: "Zacharie", ml: "Malachie", tt: "Tite", phm: "Philémon", jud: "Jude" };
+const normNom = (x) => plat(x).replace(/[^a-z0-9]/g, "");
+function trouverLivre(nom) {
+  let q = normNom(nom);
+  if (!q) return 0;
+  const m = /^([123])(.+)$/.exec(q);
+  let i = LIVRES.findIndex((n) => normNom(n) === q);
+  if (i < 0) i = LIVRES.findIndex((n) => normNom(n).startsWith(q));
+  if (i < 0 && m) { // numéro + abréviation : « 1Cor », « 2Tim », « 1Pi »
+    const [, num, ab] = m;
+    i = LIVRES.findIndex((n) => /^[123]/.test(n) && n[0] === num && normNom(n.slice(1)).startsWith(ab));
+  }
+  if (i < 0 && ABREV[q]) i = LIVRES.indexOf(ABREV[q]);
+  return i + 1;
+}
+// « 1 Corinthiens 8:4-6 » → { livre, chapitre, verset, fin }
+function analyserRef(s) {
+  const m = /^(.+?)\s+(\d+)[:.,](\d+)(?:\s*[-–]\s*(\d+))?$/.exec(String(s).trim());
+  if (!m) return null;
+  const livre = trouverLivre(m[1]);
+  if (!livre) return null;
+  return { livre, chapitre: +m[2], verset: +m[3], fin: m[4] ? +m[4] : +m[3] };
+}
+async function ouvrirVersets({ refs, texte = "", titre = "📎 Versets de référence" }) {
+  if (!refs?.length) return;
+  fermerPanneau();
+  let index = null;
+  try { index = await chargerIndex(); } catch { /* hors connexion sans Bible téléchargée */ }
+  const versions = index?.versions || [];
+  let version = lsGet("abba_version_versets", "");
+  if (!versions.some((v) => v.id === version)) version = versions[0]?.id || "lsg";
+  const textes = {};
+  const fond = document.createElement("div");
+  fond.className = "bib-fond"; fond.id = "bibPanneau"; fond.setAttribute("role", "dialog"); fond.setAttribute("aria-label", "Versets de référence");
+  const dessiner = () => {
+    fond.innerHTML = `<div class="bib-feuille">
+      <div class="bib-feuille-tete"><strong>${esc(titre)}</strong><button class="btn-secondary btn-compact" data-px="fermer">Fermer ✕</button></div>
+      ${texte ? `<div class="small bib-citation">${esc(texte)}</div>` : ""}
+      ${versions.length > 1 ? `<select data-px="version" aria-label="Version de la Bible">${versions.map((v) => `<option value="${esc(v.id)}"${v.id === version ? " selected" : ""}>${esc(v.nom)}</option>`).join("")}</select>` : ""}
+      ${refs.map((s) => `<div class="bib-ref"><strong>${esc(s)}</strong><div class="bib-ref-texte">${textes[s] === undefined ? "…" : (textes[s] ? esc(textes[s]) : '<span class="small">Texte pas encore disponible : ouvrez la Bible une fois avec du réseau.</span>')}</div></div>`).join("")}</div>`;
+  };
+  const charger = () => {
+    refs.forEach((s) => {
+      const r = analyserRef(s);
+      if (!r) { textes[s] = ""; return; }
+      texteDeReference({ ...r, fin: Math.min(r.fin, r.verset + 9) }, version).then((t) => { if (document.body.contains(fond)) { textes[s] = t; dessiner(); } });
+    });
+  };
+  fond.addEventListener("click", (e) => { if (e.target === fond || e.target.closest('[data-px="fermer"]')) fermerPanneau(); });
+  fond.addEventListener("change", (e) => {
+    if (e.target.dataset.px === "version") { version = e.target.value; lsSet("abba_version_versets", version); Object.keys(textes).forEach((k) => delete textes[k]); dessiner(); charger(); }
+  });
+  document.body.appendChild(fond);
+  dessiner();
+  charger();
+}
+window.AbbaVersets = { ouvrir: ouvrirVersets, analyserRef };

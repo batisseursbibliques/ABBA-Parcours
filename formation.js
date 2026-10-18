@@ -628,7 +628,7 @@ function ttsSpeakNext() {
   speechSynthesis.speak(u);
 }
 function ttsText(id) {
-  if (id === "decl") return ((st.decl || {}).paragraphes || []).join(" ");
+  if (id === "decl") return ((st.decl || {}).paragraphes || []).map((p) => p.map((s) => s.t).join(" ")).join(" ").replace(/\{nom\}/g, declName());
   const [, mid, lid] = id.split(":");
   const c = st.content[mid], l = c && (c.lecons || []).find((x) => x.id === lid);
   return l ? l.titre + ". " + htmlToSpeech(l.html) : "";
@@ -698,6 +698,12 @@ async function startDeclaration() {
   await S().startSuivi(st.user.uid, DECL_KEY, { mid: "m1", exId: "declaration", fid: "suivi", titre: "Ma déclaration principale", jours: 365, labels: ["Matin", "Soir"], start: todayStr() });
 }
 async function declAction(e) {
+  const pj = e.target.closest("[data-pj]");
+  if (pj && st.decl) {
+    const [i, j] = pj.dataset.pj.split(".").map(Number), s = ((st.decl.paragraphes || [])[i] || [])[j];
+    if (s && window.AbbaVersets) window.AbbaVersets.ouvrir({ refs: s.refs, texte: s.t.replace(/\{nom\}/g, declName()) });
+    return;
+  }
   const b = e.target.closest("[data-decl]");
   if (!b || !st.user) return;
   if (b.dataset.decl === "start") { await startDeclaration(); return; }
@@ -730,7 +736,9 @@ function renderDecl() {
   }
   h += "</div>";
   const nm = declName();
-  h += `<div class="card"><div class="fm-tts" data-ttsbar="decl">${ttsBar("decl")}</div><div class="decl-text">${(c.paragraphes || []).map((p) => `<p>${esc(p).replace(/\(Votre Nom\)/gi, "<strong>" + esc(nm) + "</strong>")}</p>`).join("")}${c.refs ? `<p class="small"><strong>Références bibliques :</strong> ${esc(c.refs.replace(/^Références bibliques\s*:\s*/i, ""))}</p>` : ""}</div></div>`;
+  const nmH = `<strong>${esc(nm)}</strong>`;
+  const paras = c.paragraphes || [];
+  h += `<div class="card"><div class="fm-tts" data-ttsbar="decl">${ttsBar("decl")}</div><p class="small">Touche 📎 pour voir les versets d'une phrase : la lecture à voix haute ne lit que le texte.</p><div class="decl-text">${paras.map((p, i) => `<p id="decl-${i}">${p.map((s, j) => `${esc(s.t).replace(/\{nom\}/g, nmH)}${(s.refs || []).length ? `<button type="button" class="decl-pj" data-pj="${i}.${j}" aria-label="Versets de référence : ${esc(s.refs.join(", "))}" title="${esc(s.refs.join(", "))}">📎</button>` : ""} `).join("")}</p>`).join("")}</div></div>`;
   box.innerHTML = h;
 }
 
