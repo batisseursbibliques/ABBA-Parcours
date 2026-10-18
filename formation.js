@@ -18,7 +18,7 @@ const MODULES = [
   { id: "m7", titre: "Victoire par la Prière", ready: true },
   { id: "m8", titre: "Le Monde Spirituel", preview: true },
   { id: "m9", titre: "Évangélisation, Guérison, Délivrance", preview: true },
-  { id: "m10", titre: "Les Ministères de Dieu" },
+  { id: "m10", titre: "Les Ministères de Dieu", preview: true },
   { id: "m11", titre: "Maîtriser sa Santé et son Argent" },
   { id: "m12", titre: "Citoyenneté Responsable" },
   { id: "m13", titre: "Les Gestes de Premiers Secours" },
@@ -36,7 +36,7 @@ const STEPS = [["lecture", "Lecture"], ["qcm", "Questions"], ["exercices", "Exer
 
 const st = {
   user: null, isAdmin: false, isCorrecteur: false,
-  meta: {}, prog: {}, parcours: [], lien: null, profile: {}, suivis: {}, focus: null, openEx: {}, tasksOpen: false, zp: { plan: {}, content: null, open: {} }, decl: null, binome: { pair: null, last: "" }, loaded: { prog: false, meta: false },
+  meta: {}, prog: {}, parcours: [], lien: null, profile: {}, suivis: {}, focus: null, openEx: {}, tasksOpen: false, zp: { plan: {}, content: null, open: {} }, decl: null, mbti: null, mbtiLoading: false, openMbti: false, binome: { pair: null, last: "" }, loaded: { prog: false, meta: false },
   content: {}, view: { mod: null, step: "lecture" },
   cache: {}, msg: "",
   corr: { open: false, rows: null, loading: false },
@@ -247,11 +247,23 @@ function mbtiResult(f, ans) {
   });
   return { rows, type: rows.map((r) => r.letter).join("") };
 }
+async function loadMbtiProfils() {
+  if (st.mbti || st.mbtiLoading) return;
+  st.mbtiLoading = true;
+  try { const r = await fetch("content/mbti-profils.json"); if (!r.ok) throw new Error(r.status); st.mbti = await r.json(); }
+  catch (e) { st.mbti = { intro: "", profils: {} }; }
+  st.mbtiLoading = false;
+  render();
+}
 function renderMbtiResult(f, ans) {
   const r = mbtiResult(f, ans);
   let h = '<div class="fm-result"><p class="eyebrow">Tes résultats</p>';
   r.rows.forEach((x, i) => { h += `<p><strong>Dimension ${i + 1}</strong> : ${esc(x.d.a.nom)} (${x.d.a.l}) ${x.sa}/15 · ${esc(x.d.b.nom)} (${x.d.b.l}) ${x.sb}/15 → <strong>${x.letter}</strong></p>`; });
-  return h + `<p>Ton type MBTI : <strong style="font-size:20px;letter-spacing:.15em;">${esc(r.type)}</strong></p><p class="small"><em>Note-le dans ta fiche. C'est un outil pour mieux te connaître, pas un diagnostic : tu n'es jamais réduit(e) à quatre lettres.</em></p></div>`;
+  h += `<p>Ton type MBTI : <strong style="font-size:20px;letter-spacing:.15em;">${esc(r.type)}</strong></p><p class="small"><em>Note-le dans ta fiche. C'est un outil pour mieux te connaître, pas un diagnostic : tu n'es jamais réduit(e) à quatre lettres.</em></p>`;
+  const prof = st.mbti && st.mbti.profils && st.mbti.profils[r.type];
+  if (prof) h += `<details class="fm-lecon" data-mbti="1" ${st.openMbti ? "open" : ""}><summary>📖 Comprendre mon type : ${esc(r.type)} — ${esc(prof.nom)}</summary><div class="fm-texte">${st.mbti.intro || ""}${prof.html}</div></details>`;
+  else { h += '<p class="small">Chargement de la description de ton type…</p>'; loadMbtiProfils(); }
+  return h + "</div>";
 }
 function scoreTotals(f, ans) {
   return (f.groupes || []).map((g) => ({ g, total: g.items.reduce((a, n) => a + Number(ans[String(n)] || 0), 0) }));
@@ -1118,7 +1130,7 @@ function boot() {
   root.addEventListener("click", onClick);
   root.addEventListener("change", onChange);
   root.addEventListener("input", onInput);
-  root.addEventListener("toggle", (e) => { const d = e.target; if (d && d.dataset && d.dataset.ex) { if (d.open) st.openEx[d.dataset.ex] = true; else delete st.openEx[d.dataset.ex]; } }, true);
+  root.addEventListener("toggle", (e) => { const d = e.target; if (d && d.dataset && d.dataset.mbti) { st.openMbti = d.open; return; } if (d && d.dataset && d.dataset.ex) { if (d.open) st.openEx[d.dataset.ex] = true; else delete st.openEx[d.dataset.ex]; } }, true);
   const dash = $("dashRing");
   if (dash) dash.addEventListener("click", onClick);
   const dt = $("dashTasks");
