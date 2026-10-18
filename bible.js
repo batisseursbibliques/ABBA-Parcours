@@ -436,7 +436,7 @@ function rendreOptions() {
   const el = $("bibOptions");
   if (!el) return;
   el.hidden = !S.options;
-  if (!S.options) return;
+  if (!S.options) { el.innerHTML = ""; return; }
   const dl = S.dl;
   const pct = dl.total ? Math.min(100, Math.round((dl.fait / dl.total) * 100)) : 0;
   const statut = dl.phase === "encours" ? `En cours… ${pct} %`

@@ -782,6 +782,7 @@ details.fm-ex>summary .fm-ex-t{flex:1;}
 .bib-ligne{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px;}
 .bib-ligne select{flex:1 1 90px;}
 .bib-options{display:grid;gap:8px;margin-top:10px;font-size:13px;}
+.bib-options[hidden],.bib-fond[hidden],#bibLire[hidden],#bibChercher[hidden]{display:none;}
 .bib-opt{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;}
 .bib-opt input[type=checkbox]{width:auto;flex:none;}
 .bib-alerte{color:var(--brick);font-size:13px;margin:8px 0 0;}

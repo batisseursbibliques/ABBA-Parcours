@@ -1,7 +1,7 @@
 // Parcours Bâtisseur — service worker
 // Principe : le réseau d'abord (toujours la dernière version quand il y a du réseau),
 // le cache en secours (lecture hors ligne). Plus de version « figée » sur le téléphone.
-const CACHE = "abba-parcours-v17";
+const CACHE = "abba-parcours-v18";
 const ASSETS = [
   "./", "./index.html", "./style.css", "./app.js", "./sync.js", "./formation.js", "./bible.js",
   "./firebase-config.js", "./manifest.json", "./logo.png",
