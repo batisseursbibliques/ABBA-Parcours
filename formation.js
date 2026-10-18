@@ -16,10 +16,10 @@ const MODULES = [
   { id: "m5", titre: "Bâtir le Caractère", ready: true },
   { id: "m6", titre: "Le Saint-Esprit", ready: true },
   { id: "m7", titre: "Victoire par la Prière", ready: true },
-  { id: "m8", titre: "Le Monde Spirituel", preview: true },
-  { id: "m9", titre: "Évangélisation, Guérison, Délivrance", preview: true },
-  { id: "m10", titre: "Les Ministères de Dieu", preview: true },
-  { id: "m11", titre: "Maîtriser sa Santé et son Argent" },
+  { id: "m8", titre: "Le Monde Spirituel", ready: true },
+  { id: "m9", titre: "Évangélisation, Guérison, Délivrance", ready: true },
+  { id: "m10", titre: "Les Ministères de Dieu", ready: true },
+  { id: "m11", titre: "Maîtriser sa Santé et son Argent", preview: true },
   { id: "m12", titre: "Citoyenneté Responsable" },
   { id: "m13", titre: "Les Gestes de Premiers Secours" },
   { id: "m14", titre: "Création de Richesse" },
@@ -126,6 +126,8 @@ function getVal(scope, fid, saved) {
 function fieldDone(f, v, prefix) {
   if (f.type === "lienZones") return zonesEverComplete();
   if (f.type === "suivi") return !!st.suivis[f.permanent ? DECL_KEY : `${prefix}_${f.id}`];
+  if (f.type === "tableau") return f.required ? Object.values(v || {}).filter((x) => String(x == null ? "" : x).trim()).length >= (f.min || 1) : true;
+  if (f.type === "cases") return f.required ? Object.values(v || {}).some(Boolean) : true;
   if (f.type === "check") return f.optional ? true : v === true;
   if (f.type === "oui_non" || f.type === "scores") return v && Object.keys(v).length >= f.items.length;
   if (f.type === "grille") return !!v && Object.values(v).filter(Boolean).length >= f.rows.length * f.cols.length;
@@ -134,7 +136,7 @@ function fieldDone(f, v, prefix) {
   return true;
 }
 function fieldsComplete(fields, values, prefix) {
-  return (fields || []).every((f) => fieldDone(f, values ? values[f.id] : undefined, prefix));
+  return (fields || []).every((f) => (f.si && !(values && values[f.si.champ] === f.si.val)) || fieldDone(f, values ? values[f.id] : undefined, prefix));
 }
 function exoComplete(c, p) {
   return (c.exercices || []).every((ex) => fieldsComplete(ex.champs, (p.exercices || {})[ex.id], c.id + "_" + ex.id));
@@ -193,6 +195,26 @@ function renderField(f, scope, saved, readonly) {
     const fb = f.bonne && v ? (v === f.bonne ? `<p class="fm-fb ok">✓ Bonne réponse. ${esc(f.explication || "")}</p>` : `<p class="fm-fb ko">Réponse attendue : <strong>${esc(f.bonne)}</strong>. ${esc(f.explication || "")}</p>`) : "";
     return `<div class="field"><label><span>${esc(f.label)}</span><select class="text-input" data-f="${key}" data-t="text" ${dis}><option value="">—</option>${(f.options || []).map((o) => `<option ${v === o ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></label>${fb}</div>`;
   }
+  if (f.type === "cases") {
+    const ans = v || {};
+    return `<div class="field"><span>${esc(f.label || "")}</span></div><div class="fm-cases">` + (f.items || []).map((it, i) => `<label class="fm-check"><input type="checkbox" data-f="${key}" data-t="cs" data-i="${i}" ${ans[i] ? "checked" : ""} ${dis}><span>${esc(it)}</span></label>`).join("") + "</div>";
+  }
+  if (f.type === "tableau") {
+    const ans = v || {}, cols = f.cols || [""], c = tbCalc(f, ans);
+    const out = (k, val, suf) => `<span class="fm-tb-out" data-out="${k}">${val == null ? "" : tbF(val) + (suf == null ? " F" : suf)}</span>`;
+    let h = `<div class="field"><span>${esc(f.label || "")}</span></div>${f.aide ? `<p class="small">${esc(f.aide)}</p>` : ""}<div class="fm-tb" data-tb="${key}">`;
+    f.rows.forEach((r, i) => {
+      h += `<div class="fm-tb-row"><p class="fm-tb-l">${esc(r)}</p><div class="fm-tb-cells">` +
+        cols.map((cn, j) => `<label>${cols.length > 1 || cn ? `<small>${esc(cn)}</small>` : ""}<input class="text-input" type="text" ${f.num ? 'inputmode="decimal"' : ""} data-f="${key}" data-t="tb" data-i="${i}_${j}" value="${esc(ans[i + "_" + j] || "")}" ${dis}></label>`).join("") +
+        (f.ecart ? `<div class="fm-tb-c"><small>Écart</small>${out("ec:" + i, c.ec[i])}</div>` : "") +
+        (f.pct ? `<div class="fm-tb-c"><small>Sur 100 000 F</small>${out("pf:" + i, c.pctF[i])}</div>` : "") + "</div></div>";
+    });
+    if (f.num && f.total) h += `<div class="fm-tb-row fm-tb-tot"><p class="fm-tb-l">${esc(f.total)}</p><div class="fm-tb-cells">` + cols.map((cn, j) => `<div class="fm-tb-c"><small>${esc(cn)}</small>${out("tot:" + j, c.tot[j], f.pct ? " %" : " F")}</div>`).join("") + (f.ecart ? `<div class="fm-tb-c"><small>Écart</small>${out("etot", c.etot)}</div>` : "") + "</div></div>";
+    if (f.div) h += `<div class="fm-tb-row fm-tb-tot"><p class="fm-tb-l">${esc(f.div.label)}</p><div class="fm-tb-cells"><div class="fm-tb-c">${out("div", c.div)}</div></div></div>`;
+    if (f.solde) h += `<div class="fm-tb-row fm-tb-tot"><p class="fm-tb-l">${esc(f.solde)}</p><div class="fm-tb-cells"><div class="fm-tb-c">${out("solde", c.solde)}</div></div></div>`;
+    if (f.pct) h += `<div class="fm-tb-row fm-tb-tot"><p class="fm-tb-l">${esc(f.pct)}</p><div class="fm-tb-cells"><div class="fm-tb-c"><small>Ce qui reste (%)</small>${out("ps", c.pctSolde, " %")}</div><div class="fm-tb-c"><small>Sur 100 000 F</small>${out("psf", c.pctSolde * 1000)}</div></div></div>`;
+    return h + "</div>";
+  }
   if (f.type === "scale") {
     return `<div class="field"><span>${esc(f.label)}</span><div class="fm-scale">${[1, 2, 3, 4, 5].map((n) => `<label><input type="radio" name="${key}" data-f="${key}" data-t="num" value="${n}" ${String(v) === String(n) ? "checked" : ""} ${dis}><b>${n}</b></label>`).join("")}</div></div>`;
   }
@@ -234,10 +256,63 @@ function renderField(f, scope, saved, readonly) {
         (f.echelle || [0, 1, 2, 3]).map((n) => `<label><input type="radio" name="${key}-${k}" data-f="${key}" data-t="sc" data-i="${k}" value="${n}" ${String(ans[k]) === String(n) ? "checked" : ""} ${dis}><b>${n}</b></label>`).join("") + `</span></span></div>`;
     });
     h += "</div>";
-    if (done >= f.items.length) h += f.dimensions ? renderMbtiResult(f, ans) : f.ministere ? renderMinistereResult(f, ans) : renderScoresResult(f, ans);
+    if (done >= f.items.length) h += f.dimensions ? renderMbtiResult(f, ans) : f.ministere ? renderMinistereResult(f, ans) : f.resultat === "bilan" ? renderBilanResult(f, ans) : renderScoresResult(f, ans);
     return h;
   }
   return "";
+}
+/* ---------- Tableaux à remplir (montants avec totaux automatiques) ---------- */
+const tbN = (x) => { const n = parseFloat(String(x == null ? "" : x).replace(/[\s\u00a0\u202f]/g, "").replace(",", ".")); return isFinite(n) ? n : 0; };
+const tbF = (n) => (Math.round(n * 100) / 100).toLocaleString("fr-FR").replace(/[\u202f\u00a0]/g, " ");
+function tbCalc(f, ans) {
+  const cols = f.cols || [""];
+  const cell = (i, j) => tbN(ans[i + "_" + j]);
+  const tot = cols.map((_, j) => f.rows.reduce((a, _r, i) => a + cell(i, j), 0));
+  return {
+    tot,
+    ec: f.ecart ? f.rows.map((_, i) => cell(i, 0) - cell(i, 1)) : [],
+    etot: f.ecart ? tot[0] - tot[1] : 0,
+    div: f.div ? tot[0] / f.div.n : 0,
+    solde: f.solde ? cell(0, 0) - f.rows.slice(1).reduce((a, _r, i) => a + cell(i + 1, 0), 0) : 0,
+    pctF: f.pct ? f.rows.map((_, i) => cell(i, 0) * 1000) : [],
+    pctSolde: f.pct ? 100 - tot[0] : 0,
+  };
+}
+function fieldDef(k) {
+  const [scope, ...rest] = k.split(":");
+  const fid = rest.pop(), c = st.content[st.view.mod];
+  if (!c) return null;
+  if (scope === "fiche") return (c.fiche.champs || []).find((x) => x.id === fid) || null;
+  if (scope === "ex") { const ex = (c.exercices || []).find((x) => x.id === rest.join(":")); return ex ? (ex.champs || []).find((x) => x.id === fid) || null : null; }
+  return null;
+}
+function tbRefresh(el) {
+  const k = el.dataset.f, f = fieldDef(k), box = el.closest("[data-tb]");
+  if (!f || f.type !== "tableau" || !f.num || !box) return;
+  const c = tbCalc(f, st.cache[k] || {});
+  box.querySelectorAll("[data-out]").forEach((n) => {
+    const [kind, idx] = n.dataset.out.split(":");
+    const v = kind === "tot" ? c.tot[idx] : kind === "ec" ? c.ec[idx] : kind === "etot" ? c.etot : kind === "div" ? c.div : kind === "solde" ? c.solde : kind === "pf" ? c.pctF[idx] : kind === "ps" ? c.pctSolde : kind === "psf" ? c.pctSolde * 1000 : null;
+    n.textContent = v == null ? "" : tbF(v) + (kind === "ps" || (kind === "tot" && f.pct) ? " %" : " F");
+  });
+}
+function lvlOf(tbl, t) { let out = ""; (tbl || []).forEach(([mn, lb]) => { if (t >= mn) out = lb; }); return out; }
+function renderBilanResult(f, ans) {
+  const mx = Math.max(...(f.echelle || [1, 2, 3]));
+  const rows = (f.groupes || []).map((g) => ({ g, total: g.items.reduce((a, n) => a + Number(ans[String(n)] || 0), 0), max: g.items.length * mx }));
+  let h = '<div class="fm-result"><p class="eyebrow">Tes résultats</p>';
+  rows.forEach((r) => {
+    const lv = lvlOf(f.niveauxGroupe, r.total);
+    h += `<div class="bm-row"><span class="bm-n bm-wide">${esc(r.g.nom)}</span><div class="bm-bar"><i style="width:${Math.round(r.total / r.max * 100)}%"></i></div><b>${r.total}/${r.max}</b></div>${lv ? `<p class="small" style="margin:0 0 8px">${esc(lv)}</p>` : ""}`;
+  });
+  if (f.niveauxTotal) {
+    const tot = rows.reduce((a, r) => a + r.total, 0), mt = rows.reduce((a, r) => a + r.max, 0);
+    h += `<p>Score total : <strong>${tot}/${mt}</strong><br>${esc(lvlOf(f.niveauxTotal, tot))}</p>`;
+  }
+  const pick = rows.reduce((b, r) => ((f.priorite === "haute" ? r.total > b.total : r.total < b.total) ? r : b), rows[0]);
+  if (pick && f.prioriteLabel) h += `<p>${esc(f.prioriteLabel)} : <strong>${esc(pick.g.nom)}</strong> (${pick.total}/${pick.max})</p>`;
+  if (f.note) h += `<p class="small"><em>${esc(f.note)}</em></p>`;
+  return h + "</div>";
 }
 function renderMinistereResult(f, ans) {
   const sum = (items) => items.reduce((a, n) => a + Number(ans[String(n)] || 0), 0);
@@ -427,7 +502,7 @@ function renderExercices(c, p, readonly) {
     const badge = { ok: "✓ Fait", cours: "En cours", afaire: "À faire" }[state];
     const open = !!st.openEx[c.id + ":" + ex.id];
     h += `<details class="fm-ex ${state === "ok" ? "ok" : ""}" id="ex-${ex.id}" data-ex="${c.id}:${ex.id}" ${open ? "open" : ""}><summary><span class="fm-ex-n">${exIdx + 1}</span><span class="fm-ex-t">${esc(ex.titre)}</span><span class="fm-ex-b ${state}">${badge}</span></summary><div class="fm-ex-body"><p class="small">${esc(ex.consigne || "")}</p>${ex.intro_html ? (ex.directIntro ? `<div class="fm-texte">${ex.intro_html}</div>` : `<details class="fm-lecon"><summary>Lire le texte</summary><div class="fm-texte">${ex.intro_html}</div></details>`) : ""}`;
-    (ex.champs || []).forEach((f) => { h += renderField(f, "ex:" + ex.id, saved, readonly); });
+    (ex.champs || []).forEach((f) => { if (f.si && getVal("ex:" + ex.id, f.si.champ, saved) !== f.si.val) return; h += renderField(f, "ex:" + ex.id, saved, readonly); });
     if (!readonly) h += `<button class="btn-secondary" data-act="ex-save" data-e="${ex.id}">Enregistrer</button>`;
     h += "</div></details>";
   });
@@ -470,12 +545,21 @@ function onFieldInput(el) {
     const cur = Object.assign({}, st.cache[k] || currentSaved(k) || {});
     cur[el.dataset.i] = el.value;
     st.cache[k] = cur;
+  } else if (t === "tb") {
+    const cur = Object.assign({}, st.cache[k] || currentSaved(k) || {});
+    cur[el.dataset.i] = el.value;
+    st.cache[k] = cur;
+    tbRefresh(el);
+  } else if (t === "cs") {
+    const cur = Object.assign({}, st.cache[k] || currentSaved(k) || {});
+    cur[el.dataset.i] = el.checked;
+    st.cache[k] = cur;
   } else if (t === "yn" || t === "sc") {
     const cur = Object.assign({}, st.cache[k] || currentSaved(k) || {});
     cur[el.dataset.i] = el.value;
     st.cache[k] = cur;
     if (Object.keys(cur).length >= 1) rerenderKeepScroll();
-  } else { st.cache[k] = el.value; if (t === "text" && el.tagName === "SELECT" && el.closest(".field") && el.dataset.f) { const [sc, ...rest] = k.split(":"); const fid = rest[rest.length - 1]; const mm = st.content[st.view.mod]; const has = mm && (mm.exercices || []).some((ex) => (ex.champs || []).some((fd) => fd.id === fid && fd.bonne)); if (has) rerenderKeepScroll(); } }
+  } else { st.cache[k] = el.value; if (t === "text" && el.tagName === "SELECT" && el.closest(".field") && el.dataset.f) { const [sc, ...rest] = k.split(":"); const fid = rest[rest.length - 1]; const mm = st.content[st.view.mod]; const has = mm && (mm.exercices || []).some((ex) => (ex.champs || []).some((fd) => (fd.id === fid && fd.bonne) || (fd.si && fd.si.champ === fid))); if (has) rerenderKeepScroll(); } }
 }
 function currentSaved(k) {
   const [scope, ...rest] = k.split(":");
@@ -1040,7 +1124,7 @@ function renderCorrRow(r, i) {
     h += `<details class="fm-lecon"><summary>Voir la fiche et les exercices</summary><div class="fm-texte">`;
     (c.exercices || []).forEach((ex) => {
       const v = (r.doc.exercices || {})[ex.id] || {};
-      h += `<p><strong>${esc(ex.titre)}</strong></p>` + (ex.champs || []).map((f) => readValue(f, v[f.id])).join("");
+      h += `<p><strong>${esc(ex.titre)}</strong></p>` + (ex.champs || []).filter((f) => !f.si || v[f.si.champ] === f.si.val).map((f) => readValue(f, v[f.id])).join("");
     });
     Object.values(r.suivis || {}).filter((s) => s.mid === r.mid).forEach((s) => {
       const tot = s.jours * (s.labels || [1]).length, nd = Object.values(s.done || {}).reduce((a, x) => a + x.length, 0);
@@ -1064,11 +1148,20 @@ function readValue(f, v) {
   if (f.type === "scores" && f.dimensions) {
     return Object.keys(v || {}).length >= f.items.length ? `<p class="small"><strong>Test MBTI :</strong> type ${esc(mbtiResult(f, v).type)}</p>` : `<p class="small"><strong>Test MBTI :</strong> incomplet</p>`;
   }
+  if (f.type === "scores" && f.resultat === "bilan") {
+    const mx = Math.max(...(f.echelle || [1, 2, 3])), a = v || {};
+    return `<p class="small"><strong>${esc(f.titreCourt || "Bilan")} :</strong> ` + (f.groupes || []).map((g) => esc(g.nom) + " " + g.items.reduce((s, n) => s + Number(a[String(n)] || 0), 0) + "/" + g.items.length * mx).join(" · ") + "</p>";
+  }
   if (f.type === "scores") {
     const rows = scoreTotals(f, v || {});
     return `<p class="small"><strong>Test :</strong> ${rows.map((r) => `${esc(r.g.nom)} ${r.total}/${r.g.items.length * 3}`).join(" · ")}</p>`;
   }
   if (f.type === "check") return `<p class="small">${v === true ? "☑" : "☐"} ${esc(f.label)}</p>`;
+  if (f.type === "cases") { const on = (f.items || []).filter((_, i) => (v || {})[i]); return `<p class="small"><em>${esc(f.label || "")}</em><br>${on.length ? on.map(esc).join(" · ") : "—"}</p>`; }
+  if (f.type === "tableau") {
+    const cols = f.cols || [""], ans = v || {};
+    return `<p class="small"><em>${esc(f.label || "")}</em><br>` + f.rows.map((r, i) => esc(r) + " : " + cols.map((_, j) => esc(ans[i + "_" + j] || "—")).join(" / ")).join("<br>") + (f.num && f.total ? `<br><strong>${esc(f.total)} : ${cols.map((_, j) => tbF(tbCalc(f, ans).tot[j])).join(" / ")}</strong>` : "") + "</p>";
+  }
   return `<p class="small"><em>${esc(f.label)}</em><br>${esc(v == null || v === "" ? "—" : v)}</p>`;
 }
 async function reviewFromUi(b) {
