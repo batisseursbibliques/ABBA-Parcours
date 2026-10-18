@@ -766,3 +766,8 @@ details.fm-ex>summary .fm-ex-t{flex:1;}
 .fm-fb{font-size:13px;margin:6px 0 0;padding:8px 10px;border-radius:8px;}
 .fm-fb.ok{background:var(--sage-soft);color:var(--sage);}
 .fm-fb.ko{background:#FFF4E5;color:#8A5200;}
+
+.bm-n.bm-wide{width:150px;white-space:normal;font-size:13px;line-height:1.2;}
+.fm-advice{background:var(--card-bg);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;margin:10px 0;}
+.fm-advice ul{margin:4px 0 0;padding-left:18px;font-size:14px;}
+.fm-advice .eyebrow{margin:0;}

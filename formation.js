@@ -225,19 +225,33 @@ function renderField(f, scope, saved, readonly) {
   if (f.type === "scores") {
     const ans = v || {};
     const done = Object.keys(ans).length;
-    let h = `<p class="settings-hint">${done}/${f.items.length} réponses</p><div class="fm-yn">`;
+    let h = `<p class="settings-hint">${done}/${f.items.length} réponses</p>${f.legende ? `<p class="small"><strong>${esc(f.legende)}</strong></p>` : ""}<div class="fm-yn">`;
     f.items.forEach((it, i) => {
       const k = String(i + 1);
       const sec = (f.sections || []).find((s) => s.de === i + 1);
       if (sec) h += `<p class="fm-bloc">${esc(sec.titre)}</p>`;
       h += `<div class="fm-yn-row"><span class="fm-yn-n">${k}</span><span class="fm-yn-q">${esc(it)}<span class="fm-sc">` +
-        [0, 1, 2, 3].map((n) => `<label><input type="radio" name="${key}-${k}" data-f="${key}" data-t="sc" data-i="${k}" value="${n}" ${String(ans[k]) === String(n) ? "checked" : ""} ${dis}><b>${n}</b></label>`).join("") + `</span></span></div>`;
+        (f.echelle || [0, 1, 2, 3]).map((n) => `<label><input type="radio" name="${key}-${k}" data-f="${key}" data-t="sc" data-i="${k}" value="${n}" ${String(ans[k]) === String(n) ? "checked" : ""} ${dis}><b>${n}</b></label>`).join("") + `</span></span></div>`;
     });
     h += "</div>";
-    if (done >= f.items.length) h += f.dimensions ? renderMbtiResult(f, ans) : renderScoresResult(f, ans);
+    if (done >= f.items.length) h += f.dimensions ? renderMbtiResult(f, ans) : f.ministere ? renderMinistereResult(f, ans) : renderScoresResult(f, ans);
     return h;
   }
   return "";
+}
+function renderMinistereResult(f, ans) {
+  const sum = (items) => items.reduce((a, n) => a + Number(ans[String(n)] || 0), 0);
+  const rows = f.groupes.map((g) => ({ g, total: sum(g.items) })).sort((a, b) => b.total - a.total);
+  const seuil = f.seuil || 12, top = rows.filter((r) => r.total >= seuil).slice(0, 3), focus = top.length ? top : rows.slice(0, 2);
+  let h = '<div class="fm-result"><p class="eyebrow">Tes résultats</p>';
+  rows.forEach((r) => { const mx = r.g.items.length * 3; h += `<div class="bm-row"><span class="bm-n bm-wide">${esc(r.g.nom)}</span><div class="bm-bar"><i style="width:${Math.round(r.total / mx * 100)}%"></i></div><b>${r.total}/${mx}</b></div>`; });
+  h += top.length
+    ? `<p>Ce qui ressort le plus dans ta vie (${seuil} et plus) : <strong>${top.map((r) => esc(r.g.nom)).join(", ")}</strong>.</p>`
+    : `<p>Aucun score n'atteint ${seuil} : tes capacités ministérielles sont encore à découvrir et à développer par le service. Voici tes deux scores les plus hauts.</p>`;
+  focus.forEach((r) => {
+    h += `<div class="fm-advice"><p class="eyebrow">${esc(r.g.nom)} — ${r.total}/${r.g.items.length * 3}</p><p class="small">${esc(r.g.ref || "")}</p><p>${esc(r.g.cours || "")}</p><p><strong>Comment la développer</strong></p><ul>${(r.g.steps || []).map((s) => `<li>${esc(s)}</li>`).join("")}</ul></div>`;
+  });
+  return h + `<p class="small"><em>Ces résultats montrent des tendances, pas un appel officiel. Une fonction se confirme dans la pratique et par d'autres qui reconnaissent ce que tu as déjà reçu (Actes 13:1-3). Sers, observe et demande un retour.</em></p></div>`;
 }
 function mbtiResult(f, ans) {
   const sum = (items) => items.reduce((a, n) => a + Number(ans[String(n)] || 0), 0);
