@@ -75,11 +75,11 @@
    "q": "Selon Romains 13, pourquoi le chrétien se soumet-il aux autorités et à la loi ?",
    "c": [
     "Uniquement par crainte de la punition",
-    "Parce que les lois sont toujours parfaites",
     "Par motif de conscience : l’autorité est instituée de Dieu, et on la respecte par conviction, pas seulement par peur",
-    "Parce que le chrétien n’a aucun droit à faire valoir"
+    "Parce que le chrétien n’a aucun droit à faire valoir",
+    "Parce que les lois sont toujours parfaites"
    ],
-   "b": 2,
+   "b": 1,
    "e": "Rom 13:5 : « non seulement par crainte de la punition, mais encore par motif de conscience ». Obéir, ce n’est pas se taire : c’est connaître la loi, la respecter et savoir la faire respecter quand elle nous protège."
   },
   {
@@ -87,8 +87,8 @@
    "c": [
     "Art. 33 : le devoir de payer ses impôts",
     "Art. 18 : nul ne peut être retenu plus de 48 heures sans la décision d’un magistrat",
-    "Art. 37 : la protection des biens publics",
-    "Art. 26 : l’égalité devant la loi, qui autorise toute durée de garde à vue"
+    "Art. 26 : l’égalité devant la loi, qui autorise toute durée de garde à vue",
+    "Art. 37 : la protection des biens publics"
    ],
    "b": 1,
    "e": "Au-delà de 48 heures, il faut la décision d’un magistrat. La prolongation n’est possible que dans les cas exceptionnels prévus par la loi, et jamais au-delà de huit jours. Vous pouvez aussi demander à être examiné par un médecin de votre choix."
@@ -96,112 +96,145 @@
   {
    "q": "Pourquoi dit-on que « la chaire n’est pas un tribunal » ?",
    "c": [
-    "Parce qu’un responsable n’a pas le droit de parler de justice",
-    "Parce qu’accuser publiquement une personne nommée, sans preuve établie, expose à l’article 388 du Code pénal ; il existe des voies prévues : courrier, plainte, avocat",
+    "Parce que la chaire est interdite aux critiques de toute politique publique",
     "Parce que seuls les magistrats ont le droit de prêcher",
-    "Parce que la chaire est interdite aux critiques de toute politique publique"
+    "Parce qu’accuser publiquement une personne nommée, sans preuve établie, expose à l’article 388 du Code pénal ; il existe des voies prévues : courrier, plainte, avocat",
+    "Parce qu’un responsable n’a pas le droit de parler de justice"
    ],
-   "b": 1,
+   "b": 2,
    "e": "On peut critiquer une situation ou une décision. Ce que la loi sanctionne, c’est l’accusation d’une personne, par son nom, d’un acte précis, sans preuve. La chaire sert à enseigner, exhorter et prier, pas à régler des comptes."
   },
   {
    "q": "Parmi ces actions d’un responsable d’assemblée, laquelle reste permise ?",
    "c": [
-    "Dire à l’assemblée de ne pas obéir à telle loi",
     "Appeler à refuser de payer tel impôt",
     "S’opposer aux agents de l’État",
-    "Prier pour les dirigeants et encourager les fidèles à voter, à s’informer et à passer par les voies légales"
+    "Prier pour les dirigeants et encourager les fidèles à voter, à s’informer et à passer par les voies légales",
+    "Dire à l’assemblée de ne pas obéir à telle loi"
    ],
-   "b": 3,
+   "b": 2,
    "e": "La ligne passe entre enseigner et prier (permis) d’un côté, pousser à résister ou dresser des citoyens les uns contre les autres (article 389 : trois mois à deux ans de prison) de l’autre. Les apôtres d’Actes 5 répondent eux-mêmes de leurs actes : ils ne lancent pas la foule."
   },
   {
    "q": "Un ami vous envoie une information fausse sur un homme politique et vous la partagez dans votre groupe WhatsApp. Que dit le module ?",
    "c": [
-    "Vous n’êtes pas concerné : vous n’en êtes pas l’auteur",
     "Vous pouvez être concerné par l’article 550 du Code du numérique, qui vise aussi celui qui relaie ; avant de transférer, il faut vérifier la source",
     "Seul le premier qui a publié est poursuivi",
+    "Vous n’êtes pas concerné : vous n’en êtes pas l’auteur",
     "Un groupe WhatsApp est un espace privé que la loi ne touche jamais"
    ],
-   "b": 1,
+   "b": 0,
    "e": "L’article 550 vise celui qui initie ou relaie une fausse information. Dire « c’est mon ami qui me l’a envoyée » ne protège pas automatiquement : le juge apprécie. La règle : avant de transférer, vérifiez. Si vous ne pouvez pas vérifier, ne partagez pas."
   },
   {
    "q": "Pourquoi un groupe WhatsApp fermé ne vous met-il pas à l’abri ?",
    "c": [
-    "Parce que les messages se capturent, se transfèrent et servent de preuve",
-    "Parce que la loi interdit les groupes WhatsApp",
     "Parce que seuls les groupes de plus de 100 personnes sont protégés",
-    "Parce que WhatsApp transmet automatiquement tous les messages à la police"
+    "Parce que WhatsApp transmet automatiquement tous les messages à la police",
+    "Parce que les messages se capturent, se transfèrent et servent de preuve",
+    "Parce que la loi interdit les groupes WhatsApp"
    ],
-   "b": 0,
+   "b": 2,
    "e": "Même en privé ou dans un groupe fermé, la preuve numérique reste. Ce que vous publiez en ligne est jugé comme ce qu’un journal publie sur papier (article 558)."
   },
   {
    "q": "Selon le décret n° 2022-301, quand les activités bruyantes, y compris dans les lieux de culte, sont-elles interdites dans les zones d’habitation, un jour ouvrable ?",
    "c": [
-    "De 13 h à 15 h et de 22 h à 6 h",
     "Seulement de minuit à 4 h",
-    "De 18 h à 20 h",
-    "Jamais : le décret ne parle que des bars et des fêtes"
+    "De 13 h à 15 h et de 22 h à 6 h",
+    "Jamais : le décret ne parle que des bars et des fêtes",
+    "De 18 h à 20 h"
    ],
-   "b": 0,
+   "b": 1,
    "e": "Les jours de repos, l’interdiction va de 20 h à 10 h. Le texte vise le bruit qui sort de chez vous, pas le fait de se réunir pour prier."
   },
   {
    "q": "Pour un événement exceptionnel (convention, grande veillée), que prévoit le décret sur le bruit ?",
    "c": [
     "Aucune démarche n’est nécessaire pour un lieu de culte",
-    "Une dérogation du maire, sur demande écrite faite avant, limitée à 80 décibels et 48 heures",
     "Une dérogation d’une semaine accordée par un simple appel au voisin",
-    "Une autorisation permanente accordée une fois pour toutes"
+    "Une autorisation permanente accordée une fois pour toutes",
+    "Une dérogation du maire, sur demande écrite faite avant, limitée à 80 décibels et 48 heures"
    ],
-   "b": 1,
+   "b": 3,
    "e": "L’autorisation précise la date, le lieu et la durée. Sans demande préalable, une convention sonorisée reste exposée à une plainte, au constat des agents et à une saisie de matériel."
   },
   {
    "q": "Un agent vous arrête pour une faute au volant et glisse : « On peut s’arranger. » Que fait le citoyen responsable ?",
    "c": [
-    "Il glisse un billet pour gagner du temps",
-    "Il discute pour obtenir un rabais",
     "Il refuse l’« arrangement », demande la contravention officielle, la paie par la voie officielle et garde le reçu",
+    "Il discute pour obtenir un rabais",
+    "Il glisse un billet pour gagner du temps",
     "Il s’enfuit pour éviter le contrôle"
    ],
-   "b": 2,
+   "b": 0,
    "e": "Payer un « arrangement », c’est acheter la désobéissance et dire que la règle est à vendre. L’usager respecte la loi, l’agent respecte l’usager : si vous êtes maltraité, il existe des recours."
   },
   {
    "q": "Un employeur licencie Paul, après six ans de travail, du jour au lendemain, sans lettre, sans préavis ni explication. Que peut faire Paul ?",
    "c": [
-    "Partir en silence : il n’a aucun recours",
-    "Menacer son patron ou se battre avec lui",
     "Publier des accusations sur Facebook",
-    "Aller voir l’inspection du travail, qui essaie d’abord de concilier ; en cas d’échec, il peut saisir le tribunal du travail"
+    "Aller voir l’inspection du travail, qui essaie d’abord de concilier ; en cas d’échec, il peut saisir le tribunal du travail",
+    "Menacer son patron ou se battre avec lui",
+    "Partir en silence : il n’a aucun recours"
    ],
-   "b": 3,
+   "b": 1,
    "e": "Un licenciement doit avoir un motif réel et sérieux et respecter un préavis. En cas de conflit, la première étape n’est ni la menace ni l’insulte : c’est l’inspecteur du travail."
   },
   {
    "q": "Un couple s’est marié uniquement à l’église. Quelle est sa situation devant la loi ?",
    "c": [
+    "Il est marié si la dot a été versée",
     "Il est pleinement marié : l’église a le même effet légal que la mairie",
     "Sans mariage civil devant l’officier d’état civil, il n’est pas marié légalement (art. 126), ce qui pose problème pour l’héritage, la pension de la veuve et les papiers des enfants",
-    "Il est marié si la dot a été versée",
     "Il est marié si deux témoins l’affirment"
    ],
-   "b": 1,
+   "b": 2,
    "e": "Seul le mariage célébré par l’officier d’état civil a des effets légaux. On commence par la mairie, puis on peut bénir son union à l’église : ce n’est pas une trahison de la foi, c’est de la sagesse."
+  },
+  {
+   "q": "Une famille veut marier sa fille de 16 ans à un voisin : « elle est grande maintenant, il faut la donner ». Que dit le module ?",
+   "c": [
+    "À seize ans, avec l'accord des parents, c'est permis",
+    "Seule l'Église décide de l'âge du mariage",
+    "La loi n'interdit rien tant que la fête est faite",
+    "L'âge légal du mariage est de dix-huit ans, pour les filles comme pour les garçons : le parent doit résister à la pression"
+   ],
+   "b": 3,
+   "e": "Une fille de quatorze ou quinze ans qu'on marie est une enfant qu'on retire de l'école, avec de vrais risques pour sa santé."
+  },
+  {
+   "q": "Pourquoi faut-il déclarer son enfant à l'état civil dès la naissance ?",
+   "c": [
+    "Sans acte de naissance, l'enfant n'existe pas légalement : école, examens, carte d'identité, passeport, mariage et héritage deviennent difficiles",
+    "Ce n'est utile qu'à l'âge adulte",
+    "Pour payer moins d'impôts",
+    "Seulement pour lui donner un nom de famille"
+   ],
+   "b": 0,
+   "e": "Passé le délai prévu par la loi, il faut un jugement du tribunal (jugement supplétif), plus long et plus coûteux."
   },
   {
    "q": "Selon le module, quand un enfant placé chez un parent ou une connaissance (le « vidomègon ») devient-il un problème ?",
    "c": [
-    "Dès qu’il vit dans une autre famille que la sienne",
     "Dès qu’il étudie ou apprend un métier",
-    "Quand il devient une main-d’œuvre gratuite : privé de scolarité, frappé, non soigné, traité autrement que les autres enfants",
-    "Quand il reçoit des cadeaux de la famille d’accueil"
+    "Dès qu’il vit dans une autre famille que la sienne",
+    "Quand il reçoit des cadeaux de la famille d’accueil",
+    "Quand il devient une main-d’œuvre gratuite : privé de scolarité, frappé, non soigné, traité autrement que les autres enfants"
    ],
-   "b": 2,
+   "b": 3,
    "e": "Placer un enfant pour qu’il étudie ou apprenne un métier est une pratique ancienne, pas mauvaise en soi. Quand elle devient de l’exploitation, la loi protège l’enfant : tout châtiment corporel ou violence est interdit à son égard (art. 220), et le Code prévoit son suivi et sa scolarisation."
+  },
+  {
+   "q": "Un père veut « corriger » son fils en le frappant avec un fil électrique. Que dit le Code de l'enfant ?",
+   "c": [
+    "La discipline doit se faire avec humanité, sans atteinte à l'intégrité physique ni traitement cruel : corriger, c'est expliquer et fixer des limites",
+    "La loi ne s'occupe pas de ce qui se passe en famille",
+    "Tout est permis quand le père est chrétien",
+    "Les coups sont permis à la maison s'ils ne laissent pas de trace"
+   ],
+   "b": 0,
+   "e": "Article 39 : respect de la dignité de l'enfant. Avoir réussi malgré les coups ne prouve pas que les coups ont aidé."
   }
  ],
  "exercices": [

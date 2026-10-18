@@ -95,76 +95,109 @@
   {
    "q": "Quand tu appelles les secours, quelle information donnes-tu en premier ?",
    "c": [
-    "Ton prénom et ton métier",
+    "Ta localisation exacte : adresse complète, quartier, repère visible",
     "Ton numéro de téléphone",
-    "Le nombre de personnes concernées",
-    "Ta localisation exacte : adresse complète, quartier, repère visible"
+    "Ton prénom et ton métier",
+    "Le nombre de personnes concernées"
+   ],
+   "b": 0,
+   "e": "L’ordre : localisation exacte, ce qui s’est passé, combien de personnes, l’état apparent de la victime, ton numéro de téléphone. Ne raccroche pas avant qu’on te le dise : le régulateur peut te guider en temps réel."
+  },
+  {
+   "q": "Quel numéro appelle-t-on au Bénin pour une urgence médicale vitale (SAMU) ?",
+   "c": [
+    "Le 118",
+    "Le 117",
+    "Le 15",
+    "Le 112, gratuit, 24 h/24, depuis tous les opérateurs"
    ],
    "b": 3,
-   "e": "L’ordre : localisation exacte, ce qui s’est passé, combien de personnes, l’état apparent de la victime, ton numéro de téléphone. Ne raccroche pas avant qu’on te le dise : le régulateur peut te guider en temps réel."
+   "e": "Le 118 est celui des pompiers et le 117 celui de la police. Tous sont gratuits, 24 h/24."
   },
   {
    "q": "Un adulte s’étouffe, ne peut ni parler ni tousser. Où placer le poing pour la manœuvre de Heimlich ?",
    "c": [
-    "Entre le nombril et le bas du sternum, légèrement au-dessus du nombril, avec des compressions vers l’intérieur et vers le haut",
-    "Au milieu de la poitrine, avec des compressions vers le bas",
     "Sur le haut du ventre, à plat, avec des mouvements doux",
-    "Dans le dos, entre les omoplates, avec le talon de la main uniquement"
+    "Dans le dos, entre les omoplates, avec le talon de la main uniquement",
+    "Entre le nombril et le bas du sternum, légèrement au-dessus du nombril, avec des compressions vers l’intérieur et vers le haut",
+    "Au milieu de la poitrine, avec des compressions vers le bas"
    ],
-   "b": 0,
+   "b": 2,
    "e": "Tu te places derrière la victime, tu passes les bras autour de sa taille, tu couvres ton poing de l’autre main et tu donnes des compressions sèches, jusqu’à expulsion ou perte de conscience. Pour un nourrisson de moins d’un an, la technique est différente : tapes dans le dos et compressions thoraciques à deux doigts."
   },
   {
    "q": "Une plaie saigne abondamment et la compresse est déjà traversée par le sang. Que fais-tu ?",
    "c": [
-    "Je retire la compresse et j’en mets une propre",
     "Je lève la compresse pour regarder si le saignement continue",
     "Je pose une autre compresse par-dessus, sans retirer la première, et je maintiens la pression",
+    "Je retire la compresse et j’en mets une propre",
     "Je desserre un peu pour que le sang circule"
    ],
-   "b": 2,
+   "b": 1,
    "e": "Appuyer, maintenir, ne pas lâcher. Si un objet est planté dans le corps, on ne le retire pas : il reste en place jusqu’à l’arrivée des secours."
+  },
+  {
+   "q": "Quand utilise-t-on un garrot improvisé ?",
+   "c": [
+    "En dernier recours, quand la pression directe ne suffit pas et que le saignement est massif : on serre au-dessus de la plaie, on note l'heure et on ne desserre pas",
+    "Seulement après avoir retiré l'objet planté dans la plaie",
+    "Dès qu'une plaie saigne un peu",
+    "Jamais : c'est toujours interdit"
+   ],
+   "b": 0,
+   "e": "La règle de base reste : appuyer, maintenir, ne pas lâcher."
   },
   {
    "q": "Quelqu’un s’est brûlé l’avant-bras avec de l’huile bouillante. Quel est le premier geste ?",
    "c": [
-    "Appliquer du beurre ou de l’huile pour calmer la douleur",
     "Mettre l’avant-bras sous l’eau froide courante, 15 à 20 minutes minimum",
+    "Percer les cloques pour évacuer le liquide",
     "Mettre des glaçons sur la brûlure",
-    "Percer les cloques pour évacuer le liquide"
+    "Appliquer du beurre ou de l’huile pour calmer la douleur"
    ],
-   "b": 1,
+   "b": 0,
    "e": "Eau froide courante, pas glacée. Jamais de beurre, d’huile, de dentifrice, de blanc d’œuf ni de plantes : ils gardent la chaleur et peuvent provoquer des infections graves. Ensuite, un film propre ou un tissu très propre, et un médecin pour toute brûlure plus grande que la paume ou sur le visage, les mains, les pieds ou les organes génitaux."
   },
   {
    "q": "Test VITE : combien de signes faut-il pour appeler le 112 immédiatement ?",
    "c": [
-    "Les trois en même temps",
-    "Au moins deux",
     "Aucun, tant que la personne reste consciente",
-    "Un seul suffit"
+    "Au moins deux",
+    "Un seul suffit",
+    "Les trois en même temps"
    ],
-   "b": 3,
+   "b": 2,
    "e": "V : le visage (un côté affaissé quand elle sourit). I : les bras (l’un retombe quand elle lève les deux). T : les troubles de la parole. E : l’éveil d’urgence, on appelle. On ne donne ni à boire ni à manger, on ne laisse pas la personne conduire, on ne dit pas « attends que ça passe »."
+  },
+  {
+   "q": "Ton oncle laisse tomber sa fourchette, son visage s'affaisse d'un côté et sa parole devient floue. Que fais-tu ?",
+   "c": [
+    "Je lui donne de l'eau sucrée et j'attends que ça passe",
+    "J'appelle le 112 tout de suite, je l'allonge la tête légèrement surélevée et je ne lui donne ni à boire ni à manger",
+    "Je le secoue pour le réveiller",
+    "Je le laisse conduire lui-même jusqu'à l'hôpital"
+   ],
+   "b": 1,
+   "e": "Un seul signe du test VITE suffit. Un AVC ne passe pas tout seul."
   },
   {
    "q": "Un adulte est inconsciente et ne respire pas. Comment fais-tu les compressions de la RCP ?",
    "c": [
+    "Sur le côté gauche de la poitrine, 2 cm de profondeur",
     "Du bout des doigts, doucement, environ 1 par seconde",
-    "Talon d’une main au centre de la poitrine, bras tendus, 5 à 6 cm de profondeur, 100 à 120 par minute",
     "Avec la paume sur le ventre, 5 à 6 cm de profondeur",
-    "Sur le côté gauche de la poitrine, 2 cm de profondeur"
+    "Talon d’une main au centre de la poitrine, bras tendus, 5 à 6 cm de profondeur, 100 à 120 par minute"
    ],
-   "b": 1,
+   "b": 3,
    "e": "Tu allonges la victime sur le dos, sur une surface dure, tu appelles le 112 (ou tu demandes à quelqu’un de le faire) et tu laisses la poitrine se relever entre chaque compression. Tu continues jusqu’à l’arrivée des secours. Une côte cassée se répare, un cerveau privé d’oxygène non."
   },
   {
    "q": "Un enfant fait une crise convulsive. Que ne fais-tu surtout pas ?",
    "c": [
-    "Protéger sa tête avec quelque chose de mou",
+    "L’installer en position latérale de sécurité après la crise",
     "Noter l’heure du début de la crise",
     "Mettre quelque chose dans sa bouche pour qu’il ne se morde pas la langue",
-    "L’installer en position latérale de sécurité après la crise"
+    "Protéger sa tête avec quelque chose de mou"
    ],
    "b": 2,
    "e": "On ne peut pas avaler sa langue. En revanche, on peut casser les dents de la personne ou perdre ses propres doigts. On appelle le 112 si la crise dure plus de cinq minutes, si c’est la première crise ou si la personne ne reprend pas conscience."
@@ -172,45 +205,45 @@
   {
    "q": "Une personne consciente devient tremblante, pâle, confuse et transpire sans raison (hypoglycémie). Que lui donnes-tu ?",
    "c": [
-    "De l’eau plate",
     "Rien du tout, on attend les secours",
+    "Du sucre rapide : jus de fruit sucré, soda, morceaux de sucre ou miel",
     "Du chocolat noir",
-    "Du sucre rapide : jus de fruit sucré, soda, morceaux de sucre ou miel"
+    "De l’eau plate"
    ],
-   "b": 3,
+   "b": 1,
    "e": "Tu attends quinze minutes : sans amélioration, tu appelles le 112. Si la personne est inconsciente, tu ne donnes rien à boire ni à manger, tu la mets en position latérale de sécurité et tu appelles le 112 tout de suite."
   },
   {
    "q": "Un enfant se noie dans une rivière et tu nages mal. Que fais-tu d’abord ?",
    "c": [
-    "J’entre dans l’eau tout de suite : chaque seconde compte",
-    "Je cherche une alternative : corde, bouée, vêtement noué, planche, et j’appelle le 112",
     "Je reste immobile en attendant qu’il remonte",
-    "J’attends de voir s’il sait nager"
+    "J’attends de voir s’il sait nager",
+    "J’entre dans l’eau tout de suite : chaque seconde compte",
+    "Je cherche une alternative : corde, bouée, vêtement noué, planche, et j’appelle le 112"
    ],
-   "b": 1,
+   "b": 3,
    "e": "Un noyé en panique peut noyer son sauveteur. Une fois la victime hors de l’eau, tu vérifies conscience et respiration. Si elle est inconsciente et ne respire pas : RCP (cinq insufflations pour commencer si tu sais le faire, puis trente compressions et deux insufflations) et appel du 112."
   },
   {
    "q": "Pour quelle personne utilise-t-on la position latérale de sécurité (PLS) ?",
    "c": [
-    "Une personne inconsciente qui respire encore",
-    "Une personne en arrêt cardiaque",
+    "Toute personne blessée, par principe",
     "Une personne qui s’étouffe et peut encore tousser",
-    "Toute personne blessée, par principe"
+    "Une personne inconsciente qui respire encore",
+    "Une personne en arrêt cardiaque"
    ],
-   "b": 0,
+   "b": 2,
    "e": "La PLS empêche la personne de s’étouffer avec ses vomissements ou sa salive. Tu continues à vérifier sa respiration régulièrement en attendant les secours. Si elle ne respire pas, ce n’est plus la PLS : c’est la RCP."
   },
   {
    "q": "Quelle règle générale vaut dans presque toutes les urgences ?",
    "c": [
-    "Déplacer rapidement toute victime pour la mettre à l’aise",
+    "Appeler le 112 tôt, être précis sur sa localisation, et ne déplacer la victime que si elle est en danger immédiat",
     "Donner à boire à la victime pour la calmer",
-    "Appeler le 112 à la fin, quand on a tout essayé",
-    "Appeler le 112 tôt, être précis sur sa localisation, et ne déplacer la victime que si elle est en danger immédiat"
+    "Déplacer rapidement toute victime pour la mettre à l’aise",
+    "Appeler le 112 à la fin, quand on a tout essayé"
    ],
-   "b": 3,
+   "b": 0,
    "e": "Le régulateur peut te guider en temps réel. Ne bouge pas une victime sauf danger immédiat (feu, noyade, effondrement imminent). Un geste imparfait vaut presque toujours mieux que l’absence de geste."
   }
  ],
