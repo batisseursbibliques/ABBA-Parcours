@@ -476,10 +476,20 @@ function rendreNav() {
 /* ---------- Références croisées ---------- */
 async function texteDeReference(ref, version = S.version) {
   try {
-    const versets = (await chargerLivre(version, ref.livre))[ref.chapitre - 1] || [];
-    const out = [];
-    for (let v = ref.verset; v <= Math.min(ref.fin, ref.verset + 9); v++) if (versets[v - 1]) out.push(ref.fin > ref.verset ? `${v} ${versets[v - 1]}` : versets[v - 1]);
-    return out.join(" ");
+    const livre = await chargerLivre(version, ref.livre);
+    const dernier = ref.chapFin && ref.chapFin > ref.chapitre ? ref.chapFin : ref.chapitre;
+    const multi = ref.fin > ref.verset || dernier > ref.chapitre;
+    const blocs = [];
+    let total = 0;
+    for (let c = ref.chapitre; c <= dernier; c++) {
+      const vs = livre[c - 1] || [];
+      const debut = c === ref.chapitre ? ref.verset : 1;
+      const fin = c === dernier ? Math.min(ref.fin, vs.length) : vs.length;
+      const lignes = [];
+      for (let v = debut; v <= fin && total < 400; v++) if (vs[v - 1]) { lignes.push(multi ? `${v} ${vs[v - 1]}` : vs[v - 1]); total++; }
+      if (lignes.length) blocs.push(dernier > ref.chapitre ? `${nomLivre(ref.livre)} ${c}\n${lignes.join(" ")}` : lignes.join(" "));
+    }
+    return blocs.join("\n\n");
   } catch { return ""; }
 }
 function ouvrirReferences(verset) {
@@ -701,13 +711,14 @@ function trouverLivre(nom) {
   if (i < 0 && ABREV[q]) i = LIVRES.indexOf(ABREV[q]);
   return i + 1;
 }
-// « 1 Corinthiens 8:4-6 » → { livre, chapitre, verset, fin }
+// « 1 Corinthiens 8:4-6 », « Psaumes 96 », « Matthieu 5–7 » → { livre, chapitre, verset, fin, chapFin }
 function analyserRef(s) {
-  const m = /^(.+?)\s+(\d+)[:.,](\d+)(?:\s*[-–]\s*(\d+))?$/.exec(String(s).trim());
+  const m = /^(.+?)\s+(\d+)(?:[:.,](\d+)(?:\s*[-–]\s*(\d+))?|\s*[-–]\s*(\d+))?$/.exec(String(s).trim());
   if (!m) return null;
   const livre = trouverLivre(m[1]);
   if (!livre) return null;
-  return { livre, chapitre: +m[2], verset: +m[3], fin: m[4] ? +m[4] : +m[3] };
+  if (m[3]) return { livre, chapitre: +m[2], verset: +m[3], fin: m[4] ? +m[4] : +m[3] };
+  return { livre, chapitre: +m[2], verset: 1, fin: Infinity, chapFin: m[5] ? +m[5] : 0 };
 }
 async function ouvrirVersets({ refs, texte = "", titre = "📎 Versets de référence" }) {
   if (!refs?.length) return;
@@ -725,16 +736,24 @@ async function ouvrirVersets({ refs, texte = "", titre = "📎 Versets de réfé
       <div class="bib-feuille-tete"><strong>${esc(titre)}</strong><button class="btn-secondary btn-compact" data-px="fermer">Fermer ✕</button></div>
       ${texte ? `<div class="small bib-citation">${esc(texte)}</div>` : ""}
       ${versions.length > 1 ? `<select data-px="version" aria-label="Version de la Bible">${versions.map((v) => `<option value="${esc(v.id)}"${v.id === version ? " selected" : ""}>${esc(v.nom)}</option>`).join("")}</select>` : ""}
-      ${refs.map((s) => `<div class="bib-ref"><strong>${esc(s)}</strong><div class="bib-ref-texte">${textes[s] === undefined ? "…" : (textes[s] ? esc(textes[s]) : '<span class="small">Texte pas encore disponible : ouvrez la Bible une fois avec du réseau.</span>')}</div></div>`).join("")}</div>`;
+      ${refs.map((s) => `<div class="bib-ref"><div class="bib-ref-tete"><strong>${esc(s)}</strong><button class="btn-secondary btn-compact" data-px="ouvrir" data-s="${esc(s)}">Ouvrir dans la Bible →</button></div><div class="bib-ref-texte">${textes[s] === undefined ? "…" : (textes[s] ? esc(textes[s]) : '<span class="small">Texte pas encore disponible : ouvrez la Bible une fois avec du réseau.</span>')}</div></div>`).join("")}</div>`;
   };
   const charger = () => {
     refs.forEach((s) => {
       const r = analyserRef(s);
       if (!r) { textes[s] = ""; return; }
-      texteDeReference({ ...r, fin: Math.min(r.fin, r.verset + 9) }, version).then((t) => { if (document.body.contains(fond)) { textes[s] = t; dessiner(); } });
+      texteDeReference({ ...r, fin: r.fin === Infinity ? Infinity : Math.min(r.fin, r.verset + 39) }, version).then((t) => { if (document.body.contains(fond)) { textes[s] = t; dessiner(); } });
     });
   };
-  fond.addEventListener("click", (e) => { if (e.target === fond || e.target.closest('[data-px="fermer"]')) fermerPanneau(); });
+  fond.addEventListener("click", (e) => {
+    if (e.target === fond || e.target.closest('[data-px="fermer"]')) { fermerPanneau(); return; }
+    const o = e.target.closest('[data-px="ouvrir"]');
+    if (o) {
+      const r = analyserRef(o.dataset.s);
+      fermerPanneau();
+      if (r) { document.querySelector('.tab[data-tab="bible"]')?.click(); window.AbbaBible.aller(r.livre, r.chapitre, r.verset > 1 ? r.verset : null); }
+    }
+  });
   fond.addEventListener("change", (e) => {
     if (e.target.dataset.px === "version") { version = e.target.value; lsSet("abba_version_versets", version); Object.keys(textes).forEach((k) => delete textes[k]); dessiner(); charger(); }
   });
@@ -745,61 +764,149 @@ async function ouvrirVersets({ refs, texte = "", titre = "📎 Versets de réfé
 window.AbbaVersets = { ouvrir: ouvrirVersets, analyserRef };
 
 /* ---------- Versets cliquables dans les leçons : repérés automatiquement dans le texte ---------- */
-// Pour l'instant : seulement les modules listés ici (le reste s'affiche comme avant).
-const MODULES_VERSETS = new Set(["m1"]);
-const jolie = (livre, chap, v, fin) => `${LIVRES[livre - 1]} ${chap}:${v}${fin && fin !== v ? `–${fin}` : ""}`;
-// « Jean 15:16 ; Gal 5:22-23 » ou « 1 Cor 12:31 ; 14:1 » → [{ texte, ref }] ou null si un morceau n'est pas compris
-function lireGroupe(contenu) {
-  const morceaux = contenu.split(/(\s*[;,]\s*)/);
-  const items = [];
-  let livre = 0, chap = 0, nouveau = true;
-  for (let k = 0; k < morceaux.length; k++) {
-    if (k % 2 === 1) { nouveau = morceaux[k].includes(";"); continue; }
-    const p = morceaux[k].trim();
-    if (!p) return null;
-    let m;
-    if ((m = /^(\d+)[:.](\d+)(?:\s*[-–]\s*(\d+))?$/.exec(p))) { // « 14:1 »
-      if (!livre) return null;
-      chap = +m[1]; items.push({ texte: morceaux[k], ref: jolie(livre, chap, +m[2], m[3] ? +m[3] : 0) });
-    } else if (!nouveau && (m = /^(\d+)(?:\s*[-–]\s*(\d+))?$/.exec(p))) { // « , 18 » : autre verset du même chapitre
-      if (!livre || !chap) return null;
-      items.push({ texte: morceaux[k], ref: jolie(livre, chap, +m[1], m[2] ? +m[2] : 0) });
-    } else if ((m = /^(.+?)\s+(\d+)[:.](\d+)(?:\s*[-–]\s*(\d+))?$/.exec(p))) { // « Jean 3:16 »
-      livre = trouverLivre(m[1]);
-      if (!livre) return null;
-      chap = +m[2]; items.push({ texte: morceaux[k], ref: jolie(livre, chap, +m[3], m[4] ? +m[4] : 0) });
-    } else if ((m = /^(.+?)\s+(\d+)(?:\s*[-–]\s*(\d+))?$/.exec(p)) && [31, 57, 63, 64, 65].includes(trouverLivre(m[1]))) { // « Jude 20-21 »
-      livre = trouverLivre(m[1]); chap = 1;
-      items.push({ texte: morceaux[k], ref: jolie(livre, 1, +m[2], m[3] ? +m[3] : 0) });
-    } else return null;
-    nouveau = false;
+// Lecture de tous les textes : références complètes (« Jean 3:16 »), abrégées (« 1 Cor 13 »), sans nom de livre
+// entre parenthèses (« (5:1) » = le dernier livre cité avant), suites (« ; », « , », « voir aussi »), chapitres entiers.
+const TOUS_LES_MODULES = true;
+const MODULES_VERSETS = new Set(["m1"]); // utilisé seulement si TOUS_LES_MODULES est faux
+const CHAPITRES = [50,40,27,36,34,24,21,4,31,24,22,25,29,36,10,13,10,42,150,31,12,8,66,52,5,48,12,14,3,9,1,4,7,3,3,3,2,14,4,28,16,24,21,28,16,16,13,6,6,4,4,5,3,6,4,3,1,13,5,5,3,5,1,1,1,22];
+const separer = (n) => { const m = /^([123]) (.+)$/.exec(n); return m ? { num: +m[1], base: m[2] } : { num: 0, base: n }; };
+const ALIAS = {};
+LIVRES.forEach((n) => { ALIAS[normNom(separer(n).base)] = separer(n).base; });
+Object.entries({ psaume: "Psaumes", gen: "Genèse", gn: "Genèse", exo: "Exode", ex: "Exode", lev: "Lévitique", lv: "Lévitique", nb: "Nombres", nom: "Nombres", deut: "Deutéronome", dt: "Deutéronome", jos: "Josué", jug: "Juges", jg: "Juges", ru: "Ruth", sam: "Samuel", sa: "Samuel", ro: "Rois", chr: "Chroniques", ch: "Chroniques", esd: "Esdras", neh: "Néhémie", ne: "Néhémie", est: "Esther", ps: "Psaumes", psa: "Psaumes", prov: "Proverbes", pr: "Proverbes", ecc: "Ecclésiaste", ec: "Ecclésiaste", eccl: "Ecclésiaste", cant: "Cantique des Cantiques", ct: "Cantique des Cantiques", es: "Ésaïe", esa: "Ésaïe", jer: "Jérémie", jr: "Jérémie", lam: "Lamentations", lm: "Lamentations", ez: "Ézéchiel", ezech: "Ézéchiel", dan: "Daniel", dn: "Daniel", os: "Osée", jl: "Joël", am: "Amos", abd: "Abdias", jon: "Jonas", mic: "Michée", mi: "Michée", nah: "Nahum", na: "Nahum", hab: "Habacuc", ha: "Habacuc", soph: "Sophonie", so: "Sophonie", agg: "Aggée", ag: "Aggée", zac: "Zacharie", za: "Zacharie", zach: "Zacharie", mal: "Malachie", ml: "Malachie", mat: "Matthieu", mt: "Matthieu", matt: "Matthieu", mar: "Marc", mc: "Marc", lc: "Luc", jn: "Jean", act: "Actes", ac: "Actes", rom: "Romains", rm: "Romains", cor: "Corinthiens", co: "Corinthiens", gal: "Galates", ga: "Galates", eph: "Éphésiens", ep: "Éphésiens", phil: "Philippiens", php: "Philippiens", ph: "Philippiens", phi: "Philippiens", thess: "Thessaloniciens", tess: "Thessaloniciens", tit: "Tite", apo: "Apocalypse", is: "Ésaïe", isa: "Ésaïe", pro: "Proverbes", chron: "Chroniques", hebr: "Hébreux", col: "Colossiens", thes: "Thessaloniciens", th: "Thessaloniciens", tim: "Timothée", tm: "Timothée", tt: "Tite", philem: "Philémon", phm: "Philémon", heb: "Hébreux", he: "Hébreux", jac: "Jacques", jacq: "Jacques", jc: "Jacques", pi: "Pierre", pie: "Pierre", p: "Pierre", apoc: "Apocalypse", ap: "Apocalypse", jud: "Jude" }).forEach(([k, v]) => { ALIAS[k] = v; });
+const ALIAS_FORMES = Object.keys(ALIAS).concat(LIVRES.map((n) => normNom(n))).filter((x, i, a) => a.indexOf(x) === i);
+// forme à reconnaître dans le texte (sans accents, minuscules) ; les espaces des noms composés sont souples
+const motif = (k) => (k === "cantiquedescantiques" ? "cantique\\s+des\\s+cantiques" : k);
+const NOMS_RE = ALIAS_FORMES.slice().sort((a, b) => b.length - a.length).map(motif).join("|");
+const REF_RE = new RegExp(`(?<![a-z0-9])(?:([123])\\s?)?(${NOMS_RE})\\.?[\\s\\u00a0]+(\\d{1,3})(?:[:.](\\d{1,3})(?:\\s*[-–]\\s*(\\d{1,3}))?|,(\\d{1,3})(?:\\s*[-–]\\s*(\\d{1,3}))?|(?:\\s*(?:[-–]|a|au)\\s*(\\d{1,3}))?)(?![0-9])`, "dg");
+const NUM_ORD = { premiere: 1, "1re": 1, "1ere": 1, seconde: 2, deuxieme: 2, "2e": 2, "2eme": 2, troisieme: 3, "3e": 3, "3eme": 3 };
+const MENTION_RE = new RegExp(`(?<![a-z0-9])(?:(premiere|seconde|deuxieme|troisieme|1re|1ere|2e|2eme|3e|3eme)\\s+(?:epitre|lettre)(?:\\s+[^\\s.;()]+){0,5}?\\s+|([123])\\s?)?(${LIVRES.map((n) => normNom(separer(n).base)).filter((x, i, a) => a.indexOf(x) === i).sort((a, b) => b.length - a.length).map(motif).join("|")})(?![a-z0-9-])(?!\\s+(?:le\\s+)?baptiste)`, "dg");
+const majuscule = (c) => !!c && c !== c.toLowerCase() && c === c.toUpperCase();
+function livreDe(num, nomNormalise) {
+  const base = ALIAS[normNom(nomNormalise)];
+  if (!base) return 0;
+  return LIVRES.findIndex((n, i) => separer(n).base === base && separer(n).num === (num || 0)) + 1;
+}
+const canon = (livre, chap, v, fin, chapFin) => {
+  const B = LIVRES[livre - 1];
+  if (!v) return chapFin && chapFin > chap ? `${B} ${chap}–${chapFin}` : `${B} ${chap}`;
+  return `${B} ${chap}:${v}${fin && fin > v ? `–${fin}` : ""}`;
+};
+const dansParentheses = (t, i) => { const a = t.lastIndexOf("(", i); return a >= 0 && t.indexOf(")", a) >= i; };
+
+// Trouve toutes les références d'un texte. ctx.livre = dernier livre cité (partagé d'un morceau de texte à l'autre)
+function reperer(t, ctx) {
+  const carte = Array.from(t).map((c) => plat(c));
+  if (carte.length !== t.length || carte.some((c) => c.length !== 1)) return [];
+  const p = carte.join("");
+  const evenements = [];
+  let m;
+  REF_RE.lastIndex = 0;
+  while ((m = REF_RE.exec(p))) {
+    const [debutNom, finNom] = m.indices[2];
+    const livre = livreDe(m[1] ? +m[1] : 0, p.slice(debutNom, finNom));
+    let chap = +m[3];
+    const aVerset = m[4] !== undefined || m[6] !== undefined;
+    if (!livre) continue;
+    const unSeulChapitre = CHAPITRES[livre - 1] === 1 && !aVerset; // « Jude 20-21 » : ce sont des versets
+    if (!unSeulChapitre && (chap < 1 || chap > CHAPITRES[livre - 1])) continue;
+    if (!aVerset && !unSeulChapitre && /^[\s\u00a0]+(?:fois|homme|hommes|femme|femmes|personne|personnes|an|ans|jour|jours|mois|heure|heures|minute|minutes|euro|euros|fcfa|point|points|verset|versets|chapitre|chapitres|livre|livres)\b/.test(p.slice(m.index + m[0].length))) continue;
+    if (!majuscule(t[debutNom])) continue;
+    if (m[2].length <= 2 && !aVerset && !dansParentheses(p, m.index)) continue;
+    let v = aVerset ? +(m[4] ?? m[6]) : 0;
+    let vfin = aVerset ? +(m[5] ?? m[7] ?? v) : 0;
+    let chapFin = !aVerset && m[8] ? +m[8] : 0;
+    if (unSeulChapitre) { v = chap; vfin = m[8] ? +m[8] : v; chap = 1; chapFin = 0; }
+    evenements.push({ type: "ref", debut: m.index, fin: m.index + m[0].length, livre, chap, v, vfin, chapFin });
   }
-  return items.length ? items : null;
+  MENTION_RE.lastIndex = 0;
+  while ((m = MENTION_RE.exec(p))) {
+    const [debutNom, finNom] = m.indices[3];
+    if (!majuscule(t[debutNom])) continue;
+    const num = m[1] ? NUM_ORD[m[1]] : m[2] ? +m[2] : 0;
+    const livre = livreDe(num, p.slice(debutNom, finNom)) || livreDe(0, p.slice(debutNom, finNom));
+    if (livre && !evenements.some((e) => e.type === "ref" && debutNom >= e.debut && debutNom < e.fin)) evenements.push({ type: "mention", debut: m.index, fin: m.index + m[0].length, livre });
+  }
+  // Références sans nom de livre : « 5:1 », « 14:1 »
+  const BARE = /(\d{1,3})[:.](\d{1,3})(?:\s*[-–]\s*(\d{1,3}))?(?![0-9])/y;
+  for (let k = 0; k < p.length; k++) {
+    if (!/\d/.test(p[k]) || (k > 0 && /[a-z0-9:.,]/.test(p[k - 1]))) continue;
+    if (evenements.some((e) => e.type === "ref" && k >= e.debut && k < e.fin)) continue;
+    BARE.lastIndex = k;
+    const b = BARE.exec(p);
+    if (b) { evenements.push({ type: "bare", debut: k, fin: k + b[0].length, chap: +b[1], v: +b[2], vfin: b[3] ? +b[3] : +b[2] }); k += b[0].length - 1; }
+  }
+  evenements.sort((a, b) => a.debut - b.debut || (a.type === "ref" ? -1 : 1));
+  let refs = [];
+  for (const e of evenements) {
+    if (e.type === "mention") { ctx.livre = e.livre; ctx.chap = 0; continue; }
+    if (e.type === "ref") {
+      ctx.livre = e.livre; ctx.chap = e.chap;
+      refs.push({ debut: e.debut, fin: e.fin, livre: e.livre, chap: e.chap, v: e.v, canon: canon(e.livre, e.chap, e.v, e.vfin, e.chapFin) });
+      continue;
+    }
+    // sans nom de livre : accepté entre parenthèses, ou à la suite d'une autre référence (« ; 14:1 »)
+    if (!ctx.livre || e.chap < 1 || e.chap > CHAPITRES[ctx.livre - 1]) continue;
+    const avant = refs[refs.length - 1];
+    const enSuite = avant && /^(?:\s*[;,]\s*|\s+(?:voir aussi|voir|lire|cf\.?|et|ou)\s+)$/.test(p.slice(avant.fin, e.debut));
+    if (!dansParentheses(p, e.debut) && !enSuite) continue;
+    ctx.chap = e.chap;
+    refs.push({ debut: e.debut, fin: e.fin, livre: ctx.livre, chap: e.chap, v: e.v, canon: canon(ctx.livre, e.chap, e.v, e.vfin, 0) });
+  }
+  // Numéros de versets seuls dans une suite : « Jean 3:16, 18 »
+  const SEUL = /(\d{1,3})(?:\s*[-–]\s*(\d{1,3}))?(?=\s*(?:[;,.)\]]|$|\s(?:et|ou)\s))/y;
+  for (let k = 0; k < refs.length; k++) {
+    const r = refs[k];
+    if (!r.v) continue;
+    const virgule = /^\s*,\s*/.exec(p.slice(r.fin));
+    if (!virgule) continue;
+    const pos = r.fin + virgule[0].length;
+    if (refs.some((x) => x.debut === pos)) continue;
+    SEUL.lastIndex = pos;
+    const s = SEUL.exec(p);
+    if (!s) continue;
+    const v = +s[1], vfin = s[2] ? +s[2] : v;
+    refs.splice(k + 1, 0, { debut: pos, fin: pos + s[0].length, livre: r.livre, chap: r.chap, v, canon: canon(r.livre, r.chap, v, vfin, 0) });
+  }
+  // Suites : références séparées par « ; », « , », « voir aussi »… (une icône 📎 les regroupe)
+  refs.forEach((r, k) => { r.suite = k > 0 && /^(?:\s*[;,]\s*|\s+(?:voir aussi|voir|lire|cf\.?|et|ou)\s+)$/.test(p.slice(refs[k - 1].fin, r.debut)); });
+  return refs;
+}
+function mentions(t, ctx) {
+  const carte = Array.from(t).map((c) => plat(c));
+  if (carte.length !== t.length || carte.some((c) => c.length !== 1)) return;
+  const p = carte.join("");
+  MENTION_RE.lastIndex = 0;
+  let m, dernier = null;
+  while ((m = MENTION_RE.exec(p))) {
+    if (!majuscule(t[m.indices[3][0]])) continue;
+    const num = m[1] ? NUM_ORD[m[1]] : m[2] ? +m[2] : 0;
+    dernier = livreDe(num, p.slice(...m.indices[3])) || livreDe(0, p.slice(...m.indices[3]));
+  }
+  if (dernier) { ctx.livre = dernier; ctx.chap = 0; }
 }
 function lier(html, moduleId, rapport) {
-  if (!MODULES_VERSETS.has(moduleId) && !rapport) return html;
+  if (!TOUS_LES_MODULES && !MODULES_VERSETS.has(moduleId) && !rapport) return html;
   const racine = document.createElement("div");
   racine.innerHTML = html;
   const noeuds = [];
   const w = document.createTreeWalker(racine, NodeFilter.SHOW_TEXT);
   while (w.nextNode()) if (!w.currentNode.parentElement.closest("a,button,.vref")) noeuds.push(w.currentNode);
+  const ctx = { livre: 0, chap: 0 };
   noeuds.forEach((n) => {
     const t = n.nodeValue;
-    if (!/\d[:.]\d/.test(t)) return;
-    let fin = 0, sortie = "", change = false;
-    t.replace(/\(([^()]*\d[:.]\d[^()]*)\)/g, (tout, contenu, pos) => {
-      const items = lireGroupe(contenu);
-      if (!items) { rapport?.echecs.push(contenu); return tout; }
-      rapport && (rapport.groupes += 1, rapport.refs += items.length);
-      sortie += esc(t.slice(fin, pos)) + "(";
-      sortie += items.map((x, i) => `${i ? contenu.split(/(\s*[;,]\s*)/)[2 * i - 1] : ""}<span class="vref" role="button" tabindex="0" data-vr="${esc(x.ref)}">${esc(x.texte)}</span>`).join("");
-      if (items.length > 1) sortie += ` <button type="button" class="vref-all" data-vg="${esc(JSON.stringify(items.map((x) => x.ref)))}" aria-label="Voir tous les versets" title="Voir tous les versets">📎</button>`;
-      sortie += ")";
-      fin = pos + tout.length; change = true;
-      return tout;
+    const refs = /\d/.test(t) ? reperer(t, ctx) : (mentions(t, ctx), []);
+    if (!refs.length) return;
+    let pos = 0, sortie = "", chaine = [];
+    const fermer = () => { if (chaine.length > 1) sortie += ` <button type="button" class="vref-all" data-vg="${esc(JSON.stringify(chaine))}" aria-label="Voir tous les versets" title="Voir tous les versets">📎</button>`; chaine = []; };
+    refs.forEach((r, i) => {
+      if (!r.suite) fermer();
+      sortie += esc(t.slice(pos, r.debut)) + `<span class="vref" role="button" tabindex="0" data-vr="${esc(r.canon)}">${esc(t.slice(r.debut, r.fin))}</span>`;
+      pos = r.fin; chaine.push(r.canon);
+      if (rapport) rapport.refs += 1;
     });
-    if (!change) return;
-    sortie += esc(t.slice(fin));
+    fermer();
+    sortie += esc(t.slice(pos));
+    if (rapport) rapport.groupes += 1;
     const span = document.createElement("span");
     span.innerHTML = sortie;
     n.replaceWith(...span.childNodes);

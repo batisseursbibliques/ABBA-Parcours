@@ -350,7 +350,7 @@ function renderMbtiResult(f, ans) {
   r.rows.forEach((x, i) => { h += `<p><strong>Dimension ${i + 1}</strong> : ${esc(x.d.a.nom)} (${x.d.a.l}) ${x.sa}/15 · ${esc(x.d.b.nom)} (${x.d.b.l}) ${x.sb}/15 → <strong>${x.letter}</strong></p>`; });
   h += `<p>Ton type MBTI : <strong style="font-size:20px;letter-spacing:.15em;">${esc(r.type)}</strong></p><p class="small"><em>Note-le dans ta fiche. C'est un outil pour mieux te connaître, pas un diagnostic : tu n'es jamais réduit(e) à quatre lettres.</em></p>`;
   const prof = st.mbti && st.mbti.profils && st.mbti.profils[r.type];
-  if (prof) h += `<details class="fm-lecon" data-mbti="1" ${st.openMbti ? "open" : ""}><summary>📖 Comprendre mon type : ${esc(r.type)} — ${esc(prof.nom)}</summary><div class="fm-texte">${st.mbti.intro || ""}${prof.html}</div></details>`;
+  if (prof) h += `<details class="fm-lecon" data-mbti="1" ${st.openMbti ? "open" : ""}><summary>📖 Comprendre mon type : ${esc(r.type)} — ${esc(prof.nom)}</summary><div class="fm-texte">${window.AbbaVersets ? window.AbbaVersets.lier((st.mbti.intro || "") + prof.html, "mbti") : (st.mbti.intro || "") + prof.html}</div></details>`;
   else { h += '<p class="small">Chargement de la description de ton type…</p>'; loadMbtiProfils(); }
   return h + "</div>";
 }
