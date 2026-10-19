@@ -619,5 +619,8 @@
 "Jude": "Jude",
 "questions {0}%{1}": "questions {0}%{1}",
 "Aucune voix anglaise détectée sur cet appareil : la lecture peut se faire avec une autre voix. Active la synthèse vocale anglaise dans les réglages de ton téléphone.": "No English voice detected on this device: reading may use another voice. Turn on English speech synthesis in your phone settings.",
-"Prochaine étape : {0}": "Next step: {0}"
+"Prochaine étape : {0}": "Next step: {0}",
+"Vérifie ces numéros : ils peuvent changer.": "Check these numbers: they can change.",
+"Ce chiffre peut changer : vérifie la valeur actuelle avant d'agir.": "This figure can change: check the current value before acting.",
+"Voir la réponse attendue": "See the expected answer"
 }

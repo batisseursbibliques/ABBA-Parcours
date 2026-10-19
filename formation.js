@@ -609,7 +609,26 @@ function scopeValues(scope, saved) {
 }
 
 /* ---------- Actions ---------- */
+const T = (x) => (window.I18N ? window.I18N.t(x) : x);
+function closeBulle() { const o = document.getElementById("fmBulle"); if (o) o.remove(); }
+function showBulle(el) {
+  const had = document.getElementById("fmBulle"), same = had && had._for === el;
+  closeBulle(); if (same) return;
+  const b = document.createElement("div");
+  b.id = "fmBulle"; b.className = "fm-bulle"; b._for = el;
+  b.textContent = T(el.dataset.v === "num" ? "Vérifie ces numéros : ils peuvent changer." : "Ce chiffre peut changer : vérifie la valeur actuelle avant d'agir.");
+  document.body.appendChild(b);
+  const r = el.getBoundingClientRect(), w = Math.min(260, window.innerWidth - 24);
+  b.style.width = w + "px";
+  b.style.left = Math.max(12, Math.min(window.innerWidth - w - 12, r.left + r.width / 2 - w / 2)) + "px";
+  const top = r.top - b.offsetHeight - 8;
+  b.style.top = (top > 8 ? top : r.bottom + 8) + "px";
+}
+document.addEventListener("scroll", closeBulle, true);
 async function onClick(e) {
+  const vf = e.target.closest && e.target.closest(".fm-vf");
+  if (vf) { showBulle(vf); return; }
+  closeBulle();
   const b = e.target.closest("[data-act]");
   if (!b) return;
   const act = b.dataset.act, mid = st.view.mod;
@@ -1248,6 +1267,10 @@ function readValue(f, v) {
   if (f.type === "scores") {
     const rows = scoreTotals(f, v || {});
     return `<p class="small"><strong>Test :</strong> ${rows.map((r) => `${esc(r.g.nom)} ${r.total}/${r.g.items.length * 3}`).join(" · ")}</p>`;
+  }
+  if (f.type === "select" && f.bonne) {
+    const ok = v === f.bonne;
+    return `<p class="small"><em>${esc(f.label)}</em><br>${esc(v == null || v === "" ? "—" : v)} ${v ? (ok ? "✅" : "❌") : ""}</p><details class="fm-att small"><summary>Voir la réponse attendue</summary><p class="small"><strong>${esc(f.bonne)}</strong>${f.explication ? "<br>" + esc(f.explication) : ""}</p></details>`;
   }
   if (f.type === "check") return `<p class="small">${v === true ? "☑" : "☐"} ${esc(f.label)}</p>`;
   if (f.type === "cases") { const on = (f.items || []).filter((_, i) => (v || {})[i]); return `<p class="small"><em>${esc(f.label || "")}</em><br>${on.length ? on.map(esc).join(" · ") : "—"}</p>`; }
