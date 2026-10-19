@@ -1383,7 +1383,7 @@ async function coordAnalyse(uid) {
     S().loadStudentModules(uid), S().loadStudentSuivis(uid),
     new Promise((res) => { const u = S().watchFormationMeta(uid, (m) => { try { u(); } catch (e) {} res(m || {}); }); }),
   ]);
-  const mods = MODULES.filter((m) => m.ready || m.preview);
+  const mods = MODULES.filter((m) => m.ready);
   await Promise.all(mods.map((m) => loadContent(m.id)));
   const acq = meta.acquis || [];
   const keep = st.suivis; st.suivis = suivis;
