@@ -368,11 +368,11 @@ function renderModulesList() {
 
 /* ---------- Éditeur de la liste des modules (coordinateurs uniquement) ---------- */
 function setupModulesEditor() {
-  document.getElementById("addModuleBtn").addEventListener("click", () => {
+  document.getElementById("addModuleBtn")?.addEventListener("click", () => {
     EDIT_MODULES.push({ id: "mod_" + Date.now(), titre: "Nouveau module" });
     renderModulesEditorDom();
   });
-  document.getElementById("saveModulesBtn").addEventListener("click", async () => {
+  document.getElementById("saveModulesBtn")?.addEventListener("click", async () => {
     const clean = EDIT_MODULES.map(m => ({ ...m, titre: m.titre.trim() })).filter(m => m.titre !== "");
     if (clean.length === 0) { alert("Ajoute au moins un module."); return; }
     const btn = document.getElementById("saveModulesBtn");
@@ -388,12 +388,13 @@ function setupModulesEditor() {
   });
 }
 function renderModulesEditor() {
-  if (!IS_ADMIN) return;
+  if (!IS_ADMIN || !document.getElementById("modulesEditor")) return;
   EDIT_MODULES = deepClone(MODULES_CONFIG);
   renderModulesEditorDom();
 }
 function renderModulesEditorDom() {
   const wrap = document.getElementById("modulesEditor");
+  if (!wrap) return;
   wrap.innerHTML = "";
   EDIT_MODULES.forEach((m, i) => {
     const row = document.createElement("div");
@@ -808,11 +809,11 @@ function setupZones() {
     }
   });
 
-  document.getElementById("addZoneBtn").addEventListener("click", () => {
+  document.getElementById("addZoneBtn")?.addEventListener("click", () => {
     EDIT_ZONES.push({ id: "zone_" + Date.now(), titre: "Nouvelle zone" });
     renderZonesEditorDom();
   });
-  document.getElementById("saveZonesConfigBtn").addEventListener("click", async () => {
+  document.getElementById("saveZonesConfigBtn")?.addEventListener("click", async () => {
     const clean = EDIT_ZONES.map(z => ({ ...z, titre: z.titre.trim() })).filter(z => z.titre !== "");
     if (clean.length === 0) { alert("Ajoute au moins une zone."); return; }
     const btn = document.getElementById("saveZonesConfigBtn");
@@ -883,7 +884,7 @@ function renderZonesHistory() {
 
 /* ---------- Éditeur des zones (coordinateurs uniquement) ---------- */
 function renderZonesEditor() {
-  if (!IS_ADMIN) return;
+  if (!IS_ADMIN || !document.getElementById("zonesEditor")) return;
   EDIT_ZONES = deepClone(ZONES_CONFIG);
   renderZonesEditorDom();
 }

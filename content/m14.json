@@ -669,7 +669,7 @@
   {
    "id": "evolution",
    "titre": "Mon plan d’évolution",
-   "consigne": "Ton emploi n’est pas une prison. Si tu n’as pas d’emploi pour l’instant, réponds aux questions qui te concernent.",
+   "consigne": "Choisis ta situation : les questions changent selon que tu as un emploi ou que tu en cherches un. Ton emploi n’est pas une prison, et l’absence d’emploi n’est pas une fin.",
    "champs": [
     {
      "id": "sit",
@@ -685,13 +685,21 @@
      "id": "savoir",
      "type": "textarea",
      "label": "Ce que je sais bien faire (demande à deux collègues ou amis ce qu’ils voient de bon en moi)",
-     "required": true
+     "required": true,
+     "si": {
+      "champ": "sit",
+      "val": "J’ai un emploi (salarié ou fonctionnaire)"
+     }
     },
     {
      "id": "apprendre",
      "type": "textarea",
      "label": "Ce que je dois apprendre cette année",
-     "required": true
+     "required": true,
+     "si": {
+      "champ": "sit",
+      "val": "J’ai un emploi (salarié ou fonctionnaire)"
+     }
     },
     {
      "id": "mentor",
@@ -727,7 +735,11 @@
      "id": "trois_ans",
      "type": "textarea",
      "label": "Où je veux être dans trois ans",
-     "required": true
+     "required": true,
+     "si": {
+      "champ": "sit",
+      "val": "J’ai un emploi (salarié ou fonctionnaire)"
+     }
     },
     {
      "id": "demande",
@@ -742,8 +754,62 @@
     {
      "id": "augmentation",
      "type": "textarea",
-     "label": "Ce que je ferai avec une augmentation ou avec mon premier revenu (la moitié à mettre de côté)",
-     "required": true
+     "label": "Ce que je ferai avec une augmentation (la moitié à mettre de côté)",
+     "required": true,
+     "si": {
+      "champ": "sit",
+      "val": "J’ai un emploi (salarié ou fonctionnaire)"
+     }
+    },
+    {
+     "id": "savoir_n",
+     "type": "textarea",
+     "label": "Ce que je sais bien faire (demande à deux personnes qui me connaissent bien : un ami, un voisin, un frère ou une sœur de l’église)",
+     "required": true,
+     "si": {
+      "champ": "sit",
+      "val": "Je n’ai pas d’emploi en ce moment (étudiant, sans emploi, indépendant)"
+     }
+    },
+    {
+     "id": "apprendre_n",
+     "type": "textarea",
+     "label": "Ce que je dois apprendre ou obtenir (formation, diplôme, stage) pour décrocher un emploi ou lancer une activité",
+     "required": true,
+     "si": {
+      "champ": "sit",
+      "val": "Je n’ai pas d’emploi en ce moment (étudiant, sans emploi, indépendant)"
+     }
+    },
+    {
+     "id": "cible_n",
+     "type": "textarea",
+     "label": "Le type d’emploi ou d’activité que je vise dans un an",
+     "required": true,
+     "si": {
+      "champ": "sit",
+      "val": "Je n’ai pas d’emploi en ce moment (étudiant, sans emploi, indépendant)"
+     }
+    },
+    {
+     "id": "demarches_n",
+     "type": "textarea",
+     "label": "Les trois démarches que je fais cette semaine pour avancer (CV, personnes à contacter, structures à visiter)",
+     "required": true,
+     "si": {
+      "champ": "sit",
+      "val": "Je n’ai pas d’emploi en ce moment (étudiant, sans emploi, indépendant)"
+     }
+    },
+    {
+     "id": "revenu_n",
+     "type": "textarea",
+     "label": "Ce que je ferai de mon premier revenu (la moitié à mettre de côté)",
+     "required": true,
+     "si": {
+      "champ": "sit",
+      "val": "Je n’ai pas d’emploi en ce moment (étudiant, sans emploi, indépendant)"
+     }
     }
    ]
   },
