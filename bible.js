@@ -1,7 +1,7 @@
 /* ============================================================
    BIBLE — onglet « Bible » de Parcours Bâtisseur
    Reprend ce qui existe dans ABBA Gestion : lecture, versions du domaine public
-   (Louis Segond 1910, Perret-Gentil et Rilliet 1847, King James), lecture audio,
+   (Louis Segond 1910, Perret-Gentil et Rilliet 1847, World English Bible, King James), lecture audio,
    recherche, références croisées, reprise de la lecture et lecture hors connexion.
    Les textes sont les fichiers du site : /bible/index.json, /bible/<version>/<NN>.json
    et /bible/xref/<NN>.json (Parcours est servi par le même domaine qu'ABBA Gestion).
