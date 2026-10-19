@@ -45,6 +45,15 @@ function watchAdmins(callback) {
   }, (err) => console.error("watchAdmins:", err));
 }
 
+/* ---------- COORDINATEURS & BLOCAGE DU PARCOURS ---------- */
+async function addAdmin(email, byEmail) {
+  await setDoc(doc(db, "admins", lc(email)), { addedBy: lc(byEmail), addedAt: serverTimestamp() });
+}
+async function removeAdmin(email) { await deleteDoc(doc(db, "admins", lc(email))); }
+async function setBloque(uid, data) {
+  await setDoc(doc(db, "formation", uid), { bloque: data }, { merge: true });
+}
+
 /* ---------- MODULES DU PARCOURS BÂTISSEUR ---------- */
 function watchModulesConfig(callback) {
   return onSnapshot(doc(db, "config", "modules"), (snap) => {
@@ -347,7 +356,7 @@ async function loadStudentSuivis(uid) {
 window.AbbaSync = {
   isAdminEmail,
   logIn, logOut, watchAuth, getUserProfile,
-  watchAdmins,
+  watchAdmins, addAdmin, removeAdmin, setBloque,
   watchModulesConfig, saveModulesConfig,
   watchParcours, saveParcours,
   loadAllSummaries, saveModulesSummary,

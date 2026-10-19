@@ -346,6 +346,15 @@
         <h1>Réglages</h1>
       </div>
 
+      <div class="card admin-only" id="adminsCard" style="display:none;">
+        <p class="eyebrow">Coordinateurs</p>
+        <p class="settings-hint">Un coordinateur voit toute la page Coordination. Les correcteurs n'y ont pas accès.</p>
+        <div id="adminsList"></div>
+        <input type="email" id="newAdminEmail" class="text-input" placeholder="E-mail du nouveau coordinateur" autocomplete="off">
+        <button class="btn-primary" id="addAdminBtn" style="margin-top:8px;">Ajouter comme coordinateur</button>
+        <p class="settings-hint" id="adminsMsg"></p>
+      </div>
+
       <div class="card settings-card">
         <p class="eyebrow">Mon compte</p>
         <p class="settings-hint" id="accountEmailHint"></p>

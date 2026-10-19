@@ -82,6 +82,8 @@ function fmtMonthLabel(mk) {
   return `${MOIS[m-1]} ${y}`;
 }
 let unsubAdmins = null;
+let LAST_ADMIN_EMAILS = [];
+const COORD_OPEN = new Set();
 let unsubModulesConfig = null;
 let unsubParcours = null;
 let unsubBinome = null;
@@ -206,6 +208,8 @@ async function onAuthChanged(user) {
     document.querySelectorAll(".admin-only").forEach(el => { el.style.display = IS_ADMIN ? "" : "none"; });
     renderModulesEditor();
     renderZonesEditor();
+    LAST_ADMIN_EMAILS = emails || [];
+    if (IS_ADMIN) renderAdminsCard();
     if (IS_ADMIN) { renderCoordModules(); loadBinomesManager(); renderSeancesAdmin(); setupEnrollmentsAdmin(); }
   });
 
@@ -413,6 +417,31 @@ function setupCoordModules() {
   const btn = document.getElementById("refreshCoordModules");
   if (btn) btn.addEventListener("click", renderCoordModules);
 }
+function renderAdminsCard() {
+  const list = document.getElementById("adminsList");
+  if (!list) return;
+  const me = (CURRENT_USER && CURRENT_USER.email || "").toLowerCase();
+  const all = Array.from(new Set(LAST_ADMIN_EMAILS.map(e => e.toLowerCase())));
+  list.innerHTML = all.length ? all.map(e => {
+    const principal = window.AbbaSync.isAdminEmail(e);
+    return `<p class="small" style="display:flex;justify-content:space-between;gap:8px;align-items:center;"><span>${escC(e)}${principal ? " (principal)" : ""}${e === me ? " — vous" : ""}</span>${principal || e === me ? "" : `<button class="btn-secondary" data-rmadmin="${escC(e)}">Retirer</button>`}</p>`;
+  }).join("") : `<p class="settings-hint">Aucun coordinateur dans la liste (le coordinateur principal reste actif).</p>`;
+  if (!list.dataset.bound) {
+    list.dataset.bound = "1";
+    list.addEventListener("click", async (ev) => {
+      const b = ev.target.closest("[data-rmadmin]");
+      if (!b || !confirm("Retirer " + b.dataset.rmadmin + " des coordinateurs ?")) return;
+      try { await window.AbbaSync.removeAdmin(b.dataset.rmadmin); } catch (e) { document.getElementById("adminsMsg").textContent = "Impossible de retirer."; }
+    });
+    document.getElementById("addAdminBtn").addEventListener("click", async () => {
+      const inp = document.getElementById("newAdminEmail"), msg = document.getElementById("adminsMsg");
+      const em = inp.value.trim().toLowerCase();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { msg.textContent = "Entre une adresse e-mail valide."; return; }
+      try { await window.AbbaSync.addAdmin(em, CURRENT_USER.email); inp.value = ""; msg.textContent = em + " est maintenant coordinateur."; }
+      catch (e) { msg.textContent = "Impossible d'ajouter : " + (e.code || e.message); }
+    });
+  }
+}
 const escC = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const FICHE_TXT = { draft: "fiche en préparation", submitted: "fiche envoyée, en correction", returned: "fiche à reprendre", validated: "fiche validée" };
 function etapeTexte(a) {
@@ -463,6 +492,8 @@ function detailEleve(r) {
   if (a.decl) h += `<p class="small"><strong>Déclaration</strong> : ${a.decl.ok}/${a.decl.tot} jours sur les 7 derniers${a.decl.streak >= 2 ? ` · 🔥 ${a.decl.streak} jours de suite` : ""}</p>`;
   else h += `<p class="small"><strong>Déclaration</strong> : pas commencée</p>`;
   h += `<p class="small"><strong>Correcteur</strong> : ${escC(r.correcteur || "non attribué")}</p>`;
+  if (a.bloque) h += `<div class="coord-bloc"><p class="small" style="color:#b3261e"><strong>Parcours bloqué</strong>${a.bloque.motif ? " — " + escC(a.bloque.motif) : ""}</p><button class="btn-secondary" data-bloc="off">Débloquer le Parcours</button></div>`;
+  else h += `<div class="coord-bloc"><input type="text" class="text-input" data-bloc-motif placeholder="Motif (ex. absent à la présentielle sans excuse)"><button class="btn-secondary" data-bloc="on">Bloquer l'accès au Parcours</button></div>`;
   return h;
 }
 async function renderCoordModules() {
@@ -497,15 +528,26 @@ async function renderCoordModules() {
       const tr = document.createElement("tr");
       tr.className = "coord-row";
       tr.innerHTML = `
-        <td>${r.alertes.length ? "⚠ " : ""}${escC(r.nom || r.email || "—")}<small>${escC(r.telephone || "")}</small></td>
+        <td>${r.alertes.length ? "⚠ " : ""}${escC(r.nom || r.email || "—")}<small>${escC(r.telephone || "")}</small>${a && a.bloque ? '<small class="warn">🔒 Parcours bloqué</small>' : ""}</td>
         <td>${a ? `<b>${a.valides}/${a.total}</b><small>${escC(etapeTexte(a))}</small>` : "—"}</td>
         <td>${decl}</td>
         <td>${presPct}</td>
         <td class="${d !== null && d >= 7 ? "warn" : ""}">${a ? activiteTexte(a.lastMs) : "—"}</td>`;
       const det = document.createElement("tr");
-      det.className = "coord-detail"; det.style.display = "none";
+      det.className = "coord-detail"; det.style.display = COORD_OPEN.has(r.uid) ? "" : "none";
       det.innerHTML = `<td colspan="5">${detailEleve(r)}</td>`;
-      tr.addEventListener("click", () => { det.style.display = det.style.display === "none" ? "" : "none"; });
+      tr.addEventListener("click", () => { const open = det.style.display === "none"; det.style.display = open ? "" : "none"; if (open) COORD_OPEN.add(r.uid); else COORD_OPEN.delete(r.uid); });
+      det.addEventListener("click", async (ev) => {
+        const b = ev.target.closest("[data-bloc]");
+        if (!b) return;
+        const on = b.dataset.bloc === "on", nom = r.nom || r.email;
+        if (!confirm(on ? "Bloquer l'accès de " + nom + " au Parcours ? Il gardera la Bible et sa déclaration." : "Débloquer " + nom + " ?")) return;
+        const motif = (det.querySelector("[data-bloc-motif]") || {}).value || "";
+        try {
+          await window.AbbaSync.setBloque(r.uid, on ? { actif: true, motif: motif.trim(), par: CURRENT_USER.email, le: new Date().toISOString() } : { actif: false, leveLe: new Date().toISOString(), levePar: CURRENT_USER.email });
+          renderCoordModules();
+        } catch (e) { alert("Impossible de modifier le blocage : " + (e.code || e.message)); }
+      });
       body.appendChild(tr); body.appendChild(det);
     });
     const avec = rows.filter(r => r.alertes.length);

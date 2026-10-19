@@ -864,3 +864,8 @@ button.tts-mini-t{background:none;border:none;color:inherit;font:inherit;font-si
 .coord-row{cursor:pointer;}
 .coord-table td.warn{color:#b3261e;font-weight:600;}
 .coord-detail td{background:var(--paper);padding:8px 10px;}
+
+.fm-blocked{border:2px solid #b3261e;background:#fdecea;color:#7a1a14;}
+.fm-blocked .eyebrow{color:#b3261e;}
+.coord-bloc{margin-top:8px;display:flex;flex-direction:column;gap:6px;}
+.coord-table small.warn{color:#b3261e;font-weight:600;}

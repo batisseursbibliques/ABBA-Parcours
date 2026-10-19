@@ -102,6 +102,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Parcours bloqué par le coordinateur (champ formation/{uid}.bloque.actif) : l'élève ne peut plus écrire dans ses modules
+    function isBlocked(uid) {
+      return exists(/databases/$(database)/documents/formation/$(uid)) &&
+        get(/databases/$(database)/documents/formation/$(uid)).data.get('bloque', {}).get('actif', false) == true;
+    }
+
     match /formation/{uid} {
       // Document de synthèse (modules acquis, posés par le coordinateur)
       allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid) || isCorrecteurOf(uid);
@@ -111,11 +117,11 @@ service cloud.firestore {
         allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid) || isCorrecteurOf(uid);
 
         // L'étudiant écrit ses réponses, jamais la validation
-        allow create: if request.auth != null && request.auth.uid == uid
+        allow create: if request.auth != null && request.auth.uid == uid && !isBlocked(uid)
           && request.resource.data.keys().hasOnly(['qcm','exercices','ficheData','ficheStatus','submittedAt','updatedAt','lu','done','doneAt'])
           && request.resource.data.get('ficheStatus', 'draft') in ['draft', 'submitted'];
 
-        allow update: if (request.auth != null && request.auth.uid == uid
+        allow update: if (request.auth != null && request.auth.uid == uid && !isBlocked(uid)
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qcm','exercices','ficheData','ficheStatus','submittedAt','updatedAt','lu','done','doneAt'])
             && resource.data.get('ficheStatus', 'draft') in ['draft', 'returned']
             && (request.resource.data.get('ficheStatus', 'draft') in ['draft', 'submitted']
@@ -134,9 +140,9 @@ service cloud.firestore {
       // commencer compte ; les cases quotidiennes restent cochables même après l'envoi de la fiche.
       match /suivis/{sid} {
         allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid) || isCorrecteurOf(uid);
-        allow create: if request.auth != null && request.auth.uid == uid
+        allow create: if request.auth != null && request.auth.uid == uid && (sid == 'declaration' || !isBlocked(uid))
           && request.resource.data.keys().hasOnly(['mid','exId','fid','titre','jours','labels','cibles','pas','start','done','notes','updatedAt']);
-        allow update: if (request.auth != null && request.auth.uid == uid
+        allow update: if (request.auth != null && request.auth.uid == uid && (sid == 'declaration' || !isBlocked(uid))
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['done','notes','updatedAt']))
           || isAdmin();
         allow delete: if isAdmin();

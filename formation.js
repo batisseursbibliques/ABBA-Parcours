@@ -91,6 +91,7 @@ async function start(user) {
 /* ---------- Règles de progression ---------- */
 const acquis = () => st.meta.acquis || [];
 const isComplete = (mid) => acquis().includes(mid) || (st.prog[mid] && st.prog[mid].ficheStatus === "validated" && st.prog[mid].qcm && st.prog[mid].qcm.ok);
+const isBlocked = () => !st.isAdmin && !!(st.meta.bloque && st.meta.bloque.actif);
 const autoevalDone = () => !!(st.meta.autoevalFaite || (st.prog.autoeval && st.prog.autoeval.done));
 function isUnlocked(i) {
   if (!autoevalDone()) return false;
@@ -398,7 +399,8 @@ function render() {
   if (!root) return;
   if (!st.user) { root.innerHTML = ""; return; }
   let h = "";
-  if (st.view.mod === "autoeval") h += renderAutoeval();
+  if (isBlocked()) h += renderBlocked();
+  else if (st.view.mod === "autoeval") h += renderAutoeval();
   else if (st.view.mod) h += renderModuleView();
   else h += renderModuleList();
   if (st.isCorrecteur || st.isAdmin) h += renderCorrCard();
@@ -412,6 +414,14 @@ function render() {
   if (st.adm.open && !st.adm.loaded) loadAdmin();
 }
 
+function renderBlocked() {
+  const b = st.meta.bloque || {};
+  return `<div class="card fm-blocked"><p class="eyebrow">⛔ Parcours suspendu</p>
+    <p><strong>Ton accès au Parcours est bloqué pour le moment.</strong></p>
+    ${b.motif ? `<p>Motif : ${esc(b.motif)}</p>` : ""}
+    <p>Pour être débloqué, contacte le coordinateur.</p>
+    <p class="small">Cette suspension n'est pas une punition : elle sert à t'aider à reprendre ta formation sur de bonnes bases. Tu peux continuer à lire la Bible et à faire ta déclaration quotidienne.</p></div>`;
+}
 function renderModuleList() {
   const faits = MODULES.filter((m) => isComplete(m.id)).length;
   let h = st.msg ? `<p class="fm-msg">${esc(st.msg)}</p>` : "";
@@ -979,6 +989,7 @@ function tasksToday() {
   Object.entries(st.suivis).forEach(([key, sv]) => {
     // Ancien suivi « 7 jours » de la déclaration (avant qu'elle devienne permanente) : remplacé par le suivi permanent, on ne le compte plus
     if (key !== DECL_KEY && sv.mid === "m1" && sv.exId === "declaration" && sv.fid === "suivi") return;
+    if (isBlocked() && key !== DECL_KEY) return;
     const pas = sv.pas || 1, idx = dayIndex(sv.start);
     if (idx < 1 || idx > sv.jours * pas + 7) return;
     const per = Math.floor((idx - 1) / pas) + 1;
@@ -1399,7 +1410,7 @@ async function coordAnalyse(uid) {
   });
   return {
     modules: rows, current: cur, valides: rows.filter((r) => r.complete).length, total: rows.length,
-    decl: declStats(suivis[DECL_KEY]), enCours, lastMs: last, refMs: ref,
+    decl: declStats(suivis[DECL_KEY]), enCours, bloque: meta.bloque && meta.bloque.actif ? meta.bloque : null, lastMs: last, refMs: ref,
     autoeval: !!(meta.autoevalFaite || (prog.autoeval && prog.autoeval.done)),
   };
 }
