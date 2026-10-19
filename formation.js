@@ -22,7 +22,8 @@ const MODULES = [
   { id: "m11", titre: "Maîtriser sa Santé et son Argent", ready: true },
   { id: "m12", titre: "Citoyenneté Responsable", ready: true },
   { id: "m13", titre: "Les Gestes de Premiers Secours", ready: true },
-  { id: "m14", titre: "Création de Richesse", preview: true },
+  { id: "m14", num: "14.1", titre: "Création de Richesse 1 : fondations et premier revenu", preview: true },
+  { id: "m14b", num: "14.2", titre: "Création de Richesse 2 : faire grandir et se relever", preview: true },
 ];
 const pad2 = (n) => String(n).padStart(2, "0");
 const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; };
@@ -34,7 +35,8 @@ const DECL_KEY = "declaration";
 // Texte brut → HTML sûr, avec les références bibliques rendues cliquables (exercices uniquement, pas les questions)
 const escV = (t) => (window.AbbaVersets ? window.AbbaVersets.lierTexte(t) : esc(t));
 const htmlV = (h) => (window.AbbaVersets ? window.AbbaVersets.lier(h, "ex") : h);
-const modTitle = (m) => `M${m.id.slice(1)} — ${m.titre}`;
+const modNum = (m) => m.num || m.id.slice(1);
+const modTitle = (m) => `M${modNum(m)} — ${m.titre}`;
 const STEPS = [["lecture", "Lecture"], ["qcm", "Questions"], ["exercices", "Exercices"], ["fiche", "Fiche"]];
 
 const st = {
@@ -1331,7 +1333,7 @@ function renderAdminCard() {
       <label class="field"><span>Correcteur</span><select class="text-input" id="admLien-${s.uid}"><option value="">— aucun —</option>${st.adm.correcteurs.map((c) => `<option value="${esc(c.email)}" ${lien && lien.correcteurEmail === c.email ? "selected" : ""}>${esc(c.nom || c.email)}</option>`).join("")}</select></label>
       <button class="btn-secondary" data-act="adm-setlien" data-u="${s.uid}">Enregistrer le lien</button>
       <label class="fm-check"><input type="checkbox" id="admAuto-${s.uid}" ${((st.adm.metas || {})[s.uid] || {}).autoevalFaite ? "checked" : ""}><span>Auto-évaluation déjà faite (dispensée)</span></label>
-      <div class="fm-acq">${MODULES.map((m) => `<label><input type="checkbox" id="admAcq-${s.uid}-${m.id}" ${acq.includes(m.id) ? "checked" : ""}> M${m.id.slice(1)}</label>`).join("")}</div>
+      <div class="fm-acq">${MODULES.map((m) => `<label><input type="checkbox" id="admAcq-${s.uid}-${m.id}" ${acq.includes(m.id) ? "checked" : ""}> M${modNum(m)}</label>`).join("")}</div>
       <button class="btn-secondary" data-act="adm-setacquis" data-u="${s.uid}">Enregistrer les modules acquis</button></div>`;
   });
   return h + "</div>";
@@ -1426,7 +1428,7 @@ async function coordAnalyse(uid) {
       const exOk = ok ? (c.exercices || []).filter((ex) => exerciseState(c, ex, p) === "ok").length : 0;
       const q = p.qcm || null;
       return {
-        id: m.id, n: Number(m.id.slice(1)), acq: acq.includes(m.id), complete,
+        id: m.id, n: m.num || Number(m.id.slice(1)), acq: acq.includes(m.id), complete,
         lu: (p.lu || []).length, nLecons: ok ? (c.lecons || []).length : 0,
         qcm: q ? { pct: q.pct, ok: !!q.ok, essais: q.essais || 0 } : null,
         exOk, exTot, fiche: p.ficheStatus || "",
