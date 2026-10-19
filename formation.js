@@ -22,7 +22,7 @@ const MODULES = [
   { id: "m11", titre: "Maîtriser sa Santé et son Argent", ready: true },
   { id: "m12", titre: "Citoyenneté Responsable", ready: true },
   { id: "m13", titre: "Les Gestes de Premiers Secours", ready: true },
-  { id: "m14", titre: "Création de Richesse" },
+  { id: "m14", titre: "Création de Richesse", preview: true },
 ];
 const pad2 = (n) => String(n).padStart(2, "0");
 const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; };
@@ -216,6 +216,7 @@ function renderField(f, scope, saved, readonly) {
     if (f.div) h += `<div class="fm-tb-row fm-tb-tot"><p class="fm-tb-l">${esc(f.div.label)}</p><div class="fm-tb-cells"><div class="fm-tb-c">${out("div", c.div)}</div></div></div>`;
     if (f.solde) h += `<div class="fm-tb-row fm-tb-tot"><p class="fm-tb-l">${esc(f.solde)}</p><div class="fm-tb-cells"><div class="fm-tb-c">${out("solde", c.solde)}</div></div></div>`;
     if (f.pct) h += `<div class="fm-tb-row fm-tb-tot"><p class="fm-tb-l">${esc(f.pct)}</p><div class="fm-tb-cells"><div class="fm-tb-c"><small>Ce qui reste (%)</small>${out("ps", c.pctSolde, " %")}</div><div class="fm-tb-c"><small>Sur 100 000 F</small>${out("psf", c.pctSolde * 1000)}</div></div></div>`;
+    if (f.prixCalc) h += `<div class="fm-tb-row fm-tb-tot"><p class="fm-tb-l">A. Coûts variables par unité</p><div class="fm-tb-cells"><div class="fm-tb-c">${out("pa", c.pa)}</div></div></div><div class="fm-tb-row fm-tb-tot"><p class="fm-tb-l">B. Marge par unité (prix de vente − A)</p><div class="fm-tb-cells"><div class="fm-tb-c">${out("pb", c.pb)}</div></div></div><div class="fm-tb-row fm-tb-tot"><p class="fm-tb-l">D. Seuil de rentabilité (coûts fixes ÷ B), en unités par mois</p><div class="fm-tb-cells"><div class="fm-tb-c">${out("pd", c.pd, " unités")}</div></div></div>`;
     return h + "</div>";
   }
   if (f.type === "choix") {
@@ -276,8 +277,9 @@ function tbCalc(f, ans) {
   const cols = f.cols || [""];
   const cell = (i, j) => tbN(ans[i + "_" + j]);
   const tot = cols.map((_, j) => f.rows.reduce((a, _r, i) => a + cell(i, j), 0));
+  const pa = cell(0, 0) + cell(1, 0), pb = cell(2, 0) - pa, pd = pb > 0 ? Math.ceil(cell(3, 0) / pb) : null;
   return {
-    tot,
+    tot, pa, pb, pd,
     ec: f.ecart ? f.rows.map((_, i) => cell(i, 0) - cell(i, 1)) : [],
     etot: f.ecart ? tot[0] - tot[1] : 0,
     div: f.div ? tot[0] / f.div.n : 0,
@@ -300,8 +302,8 @@ function tbRefresh(el) {
   const c = tbCalc(f, st.cache[k] || {});
   box.querySelectorAll("[data-out]").forEach((n) => {
     const [kind, idx] = n.dataset.out.split(":");
-    const v = kind === "tot" ? c.tot[idx] : kind === "ec" ? c.ec[idx] : kind === "etot" ? c.etot : kind === "div" ? c.div : kind === "solde" ? c.solde : kind === "pf" ? c.pctF[idx] : kind === "ps" ? c.pctSolde : kind === "psf" ? c.pctSolde * 1000 : null;
-    n.textContent = v == null ? "" : tbF(v) + (kind === "ps" || (kind === "tot" && f.pct) ? " %" : " F");
+    const v = kind === "tot" ? c.tot[idx] : kind === "ec" ? c.ec[idx] : kind === "etot" ? c.etot : kind === "div" ? c.div : kind === "solde" ? c.solde : kind === "pf" ? c.pctF[idx] : kind === "ps" ? c.pctSolde : kind === "psf" ? c.pctSolde * 1000 : kind === "pa" ? c.pa : kind === "pb" ? c.pb : kind === "pd" ? c.pd : null;
+    n.textContent = v == null ? "" : tbF(v) + (kind === "pd" ? " unités" : kind === "ps" || (kind === "tot" && f.pct) ? " %" : " F");
   });
 }
 function lvlOf(tbl, t) { let out = ""; (tbl || []).forEach(([mn, lb]) => { if (t >= mn) out = lb; }); return out; }
@@ -1229,7 +1231,7 @@ function readValue(f, v) {
   if (f.type === "cases") { const on = (f.items || []).filter((_, i) => (v || {})[i]); return `<p class="small"><em>${esc(f.label || "")}</em><br>${on.length ? on.map(esc).join(" · ") : "—"}</p>`; }
   if (f.type === "tableau") {
     const cols = f.cols || [""], ans = v || {};
-    return `<p class="small"><em>${esc(f.label || "")}</em><br>` + f.rows.map((r, i) => esc(r) + " : " + cols.map((_, j) => esc(ans[i + "_" + j] || "—")).join(" / ")).join("<br>") + (f.num && f.total ? `<br><strong>${esc(f.total)} : ${cols.map((_, j) => tbF(tbCalc(f, ans).tot[j])).join(" / ")}</strong>` : "") + "</p>";
+    return `<p class="small"><em>${esc(f.label || "")}</em><br>` + f.rows.map((r, i) => esc(r) + " : " + cols.map((_, j) => esc(ans[i + "_" + j] || "—")).join(" / ")).join("<br>") + (f.num && f.total ? `<br><strong>${esc(f.total)} : ${cols.map((_, j) => tbF(tbCalc(f, ans).tot[j])).join(" / ")}</strong>` : "") + (f.prixCalc ? `<br><strong>Marge par unité : ${tbF(tbCalc(f, ans).pb)} F · Seuil : ${tbCalc(f, ans).pd == null ? "—" : tbCalc(f, ans).pd + " unités/mois"}</strong>` : "") + "</p>";
   }
   return `<p class="small"><em>${esc(f.label)}</em><br>${esc(v == null || v === "" ? "—" : v)}</p>`;
 }
