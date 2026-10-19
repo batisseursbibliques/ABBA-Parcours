@@ -1233,6 +1233,13 @@ function renderCorrRow(r, i) {
   if (r.doc.qcm) h += `<p class="small">Questions : <strong>${r.doc.qcm.pct} %</strong> (${r.doc.qcm.score}/${r.doc.qcm.total})</p>`;
   if (!c || c.error) h += '<p class="small">Chargement du contenu…</p>';
   else {
+    const qa = (r.doc.qcm || {}).answers;
+    if (qa && (c.qcm || []).length) {
+      h += `<details class="fm-lecon"><summary>Voir les réponses aux questions</summary><div class="fm-texte">` + c.qcm.map((q, k) => {
+        const a = qa[k], ok = a === q.b;
+        return `<p class="small"><em>${k + 1}. ${esc(q.q)}</em><br>${a == null ? "—" : esc(q.c[a])} ${a == null ? "" : ok ? "✅" : "❌"}</p><details class="fm-att small"><summary>Voir la réponse attendue</summary><p class="small"><strong>${esc(q.c[q.b])}</strong>${q.e ? "<br>" + esc(q.e) : ""}</p></details>`;
+      }).join("") + `</div></details>`;
+    }
     h += `<details class="fm-lecon"><summary>Voir la fiche et les exercices</summary><div class="fm-texte">`;
     (c.exercices || []).forEach((ex) => {
       const v = (r.doc.exercices || {})[ex.id] || {};
