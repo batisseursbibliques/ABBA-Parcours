@@ -79,7 +79,7 @@ function currentMonthKey() {
 function fmtMonthLabel(mk) {
   const MOIS = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
   const [y, m] = mk.split("-").map(Number);
-  return `${MOIS[m-1]} ${y}`;
+  return `${window.I18N ? window.I18N.t(MOIS[m-1]) : MOIS[m-1]} ${y}`;
 }
 let unsubAdmins = null;
 let LAST_ADMIN_EMAILS = [];
@@ -1270,7 +1270,7 @@ function renderEnrollmentsAdmin() {
 
   const row = (e, mode) => {
     const nom  = `${e.prenom || ""} ${e.nom || ""}`.trim() || e.email;
-    const date = e.requestedAt?.toDate ? e.requestedAt.toDate().toLocaleDateString("fr-FR") : "—";
+    const date = e.requestedAt?.toDate ? e.requestedAt.toDate().toLocaleDateString(window.I18N && window.I18N.lang === "en" ? "en-US" : "fr-FR") : "—";
     const actions = mode === "pending"
       ? `<div class="enrollment-actions">
            <button class="btn-small btn-approve" onclick="approveEnrollment('${e.uid}')">✓ Approuver</button>

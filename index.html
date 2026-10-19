@@ -9,6 +9,7 @@
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="style.css">
+<script src="i18n.js"></script>
 </head>
 <body>
 
@@ -26,6 +27,7 @@
       <button type="submit" class="btn-primary full">Se connecter</button>
     </form>
 
+<div data-no-i18n style="margin-bottom:12px;"><label class="field"><span>Langue · Language</span><select data-lang-select class="text-input"><option value="fr">Français</option><option value="en">English</option></select></label></div>
     <p class="auth-hint">Utilise le même e-mail et le même mot de passe que sur ABBA Life — c'est le même compte, aucune nouvelle inscription nécessaire.</p>
   </div>
 </div>
@@ -345,6 +347,7 @@
       <div class="panel-head">
         <h1>Réglages</h1>
       </div>
+      <div class="card"><p class="eyebrow">Langue</p><div data-no-i18n style="margin-top:4px;"><label class="field"><span>Langue · Language</span><select data-lang-select class="text-input"><option value="fr">Français</option><option value="en">English</option></select></label></div></div>
 
       <div class="card admin-only" id="adminsCard" style="display:none;">
         <p class="eyebrow">Coordinateurs</p>

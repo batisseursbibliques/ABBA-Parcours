@@ -109,13 +109,22 @@ function afterProgress() {
   S().saveModulesSummary(st.user.uid, { formationValides: done.length }).catch(() => {});
 }
 
+async function fetchContent(name) {
+  if (window.I18N && window.I18N.lang === "en") { const r = await fetch(`content/en/${name}.json`).catch(() => null); if (r && r.ok) return r; }
+  return fetch(`content/${name}.json`);
+}
 async function loadContent(mid) {
   if (st.content[mid]) return st.content[mid];
   const file = mid === "autoeval" ? "autoeval" : "m" + String(mid.slice(1)).padStart(2, "0");
   try {
-    const r = await fetch(`content/${file}.json`);
+    const en = window.I18N && window.I18N.lang === "en";
+    let r = en ? await fetch(`content/en/${file}.json`).catch(() => null) : null;
+    let fallback = false;
+    if (en && (!r || !r.ok)) { r = null; fallback = true; }
+    if (!r) r = await fetch(`content/${file}.json`);
     if (!r.ok) throw new Error("HTTP " + r.status);
     st.content[mid] = await r.json();
+    if (fallback) st.content[mid].__fr = true;
   } catch (e) {
     st.content[mid] = { error: true };
   }
@@ -273,7 +282,7 @@ function renderField(f, scope, saved, readonly) {
 }
 /* ---------- Tableaux à remplir (montants avec totaux automatiques) ---------- */
 const tbN = (x) => { const n = parseFloat(String(x == null ? "" : x).replace(/[\s\u00a0\u202f]/g, "").replace(",", ".")); return isFinite(n) ? n : 0; };
-const tbF = (n) => (Math.round(n * 100) / 100).toLocaleString("fr-FR").replace(/[\u202f\u00a0]/g, " ");
+const tbF = (n) => (Math.round(n * 100) / 100).toLocaleString(window.I18N && window.I18N.lang === "en" ? "en-US" : "fr-FR").replace(/[\u202f\u00a0]/g, " ");
 function tbCalc(f, ans) {
   const cols = f.cols || [""];
   const cell = (i, j) => tbN(ans[i + "_" + j]);
@@ -350,7 +359,7 @@ function mbtiResult(f, ans) {
 async function loadMbtiProfils() {
   if (st.mbti || st.mbtiLoading) return;
   st.mbtiLoading = true;
-  try { const r = await fetch("content/mbti-profils.json"); if (!r.ok) throw new Error(r.status); st.mbti = await r.json(); }
+  try { const r = await fetchContent("mbti-profils"); if (!r.ok) throw new Error(r.status); st.mbti = await r.json(); }
   catch (e) { st.mbti = { intro: "", profils: {} }; }
   st.mbtiLoading = false;
   render();
@@ -455,6 +464,7 @@ function renderModuleView() {
     <h2 class="fm-h">${esc(modTitle(m))}</h2>`;
   if (!c) return h + '<p class="settings-hint">Chargement du module…</p></div>';
   if (c.error) return h + '<p class="auth-error">Impossible de charger ce module. Vérifie ta connexion puis réessaie.</p></div>';
+  if (c.__fr) h += '<p class="fm-return">Ce module n\'est pas encore traduit en anglais : il s\'affiche en français.</p>';
   const p = st.prog[mid] || {};
   const ss = stepStatus(c, p);
   if (st.msg) h += `<p class="fm-msg">${esc(st.msg)}</p>`;
@@ -701,9 +711,10 @@ const TTS = { id: null, state: "stop", chunks: [], i: 0, tok: 0, rate: Number(lo
 const ttsOk = () => "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
 function ttsVoice() {
   const vs = speechSynthesis.getVoices() || [];
-  const fr = vs.filter((v) => (v.lang || "").toLowerCase().startsWith("fr"));
-  if (vs.length && !fr.length) TTS.msg = "Aucune voix française détectée sur cet appareil : la lecture peut se faire avec une autre voix. Active la synthèse vocale française dans les réglages de ton téléphone.";
-  return fr.find((v) => /fr[-_]FR/i.test(v.lang)) || fr[0] || null;
+  const want = window.I18N && window.I18N.lang === "en" ? "en" : "fr";
+  const fr = vs.filter((v) => (v.lang || "").toLowerCase().startsWith(want));
+  if (vs.length && !fr.length) TTS.msg = want === "en" ? "Aucune voix anglaise détectée sur cet appareil : la lecture peut se faire avec une autre voix. Active la synthèse vocale anglaise dans les réglages de ton téléphone." : "Aucune voix française détectée sur cet appareil : la lecture peut se faire avec une autre voix. Active la synthèse vocale française dans les réglages de ton téléphone.";
+  return fr.find((v) => (want === "en" ? /en[-_](US|GB)/i : /fr[-_]FR/i).test(v.lang)) || fr[0] || null;
 }
 function ttsClean(t) {
   return String(t || "").replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]+/g, "").replace(/\(Votre Nom\)/gi, declName()).replace(/\s+/g, " ").trim();
@@ -782,7 +793,7 @@ function ttsSpeakNext() {
   if (TTS.i >= TTS.chunks.length) { TTS.state = "stop"; TTS.id = null; wakeRelease(); updateTtsUi(); return; }
   ttsHighlight(true);
   const tok = TTS.tok, u = new SpeechSynthesisUtterance(TTS.chunks[TTS.i].t);
-  u.lang = "fr-FR"; u.rate = TTS.rate;
+  u.lang = window.I18N ? window.I18N.speechLang() : "fr-FR"; u.rate = TTS.rate;
   const v = ttsVoice(); if (v) u.voice = v;
   u.onend = () => { if (tok === TTS.tok && TTS.state === "play") { TTS.i++; ttsSpeakNext(); } };
   u.onerror = (e) => { if (tok !== TTS.tok || (e && (e.error === "interrupted" || e.error === "canceled"))) return; TTS.i++; ttsSpeakNext(); };
@@ -848,7 +859,7 @@ function ttsEvent(e) {
 /* ---------- Déclaration principale (onglet « Déclaration ») ---------- */
 async function loadDeclContent() {
   if (st.decl) return;
-  try { const r = await fetch("content/declaration.json"); if (!r.ok) throw new Error(r.status); st.decl = await r.json(); }
+  try { const r = await fetchContent("declaration"); if (!r.ok) throw new Error(r.status); st.decl = await r.json(); }
   catch (e) { st.decl = { error: true, paragraphes: [] }; }
   render();
 }
@@ -908,10 +919,10 @@ function renderDecl() {
 /* ---------- Exercices du mois par zone de caractère (onglet Zones de caractère) ---------- */
 const monthKey = () => { const d = new Date(); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`; };
 const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
-const monthLabel = (mk) => { const [y, m] = mk.split("-").map(Number); return `${MOIS[m - 1]} ${y}`; };
+const monthLabel = (mk) => { const [y, m] = mk.split("-").map(Number); return `${window.I18N ? window.I18N.t(MOIS[m - 1]) : MOIS[m - 1]} ${y}`; };
 async function loadZonesContent() {
   if (st.zp.content) return;
-  try { const r = await fetch("content/zones-exercices.json"); if (!r.ok) throw new Error(r.status); st.zp.content = await r.json(); }
+  try { const r = await fetchContent("zones-exercices"); if (!r.ok) throw new Error(r.status); st.zp.content = await r.json(); }
   catch (e) { st.zp.content = { zones: [], error: true }; }
   render();
 }

@@ -869,3 +869,5 @@ button.tts-mini-t{background:none;border:none;color:inherit;font:inherit;font-si
 .fm-blocked .eyebrow{color:#b3261e;}
 .coord-bloc{margin-top:8px;display:flex;flex-direction:column;gap:6px;}
 .coord-table small.warn{color:#b3261e;font-weight:600;}
+
+html.i18n-wait body{visibility:hidden;}
