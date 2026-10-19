@@ -623,5 +623,11 @@
 "Vérifie ces numéros : ils peuvent changer.": "Check these numbers: they can change.",
 "Ce chiffre peut changer : vérifie la valeur actuelle avant d'agir.": "This figure can change: check the current value before acting.",
 "Voir la réponse attendue": "See the expected answer",
-"Voir les réponses aux questions": "See the answers to the questions"
+"Voir les réponses aux questions": "See the answers to the questions",
+"Réduire le texte": "Smaller text",
+"Agrandir le texte": "Larger text",
+"Taille normale": "Normal size",
+"Versets de référence : {0}": "Reference verses: {0}",
+"Voir tous les versets": "See all the verses",
+"Revenir au texte lu": "Back to the text being read"
 }

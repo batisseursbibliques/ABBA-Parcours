@@ -18,6 +18,11 @@ const plat = (s) => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").t
 const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch { return d; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* ignoré */ } };
 
+/* ---------- Langue de l'application (Français / English) : choisie dans les Réglages, lue via I18N ---------- */
+const EN = () => window.I18N?.lang === "en";
+const T = (fr, en) => (EN() ? en : fr);
+const LIVRES_EN = ["Genesis","Exodus","Leviticus","Numbers","Deuteronomy","Joshua","Judges","Ruth","1 Samuel","2 Samuel","1 Kings","2 Kings","1 Chronicles","2 Chronicles","Ezra","Nehemiah","Esther","Job","Psalms","Proverbs","Ecclesiastes","Song of Solomon","Isaiah","Jeremiah","Lamentations","Ezekiel","Daniel","Hosea","Joel","Amos","Obadiah","Jonah","Micah","Nahum","Habakkuk","Zephaniah","Haggai","Zechariah","Malachi","Matthew","Mark","Luke","John","Acts","Romans","1 Corinthians","2 Corinthians","Galatians","Ephesians","Philippians","Colossians","1 Thessalonians","2 Thessalonians","1 Timothy","2 Timothy","Titus","Philemon","Hebrews","James","1 Peter","2 Peter","1 John","2 John","3 John","Jude","Revelation"];
+
 /* ---------- Stockage local (IndexedDB) : mêmes noms et mêmes clés qu'ABBA Gestion, donc les textes téléchargés sont partagés ---------- */
 let ouverture = null;
 function ouvrir() {
@@ -40,7 +45,7 @@ const lireLocal = (cle) => requete("readonly", (s) => s.get(cle)).catch(() => un
 const ecrireLocal = (cle, val) => requete("readwrite", (s) => s.put(val, cle)).then(() => true).catch(() => false);
 
 /* ---------- Chargement des textes ---------- */
-const MSG_PAS_TELECHARGE = "Ce livre n'est pas encore sur le téléphone : ouvrez la Bible une fois avec du réseau (le téléchargement se fait seul).";
+const msgPasTelecharge = () => T("Ce livre n'est pas encore sur le téléphone : ouvrez la Bible une fois avec du réseau (le téléchargement se fait seul).", "This book is not on your phone yet: open the Bible once with a network connection (it downloads by itself).");
 let indexCache = null;
 const livresCache = {};
 const xrefCache = {};
@@ -62,8 +67,8 @@ async function chargerLivre(version, numero) {
   const local = await lireLocal(`s:${cle}`);
   if (local) { livresCache[cle] = local; return local; }
   let r;
-  try { r = await fetch(`${BASE}/${version}/${nn(numero)}.json`); } catch { throw new Error(MSG_PAS_TELECHARGE); }
-  if (!r.ok) throw new Error(navigator.onLine === false ? MSG_PAS_TELECHARGE : "Livre indisponible");
+  try { r = await fetch(`${BASE}/${version}/${nn(numero)}.json`); } catch { throw new Error(msgPasTelecharge()); }
+  if (!r.ok) throw new Error(navigator.onLine === false ? msgPasTelecharge() : T("Livre indisponible", "Book unavailable"));
   livresCache[cle] = await r.json();
   ecrireLocal(`s:${cle}`, livresCache[cle]);
   return livresCache[cle];
@@ -73,7 +78,7 @@ async function chargerXref(numero) {
   const local = await lireLocal(`x2:${numero}`);
   if (local) { xrefCache[numero] = local; return local; }
   const r = await fetch(`${BASE}/xref/${nn(numero)}.json`);
-  if (!r.ok) throw new Error("Références indisponibles");
+  if (!r.ok) throw new Error(T("Références indisponibles", "Cross-references unavailable"));
   xrefCache[numero] = await r.json();
   ecrireLocal(`x2:${numero}`, xrefCache[numero]);
   return xrefCache[numero];
@@ -148,10 +153,11 @@ const infoV = () => (S.index?.versions || []).find((v) => v.id === S.version) ||
 const langueV = () => infoV()?.langue || "fr";
 const audioOk = () => synthOk() && (langueV() === "fr" || langueV() === "en");
 const nbChapitres = (l) => S.index?.chapitres?.[l - 1] || 1;
-const nomLivre = (l) => LIVRES[l - 1] || "";
+const nomLivre = (l) => (EN() ? LIVRES_EN : LIVRES)[l - 1] || "";
 
 /* ---------- Reprise de la lecture : on retient où l'on en était ---------- */
 function sauverPosition() {
+  lsSet(EN() ? "abba_bible_ver_en" : "abba_bible_ver_fr", S.version);
   lsSet("abba_bible_pos", JSON.stringify({ version: S.version, l: S.livre, c: S.chap, v: S.verset || null }));
 }
 function lirePosition() {
@@ -169,7 +175,7 @@ async function chargerChapitre() {
   } catch (e) {
     if (moi !== chargementJeton) return;
     S.versets = [];
-    S.erreur = e?.message || "Ce texte n'est pas disponible pour le moment.";
+    S.erreur = e?.message || T("Ce texte n'est pas disponible pour le moment.", "This text is not available right now.");
   }
   rendreTexte();
   rendreNav();
@@ -259,7 +265,7 @@ async function lire(depuis) {
   const voixDispo = await attendreVoix();
   if (moi !== S.jeton) return;
   const voix = voixDispo.find((v) => (v.lang || "").toLowerCase().replace("_", "-").startsWith(langue));
-  S.alerte = voixDispo.length > 0 && !voix ? `Aucune voix ${langue === "fr" ? "française" : "anglaise"} n'est installée sur cet appareil : la lecture peut être impossible ou dans une autre langue.` : "";
+  S.alerte = voixDispo.length > 0 && !voix ? T(`Aucune voix ${langue === "fr" ? "française" : "anglaise"} n'est installée sur cet appareil : la lecture peut être impossible ou dans une autre langue.`, `No ${langue === "fr" ? "French" : "English"} voice is installed on this device: playback may be impossible or in another language.`) : "";
   rendreBarre();
   const finDuChapitre = () => {
     if (moi !== S.jeton) return;
@@ -293,11 +299,11 @@ async function lire(depuis) {
 /* ---------- Lecteur flottant (même apparence que celui des leçons), visible sur tous les onglets ---------- */
 const titreMini = () => `📖 ${nomLivre(S.livre)} ${S.chap}${S.courant || S.verset ? ` · v. ${S.courant || S.verset}` : ""}`;
 function miniHtml() {
-  return `<button type="button" class="tts-mini-t" data-bm="aller" title="Revenir au texte lu">${esc(titreMini())} ↗</button>
-    <button class="tts-btn" data-bm="${S.ecoute ? "pause" : "reprendre"}" aria-label="${S.ecoute ? "Pause" : "Reprendre"}">${S.ecoute ? "⏸" : "▶"}</button>
-    <button class="tts-btn" data-bm="stop" aria-label="Arrêter">⏹</button>
-    <select class="tts-rate" data-bm="vitesse" aria-label="Vitesse">${[[0.8, "Lent"], [1, "Normal"], [1.25, "Rapide"]].map(([v, l]) => `<option value="${v}"${S.vitesse === v ? " selected" : ""}>${l}</option>`).join("")}</select>
-    ${"wakeLock" in navigator ? `<button class="tts-btn ${S.ecranAllume ? "on" : ""}" data-bm="ecran" aria-label="Garder l'écran allumé" title="Garder l'écran allumé">☀</button>` : ""}
+  return `<button type="button" class="tts-mini-t" data-bm="aller" title="${T("Revenir au texte lu", "Back to the text being read")}">${esc(titreMini())} ↗</button>
+    <button class="tts-btn" data-bm="${S.ecoute ? "pause" : "reprendre"}" aria-label="${S.ecoute ? T("Pause", "Pause") : T("Reprendre", "Resume")}">${S.ecoute ? "⏸" : "▶"}</button>
+    <button class="tts-btn" data-bm="stop" aria-label="${T("Arrêter", "Stop")}">⏹</button>
+    <select class="tts-rate" data-bm="vitesse" aria-label="${T("Vitesse", "Speed")}">${[[0.8, T("Lent", "Slow")], [1, T("Normal", "Normal")], [1.25, T("Rapide", "Fast")]].map(([v, l]) => `<option value="${v}"${S.vitesse === v ? " selected" : ""}>${l}</option>`).join("")}</select>
+    ${"wakeLock" in navigator ? `<button class="tts-btn ${S.ecranAllume ? "on" : ""}" data-bm="ecran" aria-label="${T("Garder l'écran allumé", "Keep the screen on")}" title="${T("Garder l'écran allumé", "Keep the screen on")}">☀</button>` : ""}
     ${S.alerte ? `<span class="tts-mini-m">${esc(S.alerte)}</span>` : ""}`;
 }
 function miniEvent(e) {
@@ -390,8 +396,8 @@ function racine() { return $("bibleRoot"); }
 function squelette() {
   racine().innerHTML = `
     <div class="bib-onglets">
-      <button class="bib-onglet" data-bib="vue-lire">📖 Lire</button>
-      <button class="bib-onglet" data-bib="vue-chercher">🔍 Rechercher</button>
+      <button class="bib-onglet" data-bib="vue-lire">📖 ${T("Lire", "Read")}</button>
+      <button class="bib-onglet" data-bib="vue-chercher">🔍 ${T("Rechercher", "Search")}</button>
     </div>
     <div id="bibLire">
       <div id="bibBarre" class="bib-barre"></div>
@@ -418,25 +424,25 @@ function rendreBarre() {
   const audio = audioOk();
   const versetsOpts = S.versets.map((t, i) => (t ? [i + 1, `v. ${i + 1}`] : null)).filter(Boolean);
   const bouton = !audio ? "" : (!S.ecoute
-    ? `<button class="btn-primary btn-compact" data-bib="ecouter">▶ ${S.verset && S.verset > 1 ? `Reprendre v. ${S.verset}` : "Écouter"}</button>`
-    : `<button class="btn-danger btn-compact" data-bib="pause">⏸ Pause</button>`);
+    ? `<button class="btn-primary btn-compact" data-bib="ecouter">▶ ${S.verset && S.verset > 1 ? T(`Reprendre v. ${S.verset}`, `Resume v. ${S.verset}`) : T("Écouter", "Listen")}</button>`
+    : `<button class="btn-danger btn-compact" data-bib="pause">⏸ ${T("Pause", "Pause")}</button>`);
   el.innerHTML = `
     <div class="bib-grille2">
-      <select data-bib="version" aria-label="Version">${optionsSelect(S.index.versions.map((x) => [x.id, x.nom]), v?.id)}</select>
-      <select data-bib="livre" aria-label="Livre">${optionsSelect(LIVRES.map((n, i) => [i + 1, n]), S.livre)}</select>
+      <select data-bib="version" aria-label="${T("Version", "Version")}">${optionsSelect(S.index.versions.map((x) => [x.id, x.nom]), v?.id)}</select>
+      <select data-bib="livre" aria-label="${T("Livre", "Book")}">${optionsSelect((EN() ? LIVRES_EN : LIVRES).map((n, i) => [i + 1, n]), S.livre)}</select>
     </div>
     <div class="bib-ligne">
-      <select data-bib="chap" aria-label="Chapitre">${optionsSelect(Array.from({ length: nb }, (_, i) => [i + 1, `Chap. ${i + 1}`]), S.chap)}</select>
-      <select data-bib="verset" aria-label="Verset"><option value="">Verset…</option>${optionsSelect(versetsOpts, S.courant ?? S.verset ?? "")}</select>
+      <select data-bib="chap" aria-label="${T("Chapitre", "Chapter")}">${optionsSelect(Array.from({ length: nb }, (_, i) => [i + 1, `${T("Chap.", "Ch.")} ${i + 1}`]), S.chap)}</select>
+      <select data-bib="verset" aria-label="${T("Verset", "Verse")}"><option value="">${T("Verset…", "Verse…")}</option>${optionsSelect(versetsOpts, S.courant ?? S.verset ?? "")}</select>
       ${bouton}
-      <button class="btn-secondary btn-compact" data-bib="options" aria-label="Options">⚙️</button>
+      <button class="btn-secondary btn-compact" data-bib="options" aria-label="${T("Options", "Options")}">⚙️</button>
     </div>
     <div id="bibOptions" class="bib-options" ${S.options ? "" : "hidden"}></div>
     ${S.alerte ? `<p class="small bib-alerte">${esc(S.alerte)}</p>` : ""}
-    ${!audio ? `<p class="small">${synthOk() ? "La lecture audio n'est pas disponible pour cette langue." : "La lecture audio n'est pas disponible sur ce navigateur."}</p>` : ""}`;
+    ${!audio ? `<p class="small">${synthOk() ? T("La lecture audio n'est pas disponible pour cette langue.", "Audio reading is not available for this language.") : T("La lecture audio n'est pas disponible sur ce navigateur.", "Audio reading is not available on this browser.")}</p>` : ""}`;
   rendreOptions();
   const c = $("bibCredit");
-  if (c && v) c.textContent = `${v.nom} — ${v.licence}. Références croisées : OpenBible.info (CC-BY).`;
+  if (c && v) c.textContent = `${v.nom} — ${EN() && /domaine public/i.test(v.licence) ? "Public domain" : v.licence}. ${T("Références croisées", "Cross-references")} : OpenBible.info (CC-BY).`;
 }
 function rendreOptions() {
   const el = $("bibOptions");
@@ -445,16 +451,16 @@ function rendreOptions() {
   if (!S.options) { el.innerHTML = ""; return; }
   const dl = S.dl;
   const pct = dl.total ? Math.min(100, Math.round((dl.fait / dl.total) * 100)) : 0;
-  const statut = dl.phase === "encours" ? `En cours… ${pct} %`
-    : dl.phase === "pret" ? "✓ Toutes les Bibles sont sur ce téléphone"
-    : dl.phase === "partiel" ? "Téléchargement incomplet : réessayez avec du réseau" : "";
+  const statut = dl.phase === "encours" ? T(`En cours… ${pct} %`, `In progress… ${pct} %`)
+    : dl.phase === "pret" ? T("✓ Toutes les Bibles sont sur ce téléphone", "✓ All Bibles are on this phone")
+    : dl.phase === "partiel" ? T("Téléchargement incomplet : réessayez avec du réseau", "Download incomplete: try again with a network connection") : "";
   el.innerHTML = `
-    <label class="bib-opt">Vitesse
-      <select data-bib="vitesse">${optionsSelect([[0.8, "Lente"], [1, "Normale"], [1.25, "Rapide"]], S.vitesse)}</select>
+    <label class="bib-opt">${T("Vitesse", "Speed")}
+      <select data-bib="vitesse">${optionsSelect([[0.8, T("Lente", "Slow")], [1, T("Normale", "Normal")], [1.25, T("Rapide", "Fast")]], S.vitesse)}</select>
     </label>
-    <label class="bib-opt"><input type="checkbox" data-bib="enchainer" ${S.enchainer ? "checked" : ""}> <span>Enchaîner les chapitres automatiquement</span></label>
-    ${"wakeLock" in navigator ? `<label class="bib-opt"><input type="checkbox" data-bib="ecran" ${S.ecranAllume ? "checked" : ""}> <span>Garder l'écran allumé pendant l'écoute</span></label>` : ""}
-    <div class="bib-opt"><button class="btn-secondary btn-compact" data-bib="telecharger" ${dl.phase === "encours" ? "disabled" : ""}>⬇️ Télécharger les Bibles (lecture sans réseau, environ 16 Mo)</button> <span class="small">${esc(statut)}</span></div>`;
+    <label class="bib-opt"><input type="checkbox" data-bib="enchainer" ${S.enchainer ? "checked" : ""}> <span>${T("Enchaîner les chapitres automatiquement", "Continue to the next chapter automatically")}</span></label>
+    ${"wakeLock" in navigator ? `<label class="bib-opt"><input type="checkbox" data-bib="ecran" ${S.ecranAllume ? "checked" : ""}> <span>${T("Garder l'écran allumé pendant l'écoute", "Keep the screen on while listening")}</span></label>` : ""}
+    <div class="bib-opt"><button class="btn-secondary btn-compact" data-bib="telecharger" ${dl.phase === "encours" ? "disabled" : ""}>⬇️ ${T("Télécharger les Bibles (lecture sans réseau, environ 16 Mo)", "Download the Bibles (read offline, about 16 MB)")}</button> <span class="small">${esc(statut)}</span></div>`;
 }
 function rendreTexte() {
   const el = $("bibTexte");
@@ -462,7 +468,7 @@ function rendreTexte() {
   if (S.erreur) { el.innerHTML = `<p class="bib-alerte">${esc(S.erreur)}</p>`; return; }
   const cx = S.xref?.[S.chap] || {};
   el.innerHTML = `<h3>${esc(nomLivre(S.livre))} ${S.chap}</h3>` + (S.versets.length ? S.versets.map((t, i) => (!t ? "" : `
-    <p class="bib-verset" id="bv${i + 1}" data-v="${i + 1}"><sup>${i + 1}</sup>${esc(t)}${cx[i + 1]?.length ? ` <button type="button" class="bib-xref" data-x="${i + 1}" aria-label="Références croisées">🔗 ${cx[i + 1].length}</button>` : ""}</p>`)).join("") : `<p class="small">Chargement…</p>`);
+    <p class="bib-verset" id="bv${i + 1}" data-v="${i + 1}"><sup>${i + 1}</sup>${esc(t)}${cx[i + 1]?.length ? ` <button type="button" class="bib-xref" data-x="${i + 1}" aria-label="${T("Références croisées", "Cross-references")}">🔗 ${cx[i + 1].length}</button>` : ""}</p>`)).join("") : `<p class="small">${T("Chargement…", "Loading…")}</p>`);
   majSurbrillance();
 }
 function majSurbrillance() {
@@ -476,7 +482,7 @@ function majSurbrillance() {
 function rendreNav() {
   const el = $("bibNav");
   if (!el) return;
-  el.innerHTML = `<button class="btn-secondary btn-compact" data-bib="precedent">← Précédent</button><button class="btn-primary btn-compact" data-bib="suivant">Suivant →</button>`;
+  el.innerHTML = `<button class="btn-secondary btn-compact" data-bib="precedent">${T("← Précédent", "← Previous")}</button><button class="btn-primary btn-compact" data-bib="suivant">${T("Suivant →", "Next →")}</button>`;
 }
 
 /* ---------- Références croisées ---------- */
@@ -504,17 +510,17 @@ function ouvrirReferences(verset) {
   fermerPanneau();
   const libelle = (r) => `${nomLivre(r.livre)} ${r.chapitre}:${r.verset}${r.fin > r.verset ? `–${r.fin}` : ""}`;
   const fond = document.createElement("div");
-  fond.className = "bib-fond"; fond.id = "bibPanneau"; fond.setAttribute("role", "dialog"); fond.setAttribute("aria-label", "Références croisées");
+  fond.className = "bib-fond"; fond.id = "bibPanneau"; fond.setAttribute("role", "dialog"); fond.setAttribute("aria-label", T("Références croisées", "Cross-references"));
   let nb = 15;
   const textes = {};
   const dessiner = () => {
     fond.innerHTML = `<div class="bib-feuille">
-      <div class="bib-feuille-tete"><strong>Références croisées · ${esc(nomLivre(S.livre))} ${S.chap}:${verset}</strong><button class="btn-secondary btn-compact" data-px="fermer">Fermer ✕</button></div>
-      <div class="small">${refs.length} passage(s) liés, du plus pertinent au moins pertinent.</div>
+      <div class="bib-feuille-tete"><strong>${T("Références croisées", "Cross-references")} · ${esc(nomLivre(S.livre))} ${S.chap}:${verset}</strong><button class="btn-secondary btn-compact" data-px="fermer">${T("Fermer ✕", "Close ✕")}</button></div>
+      <div class="small">${T(`${refs.length} passage(s) liés, du plus pertinent au moins pertinent.`, `${refs.length} related passage(s), from most to least relevant.`)}</div>
       ${refs.slice(0, nb).map(({ s, r }) => `<div class="bib-ref">
-        <div class="bib-ref-tete"><strong>${esc(libelle(r))}</strong><button class="btn-secondary btn-compact" data-px="aller" data-s="${esc(s)}">Ouvrir →</button></div>
-        <div class="bib-ref-texte">${textes[s] === undefined ? "…" : (textes[s] ? esc(textes[s]) : '<span class="small">Texte pas encore disponible sur ce téléphone.</span>')}</div></div>`).join("")}
-      ${refs.length > nb ? `<div class="bib-centre"><button class="btn-secondary btn-compact" data-px="plus">Voir plus (${refs.length - nb} autres)</button></div>` : ""}</div>`;
+        <div class="bib-ref-tete"><strong>${esc(libelle(r))}</strong><button class="btn-secondary btn-compact" data-px="aller" data-s="${esc(s)}">${T("Ouvrir →", "Open →")}</button></div>
+        <div class="bib-ref-texte">${textes[s] === undefined ? "…" : (textes[s] ? esc(textes[s]) : `<span class="small">${T("Texte pas encore disponible sur ce téléphone.", "Text not yet available on this phone.")}</span>`)}</div></div>`).join("")}
+      ${refs.length > nb ? `<div class="bib-centre"><button class="btn-secondary btn-compact" data-px="plus">${T(`Voir plus (${refs.length - nb} autres)`, `See more (${refs.length - nb} others)`)}</button></div>` : ""}</div>`;
     refs.slice(0, nb).forEach(({ s, r }) => {
       if (textes[s] === undefined) texteDeReference(r).then((t) => { textes[s] = t; if ($("bibPanneau")) dessiner(); });
     });
@@ -562,14 +568,14 @@ function rendreRecherche(complet = true) {
   if (complet) {
     el.innerHTML = `
       <form id="bibForm" class="bib-recherche">
-        <input type="search" id="bibQ" placeholder="Un mot ou une expression…" value="${esc(R.q)}" autocomplete="off">
+        <input type="search" id="bibQ" placeholder="${T("Un mot ou une expression…", "A word or a phrase…")}" value="${esc(R.q)}" autocomplete="off">
         <div class="bib-ligne">
-          <select id="bibPortee" aria-label="Où chercher">${optionsSelect([["tout", "Toute la Bible"], ["at", "Ancien Testament"], ["nt", "Nouveau Testament"], ["livre", `Le livre en cours : ${nomLivre(S.livre)}`]], R.portee)}</select>
-          <select id="bibVersionR" aria-label="Version">${optionsSelect(S.index.versions.map((x) => [x.id, x.nom]), S.version)}</select>
+          <select id="bibPortee" aria-label="${T("Où chercher", "Where to search")}">${optionsSelect([["tout", T("Toute la Bible", "Whole Bible")], ["at", T("Ancien Testament", "Old Testament")], ["nt", T("Nouveau Testament", "New Testament")], ["livre", T(`Le livre en cours : ${nomLivre(S.livre)}`, `Current book: ${nomLivre(S.livre)}`)]], R.portee)}</select>
+          <select id="bibVersionR" aria-label="${T("Version", "Version")}">${optionsSelect(S.index.versions.map((x) => [x.id, x.nom]), S.version)}</select>
         </div>
-        <label class="bib-opt"><input type="checkbox" id="bibExacte" ${R.exacte ? "checked" : ""}> <span>Expression exacte (les mots dans cet ordre)</span></label>
-        <button class="btn-primary btn-compact" type="submit">Chercher</button>
-        <p class="small">Sans tenir compte des accents ni des majuscules. Plusieurs mots : le verset doit les contenir tous. Les livres se téléchargent au fur et à mesure.</p>
+        <label class="bib-opt"><input type="checkbox" id="bibExacte" ${R.exacte ? "checked" : ""}> <span>${T("Expression exacte (les mots dans cet ordre)", "Exact phrase (the words in this order)")}</span></label>
+        <button class="btn-primary btn-compact" type="submit">${T("Chercher", "Search")}</button>
+        <p class="small">${T("Sans tenir compte des accents ni des majuscules. Plusieurs mots : le verset doit les contenir tous. Les livres se téléchargent au fur et à mesure.", "Accents and capital letters are ignored. Several words: the verse must contain them all. Books are downloaded as you go.")}</p>
       </form>
       <div id="bibResultats"></div>`;
   }
@@ -578,10 +584,10 @@ function rendreRecherche(complet = true) {
   const pct = R.total ? Math.round((R.fait / R.total) * 100) : 0;
   const termes = R.exacte ? [plat(R.q)] : plat(R.q).split(/\s+/).filter(Boolean);
   res.innerHTML = `
-    ${R.phase === "cherche" ? `<div class="small">Recherche en cours… ${pct} % (${R.fait} livre(s) sur ${R.total})</div><div class="bib-progres"><div style="width:${pct}%"></div></div>` : ""}
-    ${R.q && R.phase !== "attente" ? `<p class="small"><strong>${R.res.length}${R.trop ? "+" : ""}</strong> verset(s) pour « ${esc(R.q)} »${R.trop ? ` — affichage limité à ${MAX_RESULTATS} : précisez votre recherche.` : ""}${R.absents > 0 && R.phase === "fini" ? ` · ${R.absents} livre(s) non disponible(s) sur ce téléphone.` : ""}</p>` : ""}
+    ${R.phase === "cherche" ? `<div class="small">${T(`Recherche en cours… ${pct} % (${R.fait} livre(s) sur ${R.total})`, `Searching… ${pct} % (${R.fait} book(s) of ${R.total})`)}</div><div class="bib-progres"><div style="width:${pct}%"></div></div>` : ""}
+    ${R.q && R.phase !== "attente" ? `<p class="small"><strong>${R.res.length}${R.trop ? "+" : ""}</strong> ${T("verset(s) pour", "verse(s) for")} « ${esc(R.q)} »${R.trop ? T(` — affichage limité à ${MAX_RESULTATS} : précisez votre recherche.`, ` — display limited to ${MAX_RESULTATS}: refine your search.`) : ""}${R.absents > 0 && R.phase === "fini" ? T(` · ${R.absents} livre(s) non disponible(s) sur ce téléphone.`, ` · ${R.absents} book(s) not available on this phone.`) : ""}</p>` : ""}
     ${R.res.map((r) => `<button type="button" class="bib-res" data-l="${r.livre}" data-c="${r.chapitre}" data-v="${r.verset}"><div class="bib-res-ref">${esc(nomLivre(r.livre))} ${r.chapitre}:${r.verset}</div><div>${surligner(r.texte, termes)}</div></button>`).join("")}
-    ${R.phase === "fini" && !R.res.length && R.q ? `<p class="small">Aucun verset trouvé.</p>` : ""}`;
+    ${R.phase === "fini" && !R.res.length && R.q ? `<p class="small">${T("Aucun verset trouvé.", "No verse found.")}</p>` : ""}`;
 }
 async function chercher() {
   const R = S.rech;
@@ -679,20 +685,20 @@ async function ouvrirOnglet() {
   demarre = true;
   const root = racine();
   if (!root) return;
-  root.innerHTML = `<p class="small">Chargement de la Bible…</p>`;
+  root.innerHTML = `<p class="small">${T("Chargement de la Bible…", "Loading the Bible…")}</p>`;
   try {
     S.index = await chargerIndex();
   } catch {
     demarre = false;
-    root.innerHTML = `<p class="bib-alerte">Impossible de charger la Bible. Vérifiez votre connexion puis rouvrez cet onglet.</p>`;
+    root.innerHTML = `<p class="bib-alerte">${T("Impossible de charger la Bible. Vérifiez votre connexion puis rouvrez cet onglet.", "The Bible could not be loaded. Check your connection, then reopen this tab.")}</p>`;
     return;
   }
   const p = lirePosition();
-  if (p && S.index.versions.some((v) => v.id === p.version) && p.l >= 1 && p.l <= 66) {
-    S.version = p.version; S.livre = p.l; S.chap = Math.min(Math.max(p.c || 1, 1), nbChapitres(p.l)); S.verset = p.v || null;
-  } else {
-    S.version = S.index.versions[0]?.id || "lsg";
-  }
+  const versionOk = (id) => S.index.versions.some((v) => v.id === id);
+  const parDefaut = (EN() ? S.index.versions.find((v) => v.langue === "en") : S.index.versions.find((v) => v.langue !== "en"))?.id || S.index.versions[0]?.id || "lsg";
+  const retenue = lsGet(EN() ? "abba_bible_ver_en" : "abba_bible_ver_fr", "");
+  S.version = versionOk(retenue) ? retenue : parDefaut;
+  if (p && p.l >= 1 && p.l <= 66) { S.livre = p.l; S.chap = Math.min(Math.max(p.c || 1, 1), nbChapitres(p.l)); S.verset = p.v || null; }
   livreXrefAttendu = S.livre;
   squelette();
   brancher();
@@ -713,6 +719,12 @@ window.AbbaBible = { ouvrir: ouvrirOnglet, aller: (l, c, v) => { ouvrirOnglet().
 const ABREV = { mt: "Matthieu", mc: "Marc", lc: "Luc", jn: "Jean", ac: "Actes", rm: "Romains", rom: "Romains", ga: "Galates", gal: "Galates", ep: "Éphésiens", eph: "Éphésiens", ph: "Philippiens", php: "Philippiens", col: "Colossiens", he: "Hébreux", heb: "Hébreux", jc: "Jacques", ja: "Jacques", ap: "Apocalypse", ps: "Psaumes", pr: "Proverbes", es: "Ésaïe", esa: "Ésaïe", jr: "Jérémie", jer: "Jérémie", ez: "Ézéchiel", dn: "Daniel", gn: "Genèse", ge: "Genèse", ex: "Exode", lv: "Lévitique", lev: "Lévitique", nb: "Nombres", nom: "Nombres", dt: "Deutéronome", deut: "Deutéronome", jos: "Josué", jg: "Juges", ne: "Néhémie", est: "Esther", ec: "Ecclésiaste", ct: "Cantique des Cantiques", os: "Osée", jl: "Joël", am: "Amos", jon: "Jonas", mi: "Michée", na: "Nahum", ha: "Habacuc", so: "Sophonie", ag: "Aggée", za: "Zacharie", ml: "Malachie", tt: "Tite", phm: "Philémon", jud: "Jude" };
 const normNom = (x) => plat(x).replace(/[^a-z0-9]/g, "");
 function trouverLivre(nom) {
+  const brut = String(nom).trim();
+  const m1 = /^([123])\s*(.+)$/.exec(brut);
+  // table d'alias (français et anglais) : « 1 John », « Matt », « Gal », « 1 Cor »…
+  let r = m1 ? livreDe(+m1[1], normNom(m1[2])) : 0;
+  if (!r) r = livreDe(0, normNom(brut));
+  if (r) return r;
   let q = normNom(nom);
   if (!q) return 0;
   const m = /^([123])(.+)$/.exec(q);
@@ -735,23 +747,31 @@ function analyserRef(s) {
   if (m[3]) return { livre, chapitre: +m[2], verset: +m[3], fin: m[4] ? +m[4] : +m[3] };
   return { livre, chapitre: +m[2], verset: 1, fin: Infinity, chapFin: m[5] ? +m[5] : 0 };
 }
-async function ouvrirVersets({ refs, texte = "", titre = "📎 Versets de référence" }) {
+// « Jean 1:12 » → « John 1:12 » en anglais (et inversement) : la référence est toujours réécrite dans la langue de l'application
+function etiquette(s) {
+  const r = analyserRef(s);
+  if (!r) return s;
+  return r.fin === Infinity ? canon(r.livre, r.chapitre, 0, 0, r.chapFin || 0) : canon(r.livre, r.chapitre, r.verset, r.fin, 0);
+}
+async function ouvrirVersets({ refs, texte = "", titre = "" }) {
+  titre = titre || T("📎 Versets de référence", "📎 Reference verses");
   if (!refs?.length) return;
   fermerPanneau();
   let index = null;
   try { index = await chargerIndex(); } catch { /* hors connexion sans Bible téléchargée */ }
   const versions = index?.versions || [];
-  let version = lsGet("abba_version_versets", "");
-  if (!versions.some((v) => v.id === version)) version = versions[0]?.id || "lsg";
+  const cleVersion = EN() ? "abba_version_versets_en" : "abba_version_versets";
+  let version = lsGet(cleVersion, "");
+  if (!versions.some((v) => v.id === version)) version = (EN() ? versions.find((v) => v.langue === "en") : versions.find((v) => v.langue !== "en"))?.id || versions[0]?.id || "lsg";
   const textes = {};
   const fond = document.createElement("div");
-  fond.className = "bib-fond"; fond.id = "bibPanneau"; fond.setAttribute("role", "dialog"); fond.setAttribute("aria-label", "Versets de référence");
+  fond.className = "bib-fond"; fond.id = "bibPanneau"; fond.setAttribute("role", "dialog"); fond.setAttribute("aria-label", T("Versets de référence", "Reference verses"));
   const dessiner = () => {
     fond.innerHTML = `<div class="bib-feuille">
-      <div class="bib-feuille-tete"><strong>${esc(titre)}</strong><button class="btn-secondary btn-compact" data-px="fermer">Fermer ✕</button></div>
+      <div class="bib-feuille-tete"><strong>${esc(titre)}</strong><button class="btn-secondary btn-compact" data-px="fermer">${T("Fermer ✕", "Close ✕")}</button></div>
       ${texte ? `<div class="small bib-citation">${esc(texte)}</div>` : ""}
-      ${versions.length > 1 ? `<select data-px="version" aria-label="Version de la Bible">${versions.map((v) => `<option value="${esc(v.id)}"${v.id === version ? " selected" : ""}>${esc(v.nom)}</option>`).join("")}</select>` : ""}
-      ${refs.map((s) => `<div class="bib-ref"><div class="bib-ref-tete"><strong>${esc(s)}</strong><button class="btn-secondary btn-compact" data-px="ouvrir" data-s="${esc(s)}">Ouvrir dans la Bible →</button></div><div class="bib-ref-texte">${textes[s] === undefined ? "…" : (textes[s] ? esc(textes[s]) : '<span class="small">Texte pas encore disponible : ouvrez la Bible une fois avec du réseau.</span>')}</div></div>`).join("")}</div>`;
+      ${versions.length > 1 ? `<select data-px="version" aria-label="${T("Version de la Bible", "Bible version")}">${versions.map((v) => `<option value="${esc(v.id)}"${v.id === version ? " selected" : ""}>${esc(v.nom)}</option>`).join("")}</select>` : ""}
+      ${refs.map((s) => `<div class="bib-ref"><div class="bib-ref-tete"><strong>${esc(etiquette(s))}</strong><button class="btn-secondary btn-compact" data-px="ouvrir" data-s="${esc(s)}">${T("Ouvrir dans la Bible →", "Open in the Bible →")}</button></div><div class="bib-ref-texte">${textes[s] === undefined ? "…" : (textes[s] ? esc(textes[s]) : `<span class="small">${T("Texte pas encore disponible : ouvrez la Bible une fois avec du réseau.", "Text not yet available: open the Bible once with a network connection.")}</span>`)}</div></div>`).join("")}</div>`;
   };
   const charger = () => {
     refs.forEach((s) => {
@@ -770,7 +790,7 @@ async function ouvrirVersets({ refs, texte = "", titre = "📎 Versets de réfé
     }
   });
   fond.addEventListener("change", (e) => {
-    if (e.target.dataset.px === "version") { version = e.target.value; lsSet("abba_version_versets", version); Object.keys(textes).forEach((k) => delete textes[k]); dessiner(); charger(); }
+    if (e.target.dataset.px === "version") { version = e.target.value; lsSet(cleVersion, version); Object.keys(textes).forEach((k) => delete textes[k]); dessiner(); charger(); }
   });
   document.body.appendChild(fond);
   dessiner();
@@ -789,13 +809,35 @@ const separer = (n) => { const m = /^([123]) (.+)$/.exec(n); return m ? { num: +
 const ALIAS = {};
 LIVRES.forEach((n) => { ALIAS[normNom(separer(n).base)] = separer(n).base; });
 Object.entries({ psaume: "Psaumes", gen: "Genèse", gn: "Genèse", exo: "Exode", ex: "Exode", lev: "Lévitique", lv: "Lévitique", nb: "Nombres", nom: "Nombres", deut: "Deutéronome", dt: "Deutéronome", jos: "Josué", jug: "Juges", jg: "Juges", ru: "Ruth", sam: "Samuel", sa: "Samuel", ro: "Rois", chr: "Chroniques", ch: "Chroniques", esd: "Esdras", neh: "Néhémie", ne: "Néhémie", est: "Esther", ps: "Psaumes", psa: "Psaumes", prov: "Proverbes", pr: "Proverbes", ecc: "Ecclésiaste", ec: "Ecclésiaste", eccl: "Ecclésiaste", cant: "Cantique des Cantiques", ct: "Cantique des Cantiques", es: "Ésaïe", esa: "Ésaïe", jer: "Jérémie", jr: "Jérémie", lam: "Lamentations", lm: "Lamentations", ez: "Ézéchiel", ezech: "Ézéchiel", dan: "Daniel", dn: "Daniel", os: "Osée", jl: "Joël", am: "Amos", abd: "Abdias", jon: "Jonas", mic: "Michée", mi: "Michée", nah: "Nahum", na: "Nahum", hab: "Habacuc", ha: "Habacuc", soph: "Sophonie", so: "Sophonie", agg: "Aggée", ag: "Aggée", zac: "Zacharie", za: "Zacharie", zach: "Zacharie", mal: "Malachie", ml: "Malachie", mat: "Matthieu", mt: "Matthieu", matt: "Matthieu", mar: "Marc", mc: "Marc", lc: "Luc", jn: "Jean", act: "Actes", ac: "Actes", rom: "Romains", rm: "Romains", cor: "Corinthiens", co: "Corinthiens", gal: "Galates", ga: "Galates", eph: "Éphésiens", ep: "Éphésiens", phil: "Philippiens", php: "Philippiens", ph: "Philippiens", phi: "Philippiens", thess: "Thessaloniciens", tess: "Thessaloniciens", tit: "Tite", apo: "Apocalypse", is: "Ésaïe", isa: "Ésaïe", pro: "Proverbes", chron: "Chroniques", hebr: "Hébreux", col: "Colossiens", thes: "Thessaloniciens", th: "Thessaloniciens", tim: "Timothée", tm: "Timothée", tt: "Tite", philem: "Philémon", phm: "Philémon", heb: "Hébreux", he: "Hébreux", jac: "Jacques", jacq: "Jacques", jc: "Jacques", pi: "Pierre", pie: "Pierre", p: "Pierre", apoc: "Apocalypse", ap: "Apocalypse", jud: "Jude" }).forEach(([k, v]) => { ALIAS[k] = v; });
-const ALIAS_FORMES = Object.keys(ALIAS).concat(LIVRES.map((n) => normNom(n))).filter((x, i, a) => a.indexOf(x) === i);
+Object.entries({ genesis: "Genèse", exodus: "Exode", leviticus: "Lévitique", numbers: "Nombres", deuteronomy: "Deutéronome", joshua: "Josué", judges: "Juges", kings: "Rois", chronicles: "Chroniques", ezra: "Esdras", nehemiah: "Néhémie", psalms: "Psaumes", psalm: "Psaumes", proverbs: "Proverbes", ecclesiastes: "Ecclésiaste", songofsolomon: "Cantique des Cantiques", songofsongs: "Cantique des Cantiques", song: "Cantique des Cantiques", isaiah: "Ésaïe", jeremiah: "Jérémie", ezekiel: "Ézéchiel", hosea: "Osée", obadiah: "Abdias", jonah: "Jonas", micah: "Michée", habakkuk: "Habacuc", zephaniah: "Sophonie", haggai: "Aggée", zechariah: "Zacharie", malachi: "Malachie", matthew: "Matthieu", mark: "Marc", luke: "Luc", john: "Jean", acts: "Actes", romans: "Romains", corinthians: "Corinthiens", galatians: "Galates", ephesians: "Éphésiens", philippians: "Philippiens", colossians: "Colossiens", thessalonians: "Thessaloniciens", timothy: "Timothée", titus: "Tite", hebrews: "Hébreux", james: "Jacques", peter: "Pierre", revelation: "Apocalypse", revelations: "Apocalypse", exod: "Exode", num: "Nombres", josh: "Josué", judg: "Juges", kgs: "Rois", kin: "Rois", esth: "Esther", pss: "Psaumes", ss: "Cantique des Cantiques", ezek: "Ézéchiel", eze: "Ézéchiel", hos: "Osée", obad: "Abdias", zeph: "Sophonie", hag: "Aggée", zech: "Zacharie", mk: "Marc", lk: "Luc", phlm: "Philémon", jas: "Jacques", jam: "Jacques", pet: "Pierre", rev: "Apocalypse" }).forEach(([k, v]) => { ALIAS[k] = v; });
+const ALIAS_FORMES = Object.keys(ALIAS).concat(LIVRES.map((n) => normNom(n))).concat(LIVRES_EN.map((n) => normNom(n))).filter((x, i, a) => a.indexOf(x) === i);
 // forme à reconnaître dans le texte (sans accents, minuscules) ; les espaces des noms composés sont souples
-const motif = (k) => (k === "cantiquedescantiques" ? "cantique\\s+des\\s+cantiques" : k);
+const motif = (k) => (k === "cantiquedescantiques" ? "cantique\\s+des\\s+cantiques" : k === "songofsolomon" ? "song\\s+of\\s+solomon" : k === "songofsongs" ? "song\\s+of\\s+songs" : k);
 const NOMS_RE = ALIAS_FORMES.slice().sort((a, b) => b.length - a.length).map(motif).join("|");
-const REF_RE = new RegExp(`(?<![a-z0-9])(?:([123])\\s?)?(${NOMS_RE})\\.?[\\s\\u00a0]+(\\d{1,3})(?:[:.](\\d{1,3})(?:\\s*[-–]\\s*(\\d{1,3}))?|,(\\d{1,3})(?:\\s*[-–]\\s*(\\d{1,3}))?|(?:\\s*(?:[-–]|a|au)\\s*(\\d{1,3}))?)(?![0-9])`, "dg");
-const NUM_ORD = { premiere: 1, "1re": 1, "1ere": 1, seconde: 2, deuxieme: 2, "2e": 2, "2eme": 2, troisieme: 3, "3e": 3, "3eme": 3 };
-const MENTION_RE = new RegExp(`(?<![a-z0-9])(?:(premiere|seconde|deuxieme|troisieme|1re|1ere|2e|2eme|3e|3eme)\\s+(?:epitre|lettre)(?:\\s+[^\\s.;()]+){0,5}?\\s+|([123])\\s?)?(${LIVRES.map((n) => normNom(separer(n).base)).filter((x, i, a) => a.indexOf(x) === i).sort((a, b) => b.length - a.length).map(motif).join("|")})(?![a-z0-9-])(?!\\s+(?:le\\s+)?baptiste)`, "dg");
+const REF_RE = new RegExp(`(?<![a-z0-9])(?:([123])\\s?)?(${NOMS_RE})\\.?[\\s\\u00a0]+(\\d{1,3})(?:[:.](\\d{1,3})(?:\\s*[-–]\\s*(\\d{1,3}))?|,(\\d{1,3})(?:\\s*[-–]\\s*(\\d{1,3}))?|(?:\\s*(?:[-–]|a|au|to)\\s*(\\d{1,3}))?)(?![0-9])`, "dg");
+const NUM_ORD = { first: 1, "1st": 1, second: 2, "2nd": 2, third: 3, "3rd": 3, premiere: 1, "1re": 1, "1ere": 1, seconde: 2, deuxieme: 2, "2e": 2, "2eme": 2, troisieme: 3, "3e": 3, "3eme": 3 };
+const BASES_MENTION = Array.from(new Set(LIVRES.map((n) => normNom(separer(n).base)).concat(LIVRES_EN.map((n) => normNom(n.replace(/^[123] /, "")))))).sort((a, b) => b.length - a.length).map(motif).join("|");
+const MENTION_RE = new RegExp(`(?<![a-z0-9])(?:(premiere|seconde|deuxieme|troisieme|1re|1ere|2e|2eme|3e|3eme|first|second|third|1st|2nd|3rd)\\s+(?:epitre|lettre|epistle|letter)(?:\\s+[^\\s.;()]+){0,5}?\\s+|([123])\\s?)?(${BASES_MENTION})(?![a-z0-9-])(?!\\s+(?:le\\s+)?baptiste)(?!\\s+(?:the\\s+)?baptist)`, "dg");
+const MENTION2_RE = /(?<![a-z0-9])(john|peter|jean|pierre)\s+(?:in\s+his|dans\s+sa)\s+(first|second|third|premiere|seconde|deuxieme|troisieme)\s+(?:letter|epistle|lettre|epitre)/dg;
+// Livres cités dans le texte (sans chapitre), dans l'ordre : sert aux références sans nom de livre
+function trouverMentions(t, p) {
+  const out = [];
+  let m;
+  MENTION_RE.lastIndex = 0;
+  while ((m = MENTION_RE.exec(p))) {
+    const [debutNom, finNom] = m.indices[3];
+    if (!majuscule(t[debutNom])) continue;
+    const num = m[1] ? NUM_ORD[m[1]] : m[2] ? +m[2] : 0;
+    const livre = livreDe(num, p.slice(debutNom, finNom)) || livreDe(0, p.slice(debutNom, finNom));
+    if (livre) out.push({ debut: m.index, nom: debutNom, fin: m.index + m[0].length, livre });
+  }
+  MENTION2_RE.lastIndex = 0;
+  while ((m = MENTION2_RE.exec(p))) {
+    const livre = livreDe(NUM_ORD[m[2]], m[1]);
+    if (livre) out.push({ debut: m.index, nom: m.index, fin: m.index + m[0].length, livre });
+  }
+  return out;
+}
 const majuscule = (c) => !!c && c !== c.toLowerCase() && c === c.toUpperCase();
 function livreDe(num, nomNormalise) {
   const base = ALIAS[normNom(nomNormalise)];
@@ -803,7 +845,7 @@ function livreDe(num, nomNormalise) {
   return LIVRES.findIndex((n, i) => separer(n).base === base && separer(n).num === (num || 0)) + 1;
 }
 const canon = (livre, chap, v, fin, chapFin) => {
-  const B = LIVRES[livre - 1];
+  const B = nomLivre(livre);
   if (!v) return chapFin && chapFin > chap ? `${B} ${chap}–${chapFin}` : `${B} ${chap}`;
   return `${B} ${chap}:${v}${fin && fin > v ? `–${fin}` : ""}`;
 };
@@ -825,7 +867,7 @@ function reperer(t, ctx) {
     if (!livre) continue;
     const unSeulChapitre = CHAPITRES[livre - 1] === 1 && !aVerset; // « Jude 20-21 » : ce sont des versets
     if (!unSeulChapitre && (chap < 1 || chap > CHAPITRES[livre - 1])) continue;
-    if (!aVerset && !unSeulChapitre && /^[\s\u00a0]+(?:fois|homme|hommes|femme|femmes|personne|personnes|an|ans|jour|jours|mois|heure|heures|minute|minutes|euro|euros|fcfa|point|points|verset|versets|chapitre|chapitres|livre|livres)\b/.test(p.slice(m.index + m[0].length))) continue;
+    if (!aVerset && !unSeulChapitre && /^[\s\u00a0]+(?:fois|homme|hommes|femme|femmes|personne|personnes|an|ans|jour|jours|mois|heure|heures|minute|minutes|euro|euros|fcfa|point|points|verset|versets|chapitre|chapitres|livre|livres|times|time|men|man|women|woman|people|years|year|days|day|months|month|hours|hour|percent|verses|chapters|books)\b/.test(p.slice(m.index + m[0].length))) continue;
     if (!majuscule(t[debutNom])) continue;
     if (m[2].length <= 2 && !aVerset && !dansParentheses(p, m.index)) continue;
     let v = aVerset ? +(m[4] ?? m[6]) : 0;
@@ -834,14 +876,9 @@ function reperer(t, ctx) {
     if (unSeulChapitre) { v = chap; vfin = m[8] ? +m[8] : v; chap = 1; chapFin = 0; }
     evenements.push({ type: "ref", debut: m.index, fin: m.index + m[0].length, livre, chap, v, vfin, chapFin });
   }
-  MENTION_RE.lastIndex = 0;
-  while ((m = MENTION_RE.exec(p))) {
-    const [debutNom, finNom] = m.indices[3];
-    if (!majuscule(t[debutNom])) continue;
-    const num = m[1] ? NUM_ORD[m[1]] : m[2] ? +m[2] : 0;
-    const livre = livreDe(num, p.slice(debutNom, finNom)) || livreDe(0, p.slice(debutNom, finNom));
-    if (livre && !evenements.some((e) => e.type === "ref" && debutNom >= e.debut && debutNom < e.fin)) evenements.push({ type: "mention", debut: m.index, fin: m.index + m[0].length, livre });
-  }
+  trouverMentions(t, p).forEach((e) => {
+    if (!evenements.some((x) => x.type === "ref" && e.nom >= x.debut && e.nom < x.fin)) evenements.push({ type: "mention", debut: e.debut, fin: e.fin, livre: e.livre });
+  });
   // Références sans nom de livre : « 5:1 », « 14:1 »
   const BARE = /(\d{1,3})[:.](\d{1,3})(?:\s*[-–]\s*(\d{1,3}))?(?![0-9])/y;
   for (let k = 0; k < p.length; k++) {
@@ -863,13 +900,13 @@ function reperer(t, ctx) {
     // sans nom de livre : accepté entre parenthèses, ou à la suite d'une autre référence (« ; 14:1 »)
     if (!ctx.livre || e.chap < 1 || e.chap > CHAPITRES[ctx.livre - 1]) continue;
     const avant = refs[refs.length - 1];
-    const enSuite = avant && /^(?:\s*[;,]\s*|\s+(?:voir aussi|voir|lire|cf\.?|et|ou)\s+)$/.test(p.slice(avant.fin, e.debut));
+    const enSuite = avant && /^(?:\s*[;,]\s*|\s+(?:voir aussi|voir|lire|cf\.?|et|ou|see also|see|read|and|or)\s+)$/.test(p.slice(avant.fin, e.debut));
     if (!dansParentheses(p, e.debut) && !enSuite) continue;
     ctx.chap = e.chap;
     refs.push({ debut: e.debut, fin: e.fin, livre: ctx.livre, chap: e.chap, v: e.v, canon: canon(ctx.livre, e.chap, e.v, e.vfin, 0) });
   }
   // Numéros de versets seuls dans une suite : « Jean 3:16, 18 »
-  const SEUL = /(\d{1,3})(?:\s*[-–]\s*(\d{1,3}))?(?=\s*(?:[;,.)\]]|$|\s(?:et|ou)\s))/y;
+  const SEUL = /(\d{1,3})(?:\s*[-–]\s*(\d{1,3}))?(?=\s*(?:[;,.)\]]|$|\s(?:et|ou|and|or)\s))/y;
   for (let k = 0; k < refs.length; k++) {
     const r = refs[k];
     if (!r.v) continue;
@@ -884,21 +921,15 @@ function reperer(t, ctx) {
     refs.splice(k + 1, 0, { debut: pos, fin: pos + s[0].length, livre: r.livre, chap: r.chap, v, canon: canon(r.livre, r.chap, v, vfin, 0) });
   }
   // Suites : références séparées par « ; », « , », « voir aussi »… (une icône 📎 les regroupe)
-  refs.forEach((r, k) => { r.suite = k > 0 && /^(?:\s*[;,]\s*|\s+(?:voir aussi|voir|lire|cf\.?|et|ou)\s+)$/.test(p.slice(refs[k - 1].fin, r.debut)); });
+  refs.forEach((r, k) => { r.suite = k > 0 && /^(?:\s*[;,]\s*|\s+(?:voir aussi|voir|lire|cf\.?|et|ou|see also|see|read|and|or)\s+)$/.test(p.slice(refs[k - 1].fin, r.debut)); });
   return refs;
 }
 function mentions(t, ctx) {
   const carte = Array.from(t).map((c) => plat(c));
   if (carte.length !== t.length || carte.some((c) => c.length !== 1)) return;
-  const p = carte.join("");
-  MENTION_RE.lastIndex = 0;
-  let m, dernier = null;
-  while ((m = MENTION_RE.exec(p))) {
-    if (!majuscule(t[m.indices[3][0]])) continue;
-    const num = m[1] ? NUM_ORD[m[1]] : m[2] ? +m[2] : 0;
-    dernier = livreDe(num, p.slice(...m.indices[3])) || livreDe(0, p.slice(...m.indices[3]));
-  }
-  if (dernier) { ctx.livre = dernier; ctx.chap = 0; }
+  const liste = trouverMentions(t, carte.join(""));
+  liste.sort((x, y) => x.debut - y.debut);
+  if (liste.length) { ctx.livre = liste[liste.length - 1].livre; ctx.chap = 0; }
 }
 function lier(html, moduleId, rapport) {
   if (!TOUS_LES_MODULES && !MODULES_VERSETS.has(moduleId) && !rapport) return html;
@@ -932,8 +963,8 @@ function lier(html, moduleId, rapport) {
 document.addEventListener("click", (e) => {
   const one = e.target.closest(".vref");
   const all = e.target.closest(".vref-all");
-  if (one) { e.preventDefault(); ouvrirVersets({ refs: [one.dataset.vr], titre: `📖 ${one.dataset.vr}` }); }
-  else if (all) { e.preventDefault(); try { ouvrirVersets({ refs: JSON.parse(all.dataset.vg), titre: "📎 Tous les versets" }); } catch { /* ignoré */ } }
+  if (one) { e.preventDefault(); ouvrirVersets({ refs: [one.dataset.vr], titre: `📖 ${etiquette(one.dataset.vr)}` }); }
+  else if (all) { e.preventDefault(); try { ouvrirVersets({ refs: JSON.parse(all.dataset.vg), titre: T("📎 Tous les versets", "📎 All the verses") }); } catch { /* ignoré */ } }
 });
 document.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.classList?.contains("vref")) e.target.click(); });
 window.AbbaVersets.lier = lier;
