@@ -488,7 +488,7 @@
   {
    "id": "idee",
    "titre": "Mon idée, mon diagnostic et le test des trois clients",
-   "consigne": "Choisis une idée d’entreprise, fais ton diagnostic SWOT, vois si tu es la bonne personne, puis va la présenter à trois personnes. Relis les leçons sur le profil de l’entrepreneur et l’étude de marché.",
+   "consigne": "Si tu as une idée d’entreprise, fais ton diagnostic SWOT, vois si tu es la bonne personne et, si tu le peux, teste-la auprès de trois personnes. Relis les leçons sur le profil de l’entrepreneur et l’étude de marché.",
    "champs": [
     {
      "id": "idee",
@@ -542,8 +542,8 @@
     {
      "id": "trois",
      "type": "tableau",
-     "label": "Le test des trois clients : le vrai test, c’est que quelqu’un paie",
-     "aide": "Parle de ton idée à trois personnes prêtes à payer, même peu, pour ce que tu proposes. Note leur réponse.",
+     "label": "Le test des trois clients (facultatif) : le vrai test, c’est que quelqu’un paie",
+     "aide": "Quand tu as une idée d’entreprise sur laquelle tu travailles, présente-la à trois personnes prêtes à payer, même peu, et note leur réponse. Si ce n’est pas ton cas pour le moment, passe : tu pourras y revenir le jour où tu auras un projet.",
      "rows": [
       "Personne 1",
       "Personne 2",
@@ -554,8 +554,7 @@
       "Prêt à payer ? Combien ?",
       "Ce qu’il ou elle m’a dit"
      ],
-     "required": true,
-     "min": 3
+     "required": false
     }
    ]
   },
