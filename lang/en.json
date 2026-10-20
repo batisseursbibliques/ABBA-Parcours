@@ -629,5 +629,7 @@
 "Taille normale": "Normal size",
 "Versets de référence : {0}": "Reference verses: {0}",
 "Voir tous les versets": "See all the verses",
-"Revenir au texte lu": "Back to the text being read"
+"Revenir au texte lu": "Back to the text being read",
+"Sur iPhone, la lecture s'arrête quand l'écran s'éteint ou quand on quitte l'application ; elle reprendra ici à votre retour.": "On iPhone, reading stops when the screen turns off or when you leave the app; it will resume here when you come back.",
+"Lecture impossible.": "Playback impossible."
 }

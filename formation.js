@@ -1,3 +1,4 @@
+import { estNatif, lireNatif, pauseNatif } from "./voixNative.js";
 /* ============================================================
    FORMATION EN AUTONOMIE — Parcours Bâtisseur
    Lecture du manuel → questions → exercices → fiche → validation
@@ -728,8 +729,10 @@ async function saveFiche(send) {
 
 
 /* ---------- Lecture à voix haute (synthèse vocale de l'appareil, gratuite) ---------- */
-const TTS = { id: null, state: "stop", chunks: [], i: 0, tok: 0, rate: Number(localStorage.getItem("abba_tts_rate")) || 1, msg: "", title: "", freeze: 0, wake: localStorage.getItem("abba_tts_wake") === "1" };
-const ttsOk = () => "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
+const TTS = { id: null, state: "stop", chunks: [], i: 0, tok: 0, rate: Number(localStorage.getItem("abba_tts_rate")) || 1, msg: "", title: "", freeze: 0, wake: localStorage.getItem("abba_tts_wake") !== "0" };
+const ttsOk = () => estNatif() || ("speechSynthesis" in window && "SpeechSynthesisUtterance" in window);
+const webCancel = () => { if ("speechSynthesis" in window) speechSynthesis.cancel(); };
+const estIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 function ttsVoice() {
   const vs = speechSynthesis.getVoices() || [];
   const want = window.I18N && window.I18N.lang === "en" ? "en" : "fr";
@@ -808,9 +811,29 @@ function ttsGoto() {
   }
   setTimeout(() => { ttsRestore(); ttsHighlight(true); }, 120);
 }
+// Navigateur : si le téléphone a coupé la voix (écran éteint, application quittée), la lecture reprend là où elle s'était arrêtée au retour
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible" || estNatif() || TTS.state !== "play" || !("speechSynthesis" in window)) return;
+  if (!speechSynthesis.speaking && !speechSynthesis.pending) { TTS.tok++; ttsSpeakNext(); }
+  wakeAcquire();
+});
 ["wheel", "touchmove", "keydown"].forEach((ev) => window.addEventListener(ev, () => { TTS.freeze = Date.now() + 5000; }, { passive: true }));
+// Application Android : tous les morceaux restants sont confiés au service de lecture (continue écran éteint)
+function ttsNatifLire() {
+  const tok = TTS.tok;
+  ttsHighlight(true);
+  lireNatif({
+    textes: TTS.chunks.map((c) => c.t), depuis: TTS.i, vitesse: TTS.rate, titre: TTS.title || "ABBA Parcours", details: "ABBA Parcours",
+    langue: window.I18N && window.I18N.lang === "en" ? "en" : "fr",
+    onIndex: (i) => { if (tok !== TTS.tok) return; TTS.i = i; ttsHighlight(true); },
+    onFin: () => { if (tok !== TTS.tok) return; TTS.state = "stop"; TTS.id = null; wakeRelease(); updateTtsUi(); },
+    onPause: (i) => { if (tok !== TTS.tok) return; TTS.tok++; if (i >= 0) TTS.i = i; TTS.state = "pause"; updateTtsUi(); },
+    onErreur: (m) => { TTS.msg = m; updateTtsUi(); },
+  }).catch((e) => { TTS.msg = (e && e.message) || "Lecture impossible."; TTS.state = "pause"; updateTtsUi(); });
+}
 function ttsSpeakNext() {
   if (TTS.state !== "play") return;
+  if (estNatif()) { ttsNatifLire(); return; }
   if (TTS.i >= TTS.chunks.length) { TTS.state = "stop"; TTS.id = null; wakeRelease(); updateTtsUi(); return; }
   ttsHighlight(true);
   const tok = TTS.tok, u = new SpeechSynthesisUtterance(TTS.chunks[TTS.i].t);
@@ -832,11 +855,12 @@ function ttsPlay(id) {
   window.dispatchEvent(new Event("abba:voix-lecon")); // la Bible lue à voix haute s'arrête
   TTS.tok++; TTS.id = id; TTS.msg = ""; TTS.chunks = ttsBuildChunks(id); TTS.i = 0; TTS.state = "play"; TTS.freeze = 0;
   if (id === "decl") TTS.title = "Ma déclaration"; else { const [, mid, lid] = id.split(":"); const c = st.content[mid], l = c && (c.lecons || []).find((x) => x.id === lid); TTS.title = l ? l.titre : "Leçon"; }
+  if (estIOS() && !estNatif()) TTS.msg = "Sur iPhone, la lecture s'arrête quand l'écran s'éteint ou quand on quitte l'application ; elle reprendra ici à votre retour.";
   updateTtsUi(); ttsSpeakNext(); wakeAcquire();
 }
-function ttsPause() { if (TTS.state !== "play") return; TTS.tok++; TTS.state = "pause"; speechSynthesis.cancel(); updateTtsUi(); }
+function ttsPause() { if (TTS.state !== "play") return; TTS.tok++; TTS.state = "pause"; webCancel(); if (estNatif()) pauseNatif().catch(() => {}); updateTtsUi(); }
 function ttsResume() { if (TTS.state !== "pause") return; TTS.tok++; TTS.state = "play"; updateTtsUi(); ttsSpeakNext(); wakeAcquire(); }
-function ttsStop(ui = true) { TTS.tok++; TTS.state = "stop"; TTS.id = null; if (ttsOk()) speechSynthesis.cancel(); wakeRelease(); if (ui) updateTtsUi(); }
+function ttsStop(ui = true) { const etait = TTS.state; TTS.tok++; TTS.state = "stop"; TTS.id = null; webCancel(); if (estNatif() && etait !== "stop") pauseNatif().catch(() => {}); wakeRelease(); if (ui) updateTtsUi(); }
 const wakeOk = () => "wakeLock" in navigator;
 let wakeSentinel = null;
 async function wakeAcquire() {
@@ -870,7 +894,7 @@ function ttsEvent(e) {
   const b = e.target.closest("[data-tts]");
   if (!b) return;
   const a = b.dataset.tts;
-  if (a === "rate") { if (e.type !== "change") return; TTS.rate = Number(b.value) || 1; localStorage.setItem("abba_tts_rate", String(TTS.rate)); if (TTS.state === "play") { TTS.tok++; speechSynthesis.cancel(); ttsSpeakNext(); } return; }
+  if (a === "rate") { if (e.type !== "change") return; TTS.rate = Number(b.value) || 1; localStorage.setItem("abba_tts_rate", String(TTS.rate)); if (TTS.state === "play") { TTS.tok++; webCancel(); ttsSpeakNext(); } return; }
   if (e.type !== "click") return;
   if (a === "goto") { ttsGoto(); return; }
   if (a === "wake") { TTS.wake = !TTS.wake; localStorage.setItem("abba_tts_wake", TTS.wake ? "1" : "0"); if (TTS.wake) wakeAcquire(); else wakeRelease(); updateTtsUi(); return; }

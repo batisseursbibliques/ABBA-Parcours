@@ -1,3 +1,4 @@
+import { estNatif, lireNatif, pauseNatif, reglagesBatterie } from "./voixNative.js";
 /* ============================================================
    BIBLE — onglet « Bible » de Parcours Bâtisseur
    Reprend ce qui existe dans ABBA Gestion : lecture, versions du domaine public
@@ -151,7 +152,7 @@ const MAX_RESULTATS = 300;
 const synthOk = () => "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
 const infoV = () => (S.index?.versions || []).find((v) => v.id === S.version) || S.index?.versions?.[0];
 const langueV = () => infoV()?.langue || "fr";
-const audioOk = () => synthOk() && (langueV() === "fr" || langueV() === "en");
+const audioOk = () => (synthOk() || estNatif()) && (langueV() === "fr" || langueV() === "en");
 const nbChapitres = (l) => S.index?.chapitres?.[l - 1] || 1;
 const nomLivre = (l) => (EN() ? LIVRES_EN : LIVRES)[l - 1] || "";
 
@@ -227,6 +228,7 @@ function attendreVoix() {
 function arreter() {
   S.jeton += 1;
   if (synthOk()) window.speechSynthesis.cancel();
+  if (estNatif() && (S.ecoute || S.enPause)) pauseNatif().catch(() => {});
   const etait = S.ecoute;
   S.ecoute = false; S.courant = null; S.enPause = false;
   arrierePlanArreter();
@@ -240,6 +242,39 @@ function pause() {
   arreter();
   if (reste) { S.verset = reste; S.enPause = true; sauverPosition(); rendreBarre(); majSurbrillance(); majMini(); }
 }
+// Application Android : les versets restants sont confiés au service de lecture (continue écran éteint, application quittée)
+async function lireBibleNatif(depuis, liste, livre, chap, titre, details) {
+  S.jeton += 1;
+  const moi = S.jeton;
+  S.ecoute = true; S.enPause = false; S.alerte = "";
+  rendreBarre(); majMini();
+  const finDuChapitre = () => {
+    if (moi !== S.jeton) return;
+    const aSuivre = chap < nbChapitres(livre) || livre < 66;
+    if (S.enchainer && aSuivre) { S.repriseAuto = true; suivant({ garderLecture: true }); } else arreter();
+  };
+  if (!liste.some((t) => t)) { finDuChapitre(); return; }
+  try {
+    await lireNatif({
+      textes: liste, depuis, vitesse: S.vitesse, titre, details, langue: langueV() === "en" ? "en" : "fr",
+      onIndex: (i) => {
+        if (moi !== S.jeton) return;
+        S.courant = i + 1; S.verset = i + 1;
+        sauverPosition(); majMiniTitre(); majSurbrillance();
+        $(`bv${i + 1}`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+      },
+      onFin: finDuChapitre,
+      onPause: (i) => { // pause demandée depuis la notification Android
+        if (moi !== S.jeton) return;
+        const reste = i >= 0 ? i + 1 : S.courant;
+        S.jeton += 1; S.ecoute = false; S.courant = null;
+        if (reste) { S.verset = reste; S.enPause = true; sauverPosition(); }
+        rendreBarre(); majSurbrillance(); majMini();
+      },
+      onErreur: (m) => { S.alerte = m; rendreBarre(); majMini(); },
+    });
+  } catch (e) { S.alerte = (e && e.message) || ""; S.ecoute = false; rendreBarre(); majMini(); }
+}
 async function lire(depuis) {
   if (!audioOk() || !S.versets.length) return;
   window.dispatchEvent(new Event("abba:voix-bible")); // les leçons lues à voix haute s'arrêtent
@@ -247,6 +282,7 @@ async function lire(depuis) {
   const livre = S.livre, chap = S.chap;
   const titre = `${nomLivre(livre)} ${chap}`;
   const details = infoV()?.nom || "Bible";
+  if (estNatif()) { await lireBibleNatif(depuis, liste, livre, chap, titre, details); return; }
   // doit être lancé tout de suite, pendant le geste de l'utilisateur
   arrierePlanDemarrer({
     titre, details,
@@ -357,7 +393,12 @@ async function verrouPrendre() {
   try { S.verrou = await navigator.wakeLock.request("screen"); S.verrou.addEventListener("release", () => { S.verrou = null; }); } catch { /* refusé */ }
 }
 function verrouLiberer() { if (S.verrou) { S.verrou.release().catch(() => {}); S.verrou = null; } }
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && S.ecoute) verrouPrendre(); });
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible" || !S.ecoute) return;
+  verrouPrendre();
+  // Navigateur : si le téléphone a coupé la voix (écran éteint, application quittée), la lecture reprend au verset où elle s'était arrêtée
+  if (!estNatif() && synthOk() && !window.speechSynthesis.speaking && !window.speechSynthesis.pending) lire(Math.max((S.courant || S.verset || 1) - 1, 0));
+});
 
 /* ---------- Téléchargement pour la lecture hors connexion ---------- */
 async function telechargerTout() {
@@ -460,6 +501,7 @@ function rendreOptions() {
     </label>
     <label class="bib-opt"><input type="checkbox" data-bib="enchainer" ${S.enchainer ? "checked" : ""}> <span>${T("Enchaîner les chapitres automatiquement", "Continue to the next chapter automatically")}</span></label>
     ${"wakeLock" in navigator ? `<label class="bib-opt"><input type="checkbox" data-bib="ecran" ${S.ecranAllume ? "checked" : ""}> <span>${T("Garder l'écran allumé pendant l'écoute", "Keep the screen on while listening")}</span></label>` : ""}
+    ${estNatif() ? `<div class="bib-opt"><button class="btn-secondary btn-compact" data-bib="batterie">🔋 ${T("Lecture écran éteint : régler la batterie", "Screen-off reading: battery settings")}</button></div>` : ""}
     <div class="bib-opt"><button class="btn-secondary btn-compact" data-bib="telecharger" ${dl.phase === "encours" ? "disabled" : ""}>⬇️ ${T("Télécharger les Bibles (lecture sans réseau, environ 16 Mo)", "Download the Bibles (read offline, about 16 MB)")}</button> <span class="small">${esc(statut)}</span></div>`;
 }
 function rendreTexte() {
@@ -650,6 +692,7 @@ function brancher() {
       case "precedent": precedent(); break;
       case "suivant": suivant(); break;
       case "telecharger": telechargerTout(); break;
+      case "batterie": try { reglagesBatterie().catch(() => {}); } catch { /* ignoré */ } break;
       default: break;
     }
   });
