@@ -631,5 +631,8 @@
 "Voir tous les versets": "See all the verses",
 "Revenir au texte lu": "Back to the text being read",
 "Sur iPhone, la lecture s'arrête quand l'écran s'éteint ou quand on quitte l'application ; elle reprendra ici à votre retour.": "On iPhone, reading stops when the screen turns off or when you leave the app; it will resume here when you come back.",
-"Lecture impossible.": "Playback impossible."
+"Lecture impossible.": "Playback impossible.",
+"Application Android": "Android app",
+"Installe l'application pour que la lecture à voix haute continue quand tu quittes l'application ou que l'écran s'éteint.": "Install the app so that audio reading keeps going when you leave the app or when the screen turns off.",
+"📲 Installer l'application Android →": "📲 Install the Android app →"
 }

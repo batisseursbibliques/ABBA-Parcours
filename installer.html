@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Installer ABBA Parcours (Android)</title>
+<style>
+  :root{--navy:#1c3d99;--gold:#c9a227;--cream:#faf6ee;--ink:#1d2433;--line:#e7dfcc}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--cream);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.55}
+  main{max-width:560px;margin:0 auto;padding:22px 18px 40px}
+  h1{font-size:1.5rem;margin:0 0 4px;color:var(--navy)}
+  .sub{color:#5b6475;margin:0 0 18px}
+  .dl{display:block;text-align:center;background:var(--navy);color:#fff;text-decoration:none;font-weight:700;font-size:1.1rem;padding:16px;border-radius:14px;margin:16px 0 6px}
+  .meta{text-align:center;font-size:.85rem;color:#5b6475;margin:0 0 22px}
+  ol{padding:0;margin:0;list-style:none;counter-reset:s}
+  li{counter-increment:s;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px 12px 50px;margin-bottom:10px;position:relative}
+  li::before{content:counter(s);position:absolute;left:12px;top:12px;width:28px;height:28px;border-radius:50%;background:var(--gold);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .note{background:#fff7e0;border:1px solid #ecd58a;border-radius:12px;padding:12px 14px;font-size:.92rem;margin-top:16px}
+  .lang{text-align:right;font-size:.85rem;margin-bottom:6px}
+  .lang a{color:var(--navy)}
+  [lang-only]{display:none}
+  html[lang="fr"] [lang-only="fr"],html[lang="en"] [lang-only="en"]{display:block}
+  html[lang="fr"] li[lang-only="fr"],html[lang="en"] li[lang-only="en"]{display:block}
+</style>
+</head>
+<body>
+<main>
+  <div class="lang"><a href="#" id="bascule">English</a></div>
+
+  <h1 lang-only="fr">📲 Installer ABBA Parcours</h1>
+  <h1 lang-only="en">📲 Install ABBA Parcours</h1>
+  <p class="sub" lang-only="fr">Pour écouter les leçons et la Bible même écran éteint ou quand vous quittez l'application. Pour téléphones Android.</p>
+  <p class="sub" lang-only="en">To listen to the lessons and the Bible even with the screen off or when you leave the app. For Android phones.</p>
+
+  <a class="dl" href="https://github.com/batisseursbibliques/abba-telechargements/raw/main/ABBA-Parcours.apk" download="ABBA-Parcours.apk">
+    <span lang-only="fr">⬇️ Télécharger l'application</span><span lang-only="en">⬇️ Download the app</span>
+  </a>
+  <p class="meta"><span lang-only="fr">Fichier ABBA-Parcours.apk · environ 4,5 Mo</span><span lang-only="en">File ABBA-Parcours.apk · about 4.5 MB</span></p>
+
+  <ol lang-only="fr">
+    <li><b>Touchez « Télécharger l'application »</b> ci-dessus et attendez la fin du téléchargement.</li>
+    <li><b>Ouvrez le fichier</b> ABBA-Parcours.apk (touchez la notification de téléchargement, ou ouvrez-le dans « Fichiers » → « Téléchargements »).</li>
+    <li>Si Android le demande, <b>autorisez l'installation depuis cette source</b>, puis touchez <b>Installer</b>. Si une alerte de sécurité (Play Protect) apparaît, touchez <b>Installer quand même</b> : l'application vient de l'équipe ABBA.</li>
+    <li><b>Ouvrez « ABBA Parcours »</b>, connectez-vous avec votre compte habituel et <b>acceptez les notifications</b>.</li>
+    <li>Pour que la lecture ne s'arrête jamais écran éteint : onglet <b>Bible → ⚙️ → 🔋</b>, puis autorisez l'application à ne pas être limitée par la batterie.</li>
+  </ol>
+  <ol lang-only="en">
+    <li><b>Tap “Download the app”</b> above and wait for the download to finish.</li>
+    <li><b>Open the file</b> ABBA-Parcours.apk (tap the download notification, or open it in “Files” → “Downloads”).</li>
+    <li>If Android asks, <b>allow installation from this source</b>, then tap <b>Install</b>. If a security warning (Play Protect) appears, tap <b>Install anyway</b>: the app comes from the ABBA team.</li>
+    <li><b>Open “ABBA Parcours”</b>, sign in with your usual account and <b>allow notifications</b>.</li>
+    <li>So that reading never stops with the screen off: <b>Bible tab → ⚙️ → 🔋</b>, then allow the app not to be limited by battery saving.</li>
+  </ol>
+
+  <div class="note" lang-only="fr"><b>iPhone ?</b> Cette application ne s'installe que sur Android. Sur iPhone, continuez dans le navigateur : la lecture reprendra où elle s'est arrêtée quand vous reviendrez dans l'application.</div>
+  <div class="note" lang-only="en"><b>iPhone?</b> This app only installs on Android. On iPhone, keep using the browser: reading will resume where it stopped when you come back to the app.</div>
+</main>
+<script>
+  (function () {
+    var lang = "fr";
+    try { lang = new URLSearchParams(location.search).get("lang") || localStorage.getItem("abba_lang") || "fr"; } catch (e) {}
+    function appliquer(l) { document.documentElement.lang = l === "en" ? "en" : "fr"; document.getElementById("bascule").textContent = l === "en" ? "Français" : "English"; }
+    appliquer(lang === "en" ? "en" : "fr");
+    document.getElementById("bascule").addEventListener("click", function (e) { e.preventDefault(); appliquer(document.documentElement.lang === "en" ? "fr" : "en"); });
+  })();
+</script>
+</body>
+</html>

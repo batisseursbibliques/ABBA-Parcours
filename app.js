@@ -94,6 +94,7 @@ let MY_GESTE = "";
 document.addEventListener("DOMContentLoaded", () => {
   setupTheme();
   setupTaille();
+  setupInstallCard();
   setupProtection();
   setupTabs();
   setupAuthScreen();
@@ -1392,4 +1393,14 @@ function setupProtection() {
     const s = window.getSelection && window.getSelection();
     if (dans(e.target) || (s && s.anchorNode && dans(s.anchorNode))) { e.preventDefault(); if (e.clipboardData) e.clipboardData.setData("text/plain", ""); }
   }, true));
+}
+
+
+/* Carte « Installer l'application Android » : seulement sur un téléphone Android, dans le navigateur (pas dans l'APK) */
+function setupInstallCard() {
+  const carte = document.getElementById("installAndroidCard");
+  if (!carte) return;
+  const android = /Android/i.test(navigator.userAgent);
+  const natif = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  carte.hidden = !(android && !natif);
 }
