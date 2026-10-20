@@ -644,7 +644,7 @@ async function onClick(e) {
   try {
     if (act === "open" && b.dataset.m === "autoeval" && !charteDone() && !autoevalDone()) { st.view = { mod: "charte", cs: 0 }; st.cache = {}; render(); window.scrollTo(0, 0); return; }
     if (act === "open-charte") { st.view = { mod: "charte", cs: 0 }; st.cache = {}; render(); window.scrollTo(0, 0); return; }
-    if (act === "charte-go") { st.view.cs = Number(b.dataset.i) || 0; render(); window.scrollTo(0, 0); return; }
+    if (act === "charte-go") { if (TTS.id && TTS.id.startsWith("charte:")) ttsStop(); st.view.cs = Number(b.dataset.i) || 0; render(); window.scrollTo(0, 0); return; }
     if (act === "charte-sign") return signCharte();
     if (act === "open" && b.dataset.m === "autoeval") { st.view = { mod: "autoeval", step: "fiche" }; st.cache = {}; render(); window.scrollTo(0, 0); return; }
     if (act === "open") { S().getMyLien(st.user.uid).then((l) => { st.lien = l; }); st.view = { mod: b.dataset.m, step: "lecture" }; st.cache = {}; st.qcmDraft = {}; render(); window.scrollTo(0, 0); return; }
@@ -787,7 +787,8 @@ function ttsOwnText(b) {
 function ttsBuildChunks(id) {
   const cont = ttsContainer(id), out = [];
   if (!cont) return ttsChunks(ttsText(id)).map((t) => ({ t, b: -1 }));
-  if (id !== "decl") { const [, mid, lid] = id.split(":"), c = st.content[mid], l = c && (c.lecons || []).find((x) => x.id === lid); if (l) out.push({ t: ttsClean(l.titre + "."), b: -1 }); }
+  if (id.startsWith("charte:")) { const e = charteEcran(id); if (e) out.push({ t: ttsClean(e.titre + "."), b: -1 }); }
+  else if (id !== "decl") { const [, mid, lid] = id.split(":"), c = st.content[mid], l = c && (c.lecons || []).find((x) => x.id === lid); if (l) out.push({ t: ttsClean(l.titre + "."), b: -1 }); }
   ttsBlocks(cont).forEach((b, k) => ttsChunks(ttsOwnText(b)).forEach((t) => out.push({ t, b: k })));
   return out;
 }
@@ -814,7 +815,10 @@ function ttsGoto() {
   if (!TTS.id) return;
   TTS.freeze = 0;
   if (TTS.id === "decl") document.querySelector('.tab[data-tab="declaration"]')?.click();
-  else {
+  else if (TTS.id.startsWith("charte:")) {
+    st.view = { mod: "charte", cs: Number(TTS.id.split(":")[1]) || 0 }; st.cache = {}; render();
+    document.querySelector('.tab[data-tab="parcours"]')?.click();
+  } else {
     const mid = TTS.id.split(":")[1];
     if (st.view.mod !== mid || st.view.step !== "lecture") { st.view = { mod: mid, step: "lecture" }; st.cache = {}; render(); }
     document.querySelector('.tab[data-tab="parcours"]')?.click();
@@ -853,7 +857,9 @@ function ttsSpeakNext() {
   u.onerror = (e) => { if (tok !== TTS.tok || (e && (e.error === "interrupted" || e.error === "canceled"))) return; TTS.i++; ttsSpeakNext(); };
   speechSynthesis.speak(u);
 }
+function charteEcran(id) { const c = st.content.charte; return c && c.ecrans ? c.ecrans[Number(id.split(":")[1])] : null; }
 function ttsText(id) {
+  if (id.startsWith("charte:")) { const e = charteEcran(id); return e ? e.titre + ". " + htmlToSpeech(e.html) : ""; }
   if (id === "decl") return ((st.decl || {}).paragraphes || []).map((p) => p.map((s) => s.t).join(" ")).join(" ").replace(/\{nom\}/g, declName());
   const [, mid, lid] = id.split(":");
   const c = st.content[mid], l = c && (c.lecons || []).find((x) => x.id === lid);
@@ -864,7 +870,7 @@ function ttsPlay(id) {
   ttsStop(false);
   window.dispatchEvent(new Event("abba:voix-lecon")); // la Bible lue à voix haute s'arrête
   TTS.tok++; TTS.id = id; TTS.msg = ""; TTS.chunks = ttsBuildChunks(id); TTS.i = 0; TTS.state = "play"; TTS.freeze = 0;
-  if (id === "decl") TTS.title = "Ma déclaration"; else { const [, mid, lid] = id.split(":"); const c = st.content[mid], l = c && (c.lecons || []).find((x) => x.id === lid); TTS.title = l ? l.titre : "Leçon"; }
+  if (id === "decl") TTS.title = "Ma déclaration"; else if (id.startsWith("charte:")) TTS.title = "Charte du Bâtisseur"; else { const [, mid, lid] = id.split(":"); const c = st.content[mid], l = c && (c.lecons || []).find((x) => x.id === lid); TTS.title = l ? l.titre : "Leçon"; }
   if (estIOS() && !estNatif()) TTS.msg = "Sur iPhone, la lecture s'arrête quand l'écran s'éteint ou quand on quitte l'application ; elle reprendra ici à votre retour.";
   updateTtsUi(); ttsSpeakNext(); wakeAcquire();
 }
@@ -1095,8 +1101,12 @@ function renderTasks() {
 
 /* ---------- Charte du Bâtisseur ---------- */
 const charteDone = () => !!(st.prog.charte && st.prog.charte.done);
+const charteDate = (ms) => new Date(ms).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 function renderCharteCard() {
-  if (charteDone()) return `<div class="fm-auto done"><p class="eyebrow">✅ Charte du Bâtisseur signée</p><button class="btn-secondary" data-act="open-charte">Relire la Charte</button></div>`;
+  if (charteDone()) {
+    const at = toMs(st.prog.charte.doneAt);
+    return `<div class="fm-auto done"><p class="eyebrow">✅ Charte du Bâtisseur signée</p>${at ? `<p class="small">Signée le ${esc(charteDate(at))}.</p>` : ""}<button class="btn-secondary" data-act="open-charte">Relire pour me rappeler mon engagement</button></div>`;
+  }
   if (autoevalDone()) return `<div class="fm-auto"><p class="eyebrow">Charte du Bâtisseur</p><p class="small">Tes engagements, tes habitudes de chaque jour et ce que ton correcteur attend de toi. Quatre écrans, dix minutes.</p><button class="btn-primary" data-act="open-charte">Lire et signer la Charte</button></div>`;
   return `<div class="fm-auto"><p class="eyebrow">Première étape</p><p class="small">Avant de commencer, lis la Charte du Bâtisseur : tes engagements, tes habitudes de chaque jour et ce que ton correcteur attend de toi. Quatre écrans, dix minutes.</p><button class="btn-primary" data-act="open-charte">Lire la Charte →</button></div>`;
 }
@@ -1108,6 +1118,7 @@ function renderCharte() {
   const n = c.ecrans.length, i = Math.min(Math.max(Number(st.view.cs) || 0, 0), n - 1), e = c.ecrans[i], done = charteDone();
   if (st.msg) h += `<p class="fm-msg">${esc(st.msg)}</p>`;
   h += `<p class="eyebrow">Écran ${i + 1} sur ${n}</p><h3 class="fm-h">${esc(e.titre)}</h3>`;
+  h += `<div class="fm-tts" data-ttsbar="charte:${i}">${ttsBar(`charte:${i}`)}</div>`;
   h += window.AbbaVersets ? window.AbbaVersets.lier(e.html, "charte") : e.html;
   h += '<div class="fm-nav">';
   if (i > 0) h += `<button class="btn-secondary" data-act="charte-go" data-i="${i - 1}">← Précédent</button>`;
@@ -1116,7 +1127,7 @@ function renderCharte() {
   if (i === n - 1) {
     if (done) {
       const at = toMs(st.prog.charte.doneAt);
-      h += `<p class="fm-status validated">Charte signée${at ? " le " + new Date(at).toLocaleDateString("fr-FR") : ""} ✅</p><button class="btn-primary full" data-act="back">Continuer mon parcours →</button>`;
+      h += `<p class="fm-status validated">Charte signée${at ? " le " + charteDate(at) : ""} ✅</p><button class="btn-primary full" data-act="back">Continuer mon parcours →</button>`;
     } else {
       h += `<button class="btn-primary full" data-act="charte-sign">✍ ${esc(c.engagement)}</button>`;
     }
@@ -1128,7 +1139,7 @@ async function startJournee() {
 }
 async function signCharte() {
   if (!st.user || charteDone()) return;
-  await S().saveModulePart(st.user.uid, "charte", { done: true, doneAt: new Date().toISOString(), version: 1 });
+  await S().saveModulePart(st.user.uid, "charte", { done: true, doneAt: new Date().toISOString() });
   await startJournee();
   await startDeclaration();
   st.msg = "Charte signée. Ta checklist « Ma journée » et ta déclaration t’attendent chaque jour sur ton accueil.";
