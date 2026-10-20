@@ -62,9 +62,9 @@ function stop() {
   unsubs = [];
   if (st.adm && st.adm.unsub) { try { st.adm.unsub(); } catch (e) {} }
   st.adm = { open: false, correcteurs: [], liens: [], students: [], loaded: false };
-  st.user = null; st.meta = {}; st.prog = {}; st.suivis = {}; st.zp.plan = {}; st.binome = { pair: null, last: "" }; st.loaded = { prog: false, meta: false }; st.parcours = []; st.lien = null;
+  st.user = null; st.meta = {}; st.prog = {}; st.suivis = {}; st.indispos = {}; st.indForm = false; st.zp.plan = {}; st.binome = { pair: null, last: "" }; st.loaded = { prog: false, meta: false }; st.parcours = []; st.lien = null;
   st.isAdmin = false; st.isCorrecteur = false; st.view = { mod: null, step: "lecture" };
-  render();
+  render(); renderIndispo();
 }
 async function start(user) {
   stop();
@@ -92,6 +92,7 @@ async function start(user) {
   loadZonesContent();
   loadDeclContent();
   unsubs.push(S().watchSuivis(user.uid, (m) => { st.suivis = m || {}; render(); }));
+  unsubs.push(S().watchIndispos(user.uid, (m) => { st.indispos = m || {}; renderIndispo(); render(); }));
   unsubs.push(S().watchParcours(user.uid, (l) => { st.parcours = l || []; afterProgress(); }));
   render();
 }
@@ -647,6 +648,7 @@ async function onClick(e) {
     if (act === "open-charte") { st.view = { mod: "charte", cs: 0 }; st.cache = {}; render(); window.scrollTo(0, 0); return; }
     if (act === "charte-go") { if (TTS.id && TTS.id.startsWith("charte:")) ttsStop(); st.view.cs = Number(b.dataset.i) || 0; render(); window.scrollTo(0, 0); return; }
     if (act === "charte-sign") return signCharte();
+    if (act === "ind-vu") { await S().updateIndispo(b.dataset.uid, b.dataset.id, { vu: { par: st.user.email, at: new Date().toISOString() } }); return loadCorrections(); }
     if (act === "open" && b.dataset.m === "autoeval") { st.view = { mod: "autoeval", step: "fiche" }; st.cache = {}; render(); window.scrollTo(0, 0); return; }
     if (act === "open") { S().getMyLien(st.user.uid).then((l) => { st.lien = l; }); st.view = { mod: b.dataset.m, step: "lecture" }; st.cache = {}; st.qcmDraft = {}; render(); window.scrollTo(0, 0); return; }
     if (act === "goto-zones") { const t = document.querySelector('.tab[data-tab="caractere"]'); if (t) t.click(); return; }
@@ -1100,6 +1102,83 @@ function renderTasks() {
   box.innerHTML = h + "</div>";
 }
 
+/* ---------- Indisponibilité signalée ---------- */
+function addDays(str, n) { const [y, m, d] = str.split("-").map(Number); const t = new Date(Date.UTC(y, m - 1, d + n)); return `${t.getUTCFullYear()}-${pad2(t.getUTCMonth() + 1)}-${pad2(t.getUTCDate())}`; }
+const indDate = (str) => { if (!str) return ""; const [y, m, d] = str.split("-").map(Number); return new Date(y, m - 1, d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }); };
+function indList(map) { return Object.entries(map || {}).map(([id, v]) => ({ id, ...v })).filter((v) => !v.annule && v.debut).sort((a, b) => b.debut.localeCompare(a.debut)); }
+function indLast(v) { if (v.repriseLe) return addDays(String(v.repriseLe).slice(0, 10), -1); return v.finInconnue ? null : (v.fin || null); }
+function indOff(list, day) { return list.some((v) => { const l = indLast(v); return v.debut <= day && (l === null || l >= day); }); }
+function indQuand(v) {
+  const t = todayStr(), l = indLast(v);
+  if (v.debut > t) return l === null ? `À venir : à partir du ${indDate(v.debut)} (fin inconnue)` : `À venir : du ${indDate(v.debut)} au ${indDate(l)}`;
+  return l === null ? `Depuis le ${indDate(v.debut)}, fin inconnue` : `Du ${indDate(v.debut)} au ${indDate(l)}`;
+}
+function indSummary(off) {
+  const t = todayStr(), vivant = (v) => { const l = indLast(v); return l === null || l >= t; };
+  const act = off.find((v) => v.debut <= t && vivant(v));
+  return {
+    actif: !!act, aVenir: off.some((v) => v.debut > t && vivant(v)), nonVu: off.some((v) => !v.vu && vivant(v)),
+    finInconnue: act ? indLast(act) === null : false, fin: act ? indLast(act) : null, jours: act ? dayNum(t) - dayNum(act.debut) + 1 : 0,
+    liste: off.slice(0, 5).map((v) => ({ id: v.id, debut: v.debut, fin: indLast(v), motif: v.motif || "", vu: v.vu ? String(v.vu.at || "") : "", vivant: vivant(v), texte: indQuand(v) })),
+  };
+}
+function renderIndispo() {
+  const box = $("dashIndispo");
+  if (!box) return;
+  if (!st.user) { box.innerHTML = ""; return; }
+  const t = todayStr(), off = indList(st.indispos);
+  const cur = off.filter((v) => { const l = indLast(v); return l === null || l >= t; });
+  const past = off.filter((v) => { const l = indLast(v); return l !== null && l < t; });
+  let h = '<p class="eyebrow">Indisponibilité</p>';
+  if (!cur.length && !st.indForm) h += '<p class="settings-hint">Malade, en déplacement, ou une autre raison t’empêche de suivre le parcours pour un temps : préviens ton correcteur ici.</p>';
+  cur.forEach((v) => {
+    h += `<div class="ind-item"><p><strong>⏸ ${esc(indQuand(v))}</strong></p><p class="small">${esc(v.motif || "")}</p>
+      <p class="small">${v.vu ? "✓ Pris en compte" + (v.vu.at ? " le " + esc(indDate(String(v.vu.at).slice(0, 10))) : "") : "Pas encore lu par ton correcteur."}</p>
+      <button class="btn-secondary" data-ind="${v.debut > t ? "annuler" : "reprise"}" data-id="${v.id}">${v.debut > t ? "Annuler ce signalement" : "J’ai repris le parcours"}</button></div>`;
+  });
+  if (st.indForm) {
+    h += `<div class="ind-form">
+      <label for="indDebut">Date de début</label><input type="date" id="indDebut" class="text-input" value="${t}">
+      <label class="fm-check"><input type="checkbox" id="indInconnue"><span>Je ne sais pas quand je pourrai reprendre</span></label>
+      <div id="indFinWrap"><label for="indFin">Date de fin</label><input type="date" id="indFin" class="text-input" min="${t}"></div>
+      <label for="indMotif">Explique ta situation</label><textarea id="indMotif" class="text-input" rows="4" maxlength="1000" placeholder="Maladie, déplacement, deuil, travail… Dis ce que tu veux bien partager."></textarea>
+      <p class="small">Ton correcteur et les coordinateurs verront ce message.</p>
+      <p class="ind-err" id="indMsg"></p>
+      <button class="btn-primary full" data-ind="envoyer">Envoyer</button> <button class="btn-secondary" data-ind="fermer">Fermer</button></div>`;
+  } else {
+    h += '<button class="btn-secondary" data-ind="ouvrir">Signaler une indisponibilité</button>';
+  }
+  if (past.length) h += `<details class="fm-lecon"><summary>Mes indisponibilités passées (${past.length})</summary><div class="fm-texte">${past.map((v) => `<p>${esc(indQuand(v))}<br><span class="small">${esc(v.motif || "")}</span></p>`).join("")}</div></details>`;
+  box.innerHTML = h;
+}
+async function indEnvoyer() {
+  const g = (id) => ($(id) || {}).value || "", say = (m) => { const e = $("indMsg"); if (e) e.textContent = m; };
+  const debut = g("indDebut"), inc = !!($("indInconnue") || {}).checked, fin = g("indFin"), motif = g("indMotif").trim();
+  if (!debut) return say("Choisis la date de début.");
+  if (!inc && !fin) return say("Choisis la date de fin, ou coche « Je ne sais pas quand je pourrai reprendre ».");
+  if (!inc && fin < debut) return say("La date de fin doit être après la date de début.");
+  if (motif.length < 10) return say("Explique ta situation en quelques mots (10 caractères au moins).");
+  say("");
+  await S().addIndispo(st.user.uid, { debut, ...(inc ? { finInconnue: true } : { fin, finInconnue: false }), motif, creeLe: new Date().toISOString() });
+  st.indForm = false;
+  renderIndispo();
+}
+async function indAction(e) {
+  const b = e.target.closest("[data-ind]");
+  if (!b || !st.user) return;
+  const a = b.dataset.ind;
+  try {
+    if (a === "ouvrir") { st.indForm = true; renderIndispo(); return; }
+    if (a === "fermer") { st.indForm = false; renderIndispo(); return; }
+    if (a === "envoyer") { await indEnvoyer(); return; }
+    if (a === "reprise") { await S().updateIndispo(st.user.uid, b.dataset.id, { repriseLe: todayStr() }); return; }
+    if (a === "annuler") { await S().updateIndispo(st.user.uid, b.dataset.id, { annule: true }); return; }
+  } catch (err) { const m = $("indMsg"); if (m) m.textContent = "Impossible d’enregistrer : " + (err.code || err.message); else alert("Impossible d’enregistrer : " + (err.code || err.message)); }
+}
+function indChange(e) {
+  if (e.target && e.target.id === "indInconnue") { const w = $("indFinWrap"); if (w) w.style.display = e.target.checked ? "none" : ""; }
+}
+
 /* ---------- Charte du Bâtisseur ---------- */
 const charteDone = () => !!(st.prog.charte && st.prog.charte.done);
 const charteDate = (ms) => new Date(ms).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
@@ -1157,7 +1236,8 @@ function renderJourneeCard() {
   h += `<div class="jour-today">${labels.map((lb, i) => `<button class="decl-slot jour-slot ${today.includes(i) ? "on" : ""}" data-decl="tick" data-key="${JOUR_KEY}" data-slot="${i}"><span>${today.includes(i) ? "✓" : "○"}</span>${esc(lb)}</button>`).join("")}</div>`;
   const tenu = (d) => (done[String(d)] || []).length >= JOUR_MIN;
   let streak = 0;
-  for (let d = idx; d >= 1; d--) { if (tenu(d)) streak++; else if (d === idx) continue; else break; }
+  const offJ = indList(st.indispos);
+  for (let d = idx; d >= 1; d--) { if (offJ.length && indOff(offJ, addDays(sv.start, d - 1))) continue; if (tenu(d)) streak++; else if (d === idx) continue; else break; }
   let dots = "";
   for (let d = Math.max(1, idx - 6); d <= idx; d++) { const n = (done[String(d)] || []).length; dots += `<span class="decl-dot ${tenu(d) ? "full" : n ? "half" : ""} ${d === idx ? "now" : ""}" title="${fmtDate(sv.start, d)}"></span>`; }
   h += `<div class="decl-stats"><span class="decl-dots">${dots}</span>${streak >= 2 ? `<span class="small">🔥 ${streak} jours de suite</span>` : ""}</div>`;
@@ -1313,6 +1393,8 @@ function renderCorrCard() {
   if (st.corr.rows == null) return h + '<p class="settings-hint">Chargement…</p></div>';
   const pend = st.corr.rows.filter((r) => r.doc.ficheStatus === "submitted");
   if (!pend.length) h += '<p class="settings-hint">Aucune fiche en attente.</p>';
+  const inds = st.corr.ind || [];
+  if (inds.length) h += '<p class="eyebrow" style="margin-top:12px;">Indisponibilités signalées</p>' + inds.map((v) => `<div class="ind-item"><p><strong>${esc(v.nom)}</strong> — ${esc(indQuand(v))}</p><p class="small">${esc(v.motif || "")}</p>${v.vu ? '<p class="small">✓ Pris en compte</p>' : `<button class="btn-secondary" data-act="ind-vu" data-uid="${v.uid}" data-id="${v.id}">Pris en compte</button>`}</div>`).join("");
   pend.forEach((r, i) => { h += renderCorrRow(r, i); });
   const hist = st.corr.rows.filter((r) => r.doc.ficheStatus !== "submitted");
   if (hist.length) h += '<p class="eyebrow" style="margin-top:14px;">Déjà traitées</p>' + hist.map((r) => `<p class="small">${esc(r.nom)} — ${esc(modTitle(MODULES.find((m) => m.id === r.mid)))} : ${statusLabel(r.doc.ficheStatus)}</p>`).join("");
@@ -1323,7 +1405,12 @@ async function loadCorrections() {
   try {
     const liens = st.isAdmin ? await S().loadAllLiens() : await S().loadMyStudents(st.user.email);
     const rows = [];
+    st.corr.ind = [];
     for (const l of liens) {
+      try {
+        const iv = await S().loadStudentIndispos(l.uid || l.id), t0 = todayStr();
+        indList(iv).filter((v) => { const x = indLast(v); return x === null || x >= t0; }).forEach((v) => st.corr.ind.push({ ...v, uid: l.uid || l.id, nom: l.nom || l.email || "" }));
+      } catch (e) {}
       let mods = {};
       let sv = {};
       try { mods = await S().loadStudentModules(l.uid || l.id); } catch (e) {}
@@ -1496,6 +1583,8 @@ function boot() {
   const dr = $("declRoot");
   if (dr) { dr.addEventListener("click", declAction); dr.addEventListener("click", ttsEvent); dr.addEventListener("change", ttsEvent); }
   if (dt) dt.addEventListener("click", declAction);
+  const di = $("dashIndispo");
+  if (di) { di.addEventListener("click", indAction); di.addEventListener("change", indChange); }
   root.addEventListener("click", ttsEvent);
   root.addEventListener("change", ttsEvent);
   window.addEventListener("pagehide", () => ttsStop(false));
@@ -1513,20 +1602,23 @@ if (window.AbbaSync) boot(); else window.addEventListener("load", boot);
 
 /* ---------- Coordination : travail réel d'un Bâtisseur (lecture seule) ---------- */
 const toMs = (x) => { if (!x) return 0; if (typeof x.toMillis === "function") return x.toMillis(); if (typeof x.seconds === "number") return x.seconds * 1000; const t = Date.parse(x); return isNaN(t) ? 0 : t; };
-function declStats(sv, min) {
+function declStats(sv, min, off) {
   if (!sv) return null;
   const n = min || (sv.labels || ["Matin", "Soir"]).length, idx = dayIndex(sv.start), done = sv.done || {};
   const full = (d) => (done[String(d)] || []).length >= n;
+  const skip = (d) => !!(off && off.length && indOff(off, addDays(sv.start, d - 1)));
   let ok = 0, tot = 0, streak = 0;
-  for (let d = Math.max(1, idx - 6); d <= idx; d++) { if (d === idx && !full(d)) continue; tot++; if (full(d)) ok++; }
-  for (let d = idx; d >= 1; d--) { if (full(d)) streak++; else if (d === idx) continue; else break; }
+  for (let d = Math.max(1, idx - 6); d <= idx; d++) { if (skip(d)) continue; if (d === idx && !full(d)) continue; tot++; if (full(d)) ok++; }
+  for (let d = idx; d >= 1; d--) { if (skip(d)) continue; if (full(d)) streak++; else if (d === idx) continue; else break; }
   return { ok, tot, streak, idx };
 }
 async function coordAnalyse(uid) {
-  const [prog, suivis, meta] = await Promise.all([
+  const [prog, suivis, meta, indisRaw] = await Promise.all([
     S().loadStudentModules(uid), S().loadStudentSuivis(uid),
     new Promise((res) => { const u = S().watchFormationMeta(uid, (m) => { try { u(); } catch (e) {} res(m || {}); }); }),
+    S().loadStudentIndispos(uid).catch(() => ({})),
   ]);
+  const off = indList(indisRaw);
   const mods = MODULES.filter((m) => m.ready);
   await Promise.all(mods.map((m) => loadContent(m.id)));
   const acq = meta.acquis || [];
@@ -1565,7 +1657,7 @@ async function coordAnalyse(uid) {
   });
   return {
     modules: rows, current: cur, valides: rows.filter((r) => r.complete).length, total: rows.length,
-    decl: declStats(suivis[DECL_KEY]), journee: declStats(suivis[JOUR_KEY], JOUR_MIN), charte: (prog.charte && prog.charte.done) ? (toMs(prog.charte.doneAt) || 1) : 0, enCours, bloque: meta.bloque && meta.bloque.actif ? meta.bloque : null, lastMs: last, refMs: ref,
+    decl: declStats(suivis[DECL_KEY], 0, off), journee: declStats(suivis[JOUR_KEY], JOUR_MIN, off), indispo: indSummary(off), charte: (prog.charte && prog.charte.done) ? (toMs(prog.charte.doneAt) || 1) : 0, enCours, bloque: meta.bloque && meta.bloque.actif ? meta.bloque : null, lastMs: last, refMs: ref,
     autoeval: !!(meta.autoevalFaite || (prog.autoeval && prog.autoeval.done)),
   };
 }

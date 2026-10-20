@@ -147,6 +147,21 @@ service cloud.firestore {
           || isAdmin();
         allow delete: if isAdmin();
       }
+
+      // Indisponibilités signalées par l'élève (maladie, déplacement…) : visibles par lui, son correcteur et les coordinateurs
+      match /indispos/{iid} {
+        allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid) || isCorrecteurOf(uid);
+        allow create: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['debut','fin','finInconnue','motif','creeLe','updatedAt'])
+          && request.resource.data.motif is string
+          && request.resource.data.motif.size() >= 10 && request.resource.data.motif.size() <= 2000;
+        // L'élève met fin ou annule ; le correcteur ou le coordinateur marque seulement « pris en compte »
+        allow update: if (request.auth != null && request.auth.uid == uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fin','finInconnue','repriseLe','annule','updatedAt']))
+          || ((isAdmin() || isCorrecteurOf(uid))
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['vu','updatedAt']));
+        allow delete: if isAdmin();
+      }
     }
   }
 }

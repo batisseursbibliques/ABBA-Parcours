@@ -470,6 +470,11 @@ function absencesDeSuite(uid) {
 function alertesDe(r) {
   const a = r.a, out = [];
   if (!a) return out;
+  if (a.indispo && a.indispo.nonVu) out.push("indisponibilité signalée, pas encore prise en compte");
+  if (a.indispo && a.indispo.actif) {
+    if (a.indispo.finInconnue && a.indispo.jours >= 14) out.push(`indisponible depuis ${a.indispo.jours} jours, fin inconnue`);
+    return out;
+  }
   const d = joursDepuis(a.lastMs);
   if (d !== null && d >= 7) out.push(`sans activité depuis ${d} jours`);
   a.modules.forEach(m => {
@@ -498,6 +503,7 @@ function detailEleve(r) {
   if (a.journee) h += `<p class="small"><strong>Ma journée</strong> : ${a.journee.ok}/${a.journee.tot} jours tenus sur les 7 derniers (4 cases sur 5 ou plus)${a.journee.streak >= 2 ? ` · 🔥 ${a.journee.streak} jours de suite` : ""}</p>`;
   else h += `<p class="small"><strong>Ma journée</strong> : pas commencée</p>`;
   h += `<p class="small"><strong>Charte</strong> : ${a.charte ? "signée" + (a.charte > 1 ? " le " + new Date(a.charte).toLocaleDateString("fr-FR") : "") : "pas encore signée"}</p>`;
+  if (a.indispo && a.indispo.liste.length) h += `<div class="small"><strong>Indisponibilités signalées</strong>${a.indispo.liste.map(v => `<p>${v.vivant ? "⏸ " : ""}${escC(v.texte)}<br>${escC(v.motif)}<br>${v.vu ? "✓ Pris en compte" : `<button class="btn-secondary" data-indvu="${v.id}">Pris en compte</button>`}</p>`).join("")}</div>`;
   h += `<p class="small"><strong>Correcteur</strong> : ${escC(r.correcteur || "non attribué")}</p>`;
   if (a.bloque) h += `<div class="coord-bloc"><p class="small" style="color:#b3261e"><strong>Parcours bloqué</strong>${a.bloque.motif ? " — " + escC(a.bloque.motif) : ""}</p><button class="btn-secondary" data-bloc="off">Débloquer le Parcours</button></div>`;
   else h += `<div class="coord-bloc"><input type="text" class="text-input" data-bloc-motif placeholder="Motif (ex. absent à la présentielle sans excuse)"><button class="btn-secondary" data-bloc="on">Bloquer l'accès au Parcours</button></div>`;
@@ -536,7 +542,7 @@ async function renderCoordModules() {
       const tr = document.createElement("tr");
       tr.className = "coord-row";
       tr.innerHTML = `
-        <td>${r.alertes.length ? "⚠ " : ""}${escC(r.nom || r.email || "—")}<small>${escC(r.telephone || "")}</small>${a && a.bloque ? '<small class="warn">🔒 Parcours bloqué</small>' : ""}</td>
+        <td>${r.alertes.length ? "⚠ " : ""}${escC(r.nom || r.email || "—")}<small>${escC(r.telephone || "")}</small>${a && a.bloque ? '<small class="warn">🔒 Parcours bloqué</small>' : ""}${a && a.indispo && a.indispo.actif ? `<small class="warn">⏸ Indisponible${a.indispo.finInconnue ? ", fin inconnue" : a.indispo.fin ? " jusqu'au " + a.indispo.fin.split("-").reverse().join("/") : ""}</small>` : ""}</td>
         <td>${a ? `<b>${a.valides}/${a.total}</b><small>${escC(etapeTexte(a))}</small>` : "—"}</td>
         <td>${decl}${jour}</td>
         <td>${presPct}</td>
@@ -546,6 +552,12 @@ async function renderCoordModules() {
       det.innerHTML = `<td colspan="5">${detailEleve(r)}</td>`;
       tr.addEventListener("click", () => { const open = det.style.display === "none"; det.style.display = open ? "" : "none"; if (open) COORD_OPEN.add(r.uid); else COORD_OPEN.delete(r.uid); });
       det.addEventListener("click", async (ev) => {
+        const vu = ev.target.closest("[data-indvu]");
+        if (vu) {
+          try { await window.AbbaSync.updateIndispo(r.uid, vu.dataset.indvu, { vu: { par: CURRENT_USER.email, at: new Date().toISOString() } }); renderCoordModules(); }
+          catch (e) { alert("Impossible d'enregistrer : " + (e.code || e.message)); }
+          return;
+        }
         const b = ev.target.closest("[data-bloc]");
         if (!b) return;
         const on = b.dataset.bloc === "on", nom = r.nom || r.email;

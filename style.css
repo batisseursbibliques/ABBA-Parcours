@@ -886,3 +886,11 @@ html.i18n-wait body{visibility:hidden;}
 .fm-nav .btn-primary,.fm-nav .btn-secondary{flex:1;}
 .diag-out{white-space:pre-wrap;word-break:break-word;font-size:12px;line-height:1.5;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px;margin:10px 0 0;min-height:0;}
 .diag-out:empty{display:none;}
+
+/* Indisponibilité signalée */
+.ind-item{border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;margin:10px 0;}
+.ind-item p{margin:4px 0;}
+.ind-form label{display:block;margin:12px 0 4px;font-weight:600;}
+.ind-form .fm-check{display:flex;font-weight:400;}
+.ind-form .text-input{width:100%;box-sizing:border-box;}
+.ind-err{color:#b3261e;font-size:14px;min-height:18px;margin:6px 0;}
