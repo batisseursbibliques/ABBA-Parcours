@@ -747,6 +747,7 @@ const ttsOk = () => estNatif() || ("speechSynthesis" in window && "SpeechSynthes
 const webCancel = () => { if ("speechSynthesis" in window) speechSynthesis.cancel(); };
 const estIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 function ttsVoice() {
+  if (!("speechSynthesis" in window)) return null;
   const vs = speechSynthesis.getVoices() || [];
   const want = window.I18N && window.I18N.lang === "en" ? "en" : "fr";
   const fr = vs.filter((v) => (v.lang || "").toLowerCase().startsWith(want));
@@ -1589,7 +1590,7 @@ function boot() {
   root.addEventListener("change", ttsEvent);
   window.addEventListener("pagehide", () => ttsStop(false));
   window.addEventListener("abba:voix-bible", () => ttsStop(true));
-  if (ttsOk() && speechSynthesis.addEventListener) speechSynthesis.addEventListener("voiceschanged", () => {});
+  if ("speechSynthesis" in window && speechSynthesis.addEventListener) speechSynthesis.addEventListener("voiceschanged", () => {});
   const zr = $("zonesPlanRoot");
   if (zr) {
     zr.addEventListener("change", (e) => { if (e.target.dataset && e.target.dataset.zp === "choisir") zpAction(e).catch((err) => console.error(err)); });
