@@ -475,6 +475,7 @@ function alertesDe(r) {
     if (m.fiche === "submitted" && m.submittedAt && joursDepuis(m.submittedAt) >= 3) out.push(`fiche du module ${m.n} en attente de correction depuis ${joursDepuis(m.submittedAt)} jours`);
   });
   if (a.decl && a.decl.idx >= 7 && a.decl.ok < 4) out.push(`déclaration faite ${a.decl.ok} jour(s) sur ${a.decl.tot}`);
+  if (a.journee && a.journee.idx >= 7 && a.journee.ok < 4) out.push(`« Ma journée » tenue ${a.journee.ok} jour(s) sur ${a.journee.tot}`);
   if (absencesDeSuite(r.uid)) out.push("absent aux deux dernières séances");
   if (a.current && a.refMs && joursDepuis(a.refMs) >= 21 && a.current.started) out.push(`bloqué sur le module ${a.current.n} depuis plus de 3 semaines`);
   if (a.current && a.current.qcm && !a.current.qcm.ok && a.current.qcm.essais >= 3) out.push(`questions du module ${a.current.n} ratées ${a.current.qcm.essais} fois`);
@@ -493,6 +494,9 @@ function detailEleve(r) {
   if (a.enCours.length) h += `<p class="small"><strong>Suivis en cours</strong><br>${a.enCours.map(e => `${escC(e.titre)} : jour ${e.jour}/${e.jours}${e.rates ? `, ${e.rates} jour(s) raté(s)` : ""}`).join("<br>")}</p>`;
   if (a.decl) h += `<p class="small"><strong>Déclaration</strong> : ${a.decl.ok}/${a.decl.tot} jours sur les 7 derniers${a.decl.streak >= 2 ? ` · 🔥 ${a.decl.streak} jours de suite` : ""}</p>`;
   else h += `<p class="small"><strong>Déclaration</strong> : pas commencée</p>`;
+  if (a.journee) h += `<p class="small"><strong>Ma journée</strong> : ${a.journee.ok}/${a.journee.tot} jours tenus sur les 7 derniers (4 cases sur 5 ou plus)${a.journee.streak >= 2 ? ` · 🔥 ${a.journee.streak} jours de suite` : ""}</p>`;
+  else h += `<p class="small"><strong>Ma journée</strong> : pas commencée</p>`;
+  h += `<p class="small"><strong>Charte</strong> : ${a.charte ? "signée" + (a.charte > 1 ? " le " + new Date(a.charte).toLocaleDateString("fr-FR") : "") : "pas encore signée"}</p>`;
   h += `<p class="small"><strong>Correcteur</strong> : ${escC(r.correcteur || "non attribué")}</p>`;
   if (a.bloque) h += `<div class="coord-bloc"><p class="small" style="color:#b3261e"><strong>Parcours bloqué</strong>${a.bloque.motif ? " — " + escC(a.bloque.motif) : ""}</p><button class="btn-secondary" data-bloc="off">Débloquer le Parcours</button></div>`;
   else h += `<div class="coord-bloc"><input type="text" class="text-input" data-bloc-motif placeholder="Motif (ex. absent à la présentielle sans excuse)"><button class="btn-secondary" data-bloc="on">Bloquer l'accès au Parcours</button></div>`;
@@ -527,12 +531,13 @@ async function renderCoordModules() {
       const presPct = marquees > 0 ? `${Math.round((presentes / marquees) * 100)}%` : "—";
       const a = r.a, d = a ? joursDepuis(a.lastMs) : null;
       const decl = a && a.decl ? `${a.decl.ok}/${a.decl.tot}${a.decl.streak >= 2 ? `<small>🔥${a.decl.streak}</small>` : ""}` : "—";
+      const jour = a && a.journee ? `<small>Jour. ${a.journee.ok}/${a.journee.tot}</small>` : "";
       const tr = document.createElement("tr");
       tr.className = "coord-row";
       tr.innerHTML = `
         <td>${r.alertes.length ? "⚠ " : ""}${escC(r.nom || r.email || "—")}<small>${escC(r.telephone || "")}</small>${a && a.bloque ? '<small class="warn">🔒 Parcours bloqué</small>' : ""}</td>
         <td>${a ? `<b>${a.valides}/${a.total}</b><small>${escC(etapeTexte(a))}</small>` : "—"}</td>
-        <td>${decl}</td>
+        <td>${decl}${jour}</td>
         <td>${presPct}</td>
         <td class="${d !== null && d >= 7 ? "warn" : ""}">${a ? activiteTexte(a.lastMs) : "—"}</td>`;
       const det = document.createElement("tr");

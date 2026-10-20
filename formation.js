@@ -33,6 +33,10 @@ const dayIndex = (start) => dayNum(todayStr()) - dayNum(start) + 1; // 1 = jour 
 const fmtDate = (start, k) => { const [y, m, d] = start.split("-").map(Number); const dt = new Date(Date.UTC(y, m - 1, d + k - 1)); return `${pad2(dt.getUTCDate())}/${pad2(dt.getUTCMonth() + 1)}`; };
 const suiviKey = (mid, exId, fid) => `${mid}_${exId}_${fid}`;
 const DECL_KEY = "declaration";
+const JOUR_KEY = "journee";
+const JOUR_LABELS = ["Prière du matin", "Prière de l’après-midi", "Prière du soir", "Lecture de la Bible", "Bilan du soir et plan du lendemain"];
+const JOUR_MIN = 4;
+const isPerm = (k) => k === DECL_KEY || k === JOUR_KEY;
 // Texte brut → HTML sûr, avec les références bibliques rendues cliquables (exercices uniquement, pas les questions)
 const escV = (t) => (window.AbbaVersets ? window.AbbaVersets.lierTexte(t) : esc(t));
 const htmlV = (h) => (window.AbbaVersets ? window.AbbaVersets.lier(h, "ex") : h);
@@ -118,7 +122,7 @@ async function fetchContent(name) {
 }
 async function loadContent(mid) {
   if (st.content[mid]) return st.content[mid];
-  const file = mid === "autoeval" ? "autoeval" : "m" + String(mid.slice(1)).padStart(2, "0");
+  const file = mid === "autoeval" || mid === "charte" ? mid : "m" + String(mid.slice(1)).padStart(2, "0");
   try {
     const en = window.I18N && window.I18N.lang === "en";
     let r = en ? await fetch(`content/en/${file}.json`).catch(() => null) : null;
@@ -413,6 +417,7 @@ function render() {
   let h = "";
   if (isBlocked()) h += renderBlocked();
   else if (st.view.mod === "autoeval") h += renderAutoeval();
+  else if (st.view.mod === "charte") h += renderCharte();
   else if (st.view.mod) h += renderModuleView();
   else h += renderModuleList();
   if (st.isCorrecteur || st.isAdmin) h += renderCorrCard();
@@ -441,6 +446,7 @@ function renderModuleList() {
     <p class="settings-hint">${faits}/${MODULES.length} modules validés. Pour passer au module suivant : lis le manuel, réponds aux questions, fais les exercices, puis envoie ta fiche. Ton correcteur la valide.</p>`;
   if (st.lien && st.lien.correcteurNom) h += `<p class="settings-hint">Ton correcteur : <strong>${esc(st.lien.correcteurNom)}</strong></p>`;
   else if (!st.isAdmin) h += `<p class="settings-hint">Aucun correcteur ne t'est encore attribué. Tu peux lire et répondre, mais l'envoi de ta fiche attendra qu'un correcteur te soit lié.</p>`;
+  h += renderCharteCard();
   h += renderAutoCard();
   h += '<div class="fm-mods">';
   MODULES.forEach((m, i) => {
@@ -636,6 +642,10 @@ async function onClick(e) {
   if (!b) return;
   const act = b.dataset.act, mid = st.view.mod;
   try {
+    if (act === "open" && b.dataset.m === "autoeval" && !charteDone() && !autoevalDone()) { st.view = { mod: "charte", cs: 0 }; st.cache = {}; render(); window.scrollTo(0, 0); return; }
+    if (act === "open-charte") { st.view = { mod: "charte", cs: 0 }; st.cache = {}; render(); window.scrollTo(0, 0); return; }
+    if (act === "charte-go") { st.view.cs = Number(b.dataset.i) || 0; render(); window.scrollTo(0, 0); return; }
+    if (act === "charte-sign") return signCharte();
     if (act === "open" && b.dataset.m === "autoeval") { st.view = { mod: "autoeval", step: "fiche" }; st.cache = {}; render(); window.scrollTo(0, 0); return; }
     if (act === "open") { S().getMyLien(st.user.uid).then((l) => { st.lien = l; }); st.view = { mod: b.dataset.m, step: "lecture" }; st.cache = {}; st.qcmDraft = {}; render(); window.scrollTo(0, 0); return; }
     if (act === "goto-zones") { const t = document.querySelector('.tab[data-tab="caractere"]'); if (t) t.click(); return; }
@@ -644,7 +654,7 @@ async function onClick(e) {
     if (act === "task-open") {
       const sv = st.suivis[b.dataset.sk];
       if (!sv) return;
-      if (b.dataset.sk === DECL_KEY) { st.tasksOpen = false; const t = document.querySelector('.tab[data-tab="declaration"]'); if (t) t.click(); return; }
+      if (isPerm(b.dataset.sk)) { st.tasksOpen = false; const t = document.querySelector('.tab[data-tab="declaration"]'); if (t) t.click(); return; }
       st.view = { mod: sv.mid, step: "exercices" }; st.cache = {}; st.focus = sv.exId; st.openEx[sv.mid + ":" + sv.exId] = true; st.tasksOpen = false;
       const t = document.querySelector('.tab[data-tab="parcours"]'); if (t) t.click();
       render(); return;
@@ -926,11 +936,13 @@ async function declAction(e) {
   const b = e.target.closest("[data-decl]");
   if (!b || !st.user) return;
   if (b.dataset.decl === "start") { await startDeclaration(); return; }
+  if (b.dataset.decl === "jstart") { await startJournee(); return; }
+  if (b.dataset.decl === "charte") { st.view = { mod: "charte", cs: 0 }; st.cache = {}; const t = document.querySelector('.tab[data-tab="parcours"]'); if (t) t.click(); render(); window.scrollTo(0, 0); return; }
   if (b.dataset.decl === "tick") {
-    const sv = st.suivis[DECL_KEY];
+    const key = b.dataset.key || DECL_KEY, sv = st.suivis[key];
     if (!sv) return;
     const idx = dayIndex(sv.start), slot = Number(b.dataset.slot), got = (sv.done || {})[String(idx)] || [];
-    await suiviTick(`${DECL_KEY}|${idx}|${slot}`, !got.includes(slot));
+    await suiviTick(`${key}|${idx}|${slot}`, !got.includes(slot));
   }
 }
 function renderDecl() {
@@ -941,7 +953,7 @@ function renderDecl() {
   if (!c) { box.innerHTML = '<p class="settings-hint">Chargement…</p>'; return; }
   if (c.error) { box.innerHTML = '<p class="auth-error">Impossible de charger la déclaration. Vérifie ta connexion.</p>'; return; }
   const sv = st.suivis[DECL_KEY];
-  let h = `<div class="card"><p class="eyebrow">${esc(c.titre)}</p><p class="small">${esc(c.sous)}</p>`;
+  let h = renderJourneeCard() + `<div class="card"><p class="eyebrow">${esc(c.titre)}</p><p class="small">${esc(c.sous)}</p>`;
   if (!sv) {
     h += `<p class="settings-hint">Commence ta déclaration quotidienne : elle apparaîtra chaque jour sur ta page d'accueil, matin et soir, jusqu'à la fin de ta formation.</p><button class="btn-primary full" data-decl="start">▶ Commencer ma déclaration quotidienne</button>`;
   } else {
@@ -1045,18 +1057,18 @@ function tasksToday() {
   Object.entries(st.suivis).forEach(([key, sv]) => {
     // Ancien suivi « 7 jours » de la déclaration (avant qu'elle devienne permanente) : remplacé par le suivi permanent, on ne le compte plus
     if (key !== DECL_KEY && sv.mid === "m1" && sv.exId === "declaration" && sv.fid === "suivi") return;
-    if (isBlocked() && key !== DECL_KEY) return;
+    if (isBlocked() && !isPerm(key)) return;
     const pas = sv.pas || 1, idx = dayIndex(sv.start);
     if (idx < 1 || idx > sv.jours * pas + 7) return;
     const per = Math.floor((idx - 1) / pas) + 1;
     const labels = sv.labels || ["Fait"], done = sv.done || {};
-    const upTo = key === DECL_KEY ? per : Math.min(per, sv.jours);
+    const upTo = isPerm(key) ? per : Math.min(per, sv.jours);
     const todo = [], late = [];
     for (let d = 1; d <= upTo; d++) {
       const got = done[String(d)] || [];
       const miss = labels.filter((_, i) => !got.includes(i));
       if (!miss.length) continue;
-      if (d === per) todo.push(...miss); else if (key !== DECL_KEY) late.push({ d, miss });
+      if (d === per) todo.push(...miss); else if (!isPerm(key)) late.push({ d, miss });
     }
     if (todo.length || late.length) out.push({ key, sv, idx, per, pas, todo, late });
   });
@@ -1073,12 +1085,74 @@ function renderTasks() {
   if (open) {
     h += tasks.map((t) =>
       `<div class="dash-task"><div class="dash-task-t"><strong>${esc(t.sv.titre)}</strong>
-        <small>${t.key === DECL_KEY ? "Aujourd'hui" : t.per <= t.sv.jours ? `${t.pas > 1 ? "Semaine" : "Jour"} ${t.per}/${t.sv.jours}` : "À rattraper"}${t.todo.length ? " · à faire : " + esc(t.todo.join(", ")) : ""}</small>
+        <small>${isPerm(t.key) ? "Aujourd'hui" : t.per <= t.sv.jours ? `${t.pas > 1 ? "Semaine" : "Jour"} ${t.per}/${t.sv.jours}` : "À rattraper"}${t.todo.length ? " · à faire : " + esc(t.todo.join(", ")) : ""}</small>
         ${t.per <= t.sv.jours && (t.sv.cibles || [])[t.per - 1] ? `<small class="cible">👉 ${esc(t.sv.cibles[t.per - 1])}</small>` : ""}
         ${t.late.length ? `<small class="late">⚠ En retard : ${t.late.map((l) => `${t.pas > 1 ? "S" : "J"}${l.d} (${esc(l.miss.join(", "))})`).join(" ; ")}</small>` : ""}</div>
-        <div class="dash-task-b">${t.key === DECL_KEY ? (t.sv.labels || []).map((lb, i) => ((t.sv.done || {})[String(t.per)] || []).includes(i) ? "" : `<button class="btn-secondary" data-decl="tick" data-slot="${i}">✓ ${esc(lb)}</button>`).join("") : ""}<button class="btn-primary" data-act="task-open" data-sk="${esc(t.key)}">Ouvrir</button></div></div>`).join("");
+        <div class="dash-task-b">${isPerm(t.key) ? (t.sv.labels || []).map((lb, i) => ((t.sv.done || {})[String(t.per)] || []).includes(i) ? "" : `<button class="btn-secondary" data-decl="tick" data-key="${t.key}" data-slot="${i}">✓ ${esc(lb)}</button>`).join("") : ""}<button class="btn-primary" data-act="task-open" data-sk="${esc(t.key)}">Ouvrir</button></div></div>`).join("");
   }
   box.innerHTML = h + "</div>";
+}
+
+/* ---------- Charte du Bâtisseur ---------- */
+const charteDone = () => !!(st.prog.charte && st.prog.charte.done);
+function renderCharteCard() {
+  if (charteDone()) return `<div class="fm-auto done"><p class="eyebrow">✅ Charte du Bâtisseur signée</p><button class="btn-secondary" data-act="open-charte">Relire la Charte</button></div>`;
+  if (autoevalDone()) return `<div class="fm-auto"><p class="eyebrow">Charte du Bâtisseur</p><p class="small">Tes engagements, tes habitudes de chaque jour et ce que ton correcteur attend de toi. Quatre écrans, dix minutes.</p><button class="btn-primary" data-act="open-charte">Lire et signer la Charte</button></div>`;
+  return `<div class="fm-auto"><p class="eyebrow">Première étape</p><p class="small">Avant de commencer, lis la Charte du Bâtisseur : tes engagements, tes habitudes de chaque jour et ce que ton correcteur attend de toi. Quatre écrans, dix minutes.</p><button class="btn-primary" data-act="open-charte">Lire la Charte →</button></div>`;
+}
+function renderCharte() {
+  const c = st.content.charte;
+  let h = `<div class="card"><button class="btn-secondary" data-act="back">← Mon parcours</button><h2 class="fm-h">${c ? esc(c.titre) : "Charte du Bâtisseur"}</h2>`;
+  if (!c) return h + '<p class="settings-hint">Chargement…</p></div>';
+  if (c.error) return h + '<p class="auth-error">Impossible de charger la Charte. Vérifie ta connexion.</p></div>';
+  const n = c.ecrans.length, i = Math.min(Math.max(Number(st.view.cs) || 0, 0), n - 1), e = c.ecrans[i], done = charteDone();
+  if (st.msg) h += `<p class="fm-msg">${esc(st.msg)}</p>`;
+  h += `<p class="eyebrow">Écran ${i + 1} sur ${n}</p><h3 class="fm-h">${esc(e.titre)}</h3>`;
+  h += window.AbbaVersets ? window.AbbaVersets.lier(e.html, "charte") : e.html;
+  h += '<div class="fm-nav">';
+  if (i > 0) h += `<button class="btn-secondary" data-act="charte-go" data-i="${i - 1}">← Précédent</button>`;
+  if (i < n - 1) h += `<button class="btn-primary" data-act="charte-go" data-i="${i + 1}">Suivant →</button>`;
+  h += "</div>";
+  if (i === n - 1) {
+    if (done) {
+      const at = toMs(st.prog.charte.doneAt);
+      h += `<p class="fm-status validated">Charte signée${at ? " le " + new Date(at).toLocaleDateString("fr-FR") : ""} ✅</p><button class="btn-primary full" data-act="back">Continuer mon parcours →</button>`;
+    } else {
+      h += `<button class="btn-primary full" data-act="charte-sign">✍ ${esc(c.engagement)}</button>`;
+    }
+  }
+  return h + "</div>";
+}
+async function startJournee() {
+  await S().startSuivi(st.user.uid, JOUR_KEY, { mid: "m1", exId: "journee", fid: "suivi", titre: "Ma journée de bâtisseur", jours: 365, labels: JOUR_LABELS, start: todayStr() });
+}
+async function signCharte() {
+  if (!st.user || charteDone()) return;
+  await S().saveModulePart(st.user.uid, "charte", { done: true, doneAt: new Date().toISOString(), version: 1 });
+  await startJournee();
+  await startDeclaration();
+  st.msg = "Charte signée. Ta checklist « Ma journée » et ta déclaration t’attendent chaque jour sur ton accueil.";
+}
+function renderJourneeCard() {
+  const sv = st.suivis[JOUR_KEY];
+  let h = '<div class="card"><p class="eyebrow">Ma journée de bâtisseur</p>';
+  if (!sv) {
+    h += '<p class="settings-hint">Ta checklist de chaque jour : tes trois prières, ta lecture de la Bible et ton bilan du soir. Pendant les six mois de formation, c’est elle qui compte pour ton suivi.</p><button class="btn-primary full" data-decl="jstart">▶ Commencer ma journée de bâtisseur</button>';
+    if (!charteDone()) h += '<button class="link-btn" data-decl="charte">Lire d’abord la Charte du Bâtisseur →</button>';
+    return h + "</div>";
+  }
+  const labels = sv.labels || JOUR_LABELS, idx = dayIndex(sv.start), done = sv.done || {}, today = done[String(idx)] || [];
+  h += `<div class="jour-today">${labels.map((lb, i) => `<button class="decl-slot jour-slot ${today.includes(i) ? "on" : ""}" data-decl="tick" data-key="${JOUR_KEY}" data-slot="${i}"><span>${today.includes(i) ? "✓" : "○"}</span>${esc(lb)}</button>`).join("")}</div>`;
+  const tenu = (d) => (done[String(d)] || []).length >= JOUR_MIN;
+  let streak = 0;
+  for (let d = idx; d >= 1; d--) { if (tenu(d)) streak++; else if (d === idx) continue; else break; }
+  let dots = "";
+  for (let d = Math.max(1, idx - 6); d <= idx; d++) { const n = (done[String(d)] || []).length; dots += `<span class="decl-dot ${tenu(d) ? "full" : n ? "half" : ""} ${d === idx ? "now" : ""}" title="${fmtDate(sv.start, d)}"></span>`; }
+  h += `<div class="decl-stats"><span class="decl-dots">${dots}</span>${streak >= 2 ? `<span class="small">🔥 ${streak} jours de suite</span>` : ""}</div>`;
+  h += `<p class="small">Un jour est tenu quand au moins ${JOUR_MIN} cases sur ${labels.length} sont cochées. Ton correcteur voit ces cases, jamais ce que tu écris dans ton bilan.</p>`;
+  h += '<details class="fm-lecon"><summary>Mon bilan du soir en quatre questions</summary><div class="fm-texte"><ol><li>Qu’ai-je fait de mes 12 heures : ce que j’avais prévu, ce que j’ai fait, ce que j’ai manqué ?</li><li>Quels succès, quels échecs, quelles déceptions ?</li><li>Quelles occasions surprises ai-je saisies ou ratées, et pourquoi ?</li><li>Quelle leçon je garde pour demain ?</li></ol></div></details>';
+  h += '<button class="link-btn" data-decl="charte">Relire ma Charte et mes habitudes →</button>';
+  return h + "</div>";
 }
 
 /* ---------- Auto-évaluation de départ ---------- */
@@ -1096,7 +1170,8 @@ function renderAutoCard() {
   if (autoevalDone()) {
     return `<div class="fm-auto done"><p class="eyebrow">✅ Auto-évaluation de départ faite</p><button class="btn-secondary" data-act="open" data-m="autoeval">Revoir mes résultats</button></div>`;
   }
-  return `<div class="fm-auto"><p class="eyebrow">Première étape</p><p class="small">Avant de commencer les modules, fais ton auto-évaluation : elle te montre où tu en es dans les 8 dimensions de ta vie (une dizaine de minutes).</p><button class="btn-primary" data-act="open" data-m="autoeval">Commencer mon auto-évaluation</button></div>`;
+  if (!charteDone()) return `<div class="fm-auto"><p class="eyebrow">Deuxième étape</p><p class="small">Après la Charte, tu feras ton auto-évaluation : elle te montre où tu en es dans les 8 dimensions de ta vie.</p></div>`;
+  return `<div class="fm-auto"><p class="eyebrow">${charteDone() ? "Deuxième étape" : "Première étape"}</p><p class="small">Avant de commencer les modules, fais ton auto-évaluation : elle te montre où tu en es dans les 8 dimensions de ta vie (une dizaine de minutes).</p><button class="btn-primary" data-act="open" data-m="autoeval">Commencer mon auto-évaluation</button></div>`;
 }
 function autoBilan(c, vals) {
   const dims = c.dimensions.filter((d) => vals["d" + d.n]);
@@ -1183,6 +1258,7 @@ function renderBinomeProgress() {
   box.innerHTML = `<div class="card"><p class="eyebrow">Barème de progression</p>${bar("Moi", mine, "me")}${bar(pName, theirs ? theirs.pct : null, "them")}<p class="settings-hint">${msg}</p></div>`;
 }
 function nextStepText() {
+  if (!charteDone() && !autoevalDone()) return ["Commence par la Charte du Bâtisseur", "Tes engagements et tes habitudes de chaque jour, en quatre écrans."];
   if (!autoevalDone()) return ["Commence par ton auto-évaluation", "Elle te montre où tu en es avant de plonger dans les modules."];
   const i = MODULES.findIndex((m) => !isComplete(m.id));
   if (i < 0) return ["Parcours terminé 🎉", ""];
@@ -1425,9 +1501,9 @@ if (window.AbbaSync) boot(); else window.addEventListener("load", boot);
 
 /* ---------- Coordination : travail réel d'un Bâtisseur (lecture seule) ---------- */
 const toMs = (x) => { if (!x) return 0; if (typeof x.toMillis === "function") return x.toMillis(); if (typeof x.seconds === "number") return x.seconds * 1000; const t = Date.parse(x); return isNaN(t) ? 0 : t; };
-function declStats(sv) {
+function declStats(sv, min) {
   if (!sv) return null;
-  const n = (sv.labels || ["Matin", "Soir"]).length, idx = dayIndex(sv.start), done = sv.done || {};
+  const n = min || (sv.labels || ["Matin", "Soir"]).length, idx = dayIndex(sv.start), done = sv.done || {};
   const full = (d) => (done[String(d)] || []).length >= n;
   let ok = 0, tot = 0, streak = 0;
   for (let d = Math.max(1, idx - 6); d <= idx; d++) { if (d === idx && !full(d)) continue; tot++; if (full(d)) ok++; }
@@ -1468,7 +1544,7 @@ async function coordAnalyse(uid) {
   const ref = Math.max(toMs(prog.autoeval && prog.autoeval.doneAt), ...rows.map((r) => r.validatedAt));
   const enCours = [];
   Object.entries(suivis).forEach(([key, sv]) => {
-    if (key === DECL_KEY || (sv.mid === "m1" && sv.exId === "declaration")) return;
+    if (isPerm(key) || (sv.mid === "m1" && sv.exId === "declaration")) return;
     const pas = sv.pas || 1, idx = dayIndex(sv.start), per = Math.floor((idx - 1) / pas) + 1, n = (sv.labels || ["Fait"]).length, done = sv.done || {};
     const upTo = Math.min(per, sv.jours); let rates = 0, faits = 0;
     for (let d = 1; d <= upTo; d++) { if ((done[String(d)] || []).length >= n) faits++; else if (d < per) rates++; }
@@ -1477,7 +1553,7 @@ async function coordAnalyse(uid) {
   });
   return {
     modules: rows, current: cur, valides: rows.filter((r) => r.complete).length, total: rows.length,
-    decl: declStats(suivis[DECL_KEY]), enCours, bloque: meta.bloque && meta.bloque.actif ? meta.bloque : null, lastMs: last, refMs: ref,
+    decl: declStats(suivis[DECL_KEY]), journee: declStats(suivis[JOUR_KEY], JOUR_MIN), charte: (prog.charte && prog.charte.done) ? (toMs(prog.charte.doneAt) || 1) : 0, enCours, bloque: meta.bloque && meta.bloque.actif ? meta.bloque : null, lastMs: last, refMs: ref,
     autoeval: !!(meta.autoevalFaite || (prog.autoeval && prog.autoeval.done)),
   };
 }

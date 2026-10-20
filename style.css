@@ -877,3 +877,10 @@ html.i18n-wait body{visibility:hidden;}
 .fm-vf::after{content:"ⓘ";font-size:.8em;margin-left:2px;color:var(--ink-soft);}
 .fm-bulle{position:fixed;z-index:9999;background:var(--navy);color:#fff;font-size:13px;line-height:1.4;padding:8px 10px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.25);}
 .fm-att summary{cursor:pointer;color:var(--ink-soft);}
+
+/* Ma journée (checklist de la journée) */
+.jour-today{display:flex;flex-direction:column;gap:8px;margin:12px 0;}
+.jour-slot{flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 14px;font-size:15px;text-align:left;}
+.jour-slot span{font-size:22px;}
+.fm-nav{display:flex;gap:10px;justify-content:space-between;margin:16px 0 6px;}
+.fm-nav .btn-primary,.fm-nav .btn-secondary{flex:1;}
