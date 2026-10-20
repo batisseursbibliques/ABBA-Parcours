@@ -77,8 +77,9 @@ async function start(user) {
   }));
   S().getUserProfile(user.uid).then((p) => { st.profile = p || {}; renderDash(); }).catch(() => {});
   MODULES.filter((m) => m.ready).forEach((m) => loadContent(m.id).then(() => { render(); }));
-  st.isCorrecteur = await S().amICorrecteur(user.email);
-  st.lien = await S().getMyLien(user.uid);
+  // Ces deux requêtes ne bloquent plus le démarrage : si le réseau est lent ou coupé, le reste de la page (modules, tâches, déclaration) se charge quand même
+  S().amICorrecteur(user.email).then((v) => { st.isCorrecteur = !!v; render(); }).catch(() => {});
+  S().getMyLien(user.uid).then((l) => { st.lien = l; render(); }).catch(() => {});
   unsubs.push(S().watchFormationMeta(user.uid, (m) => { st.meta = m || {}; st.loaded.meta = true; afterProgress(); render(); }));
   unsubs.push(S().watchFormationModules(user.uid, (p) => { st.prog = p || {}; st.loaded.prog = true; afterProgress(); render(); }));
   S().findMyBinome(user.uid).then((pair) => {

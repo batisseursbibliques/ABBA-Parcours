@@ -636,5 +636,8 @@
 "Installe l'application pour que la lecture à voix haute continue quand tu quittes l'application ou que l'écran s'éteint.": "Install the app so that audio reading keeps going when you leave the app or when the screen turns off.",
 "📲 Installer l'application Android →": "📲 Install the Android app →",
 "Ma journée": "My day",
-"Décl. / Jour.": "Decl. / Day"
+"Décl. / Jour.": "Decl. / Day",
+"Diagnostic": "Diagnostics",
+"Si une page reste vide, touche « Tester la connexion » puis envoie une capture de ce cadre.": "If a page stays empty, tap “Test the connection” and send a screenshot of this box.",
+"Tester la connexion": "Test the connection"
 }

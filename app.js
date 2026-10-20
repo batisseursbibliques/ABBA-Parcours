@@ -95,6 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupTheme();
   setupTaille();
   setupInstallCard();
+  setupDiagnostic();
   setupProtection();
   setupTabs();
   setupAuthScreen();
@@ -1408,4 +1409,52 @@ function setupInstallCard() {
   const android = /Android/i.test(navigator.userAgent);
   const natif = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
   carte.hidden = !(android && !natif);
+}
+
+
+/* ============================================================
+   DIAGNOSTIC (Réglages) : vérifie le réseau, le compte, le contenu et la base de données
+   ============================================================ */
+function setupDiagnostic() {
+  const btn = document.getElementById("diagBtn"), out = document.getElementById("diagOut");
+  if (!btn || !out) return;
+  const en = () => !!(window.I18N && window.I18N.lang === "en");
+  const t = (fr, e) => (en() ? e : fr);
+  const avecDelai = (p, ms) => Promise.race([p, new Promise((_, ko) => setTimeout(() => ko(new Error("timeout")), ms))]);
+  const mesure = async (nom, f, ms = 8000) => {
+    const d = Date.now();
+    try { const r = await avecDelai(f(), ms); return `✓ ${nom} : OK (${Date.now() - d} ms)${typeof r === "string" && r ? " · " + r : ""}`; }
+    catch (e) { return e.message === "timeout" ? `✗ ${nom} : ${t("pas de réponse après", "no answer after")} ${ms / 1000} s` : `✗ ${nom} : ${e.message || e}`; }
+  };
+  btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    const lignes = [];
+    const montrer = () => { out.textContent = lignes.join("\n"); };
+    const natif = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    lignes.push(`${t("Application", "App")} : ${natif ? "APK Android" : t("navigateur", "browser")} · ${t("langue", "language")} ${en() ? "en" : "fr"}`);
+    lignes.push(`${t("Réseau du téléphone", "Phone network")} : ${navigator.onLine ? t("en ligne", "online") : t("hors ligne", "offline")}`);
+    try { const noms = await caches.keys(); lignes.push(`${t("Version du cache", "Cache version")} : ${noms.filter((n) => n.startsWith("abba-parcours")).join(", ") || "—"}`); } catch { /* ignoré */ }
+    montrer();
+    const S = window.AbbaSync;
+    let user = null;
+    if (S) {
+      user = await new Promise((ok) => { let un = null; const fin = setTimeout(() => ok(null), 4000); un = S.watchAuth((u) => { clearTimeout(fin); ok(u || null); try { un && un(); } catch { /* ignoré */ } }); });
+    }
+    lignes.push(`${t("Compte", "Account")} : ${user ? t("connecté", "signed in") + " (" + (user.email || "") + ")" : t("non connecté", "not signed in")}`);
+    montrer();
+    lignes.push(await mesure(t("Contenu des leçons", "Lesson content"), async () => { const r = await fetch("content/m01.json", { cache: "no-store" }); if (!r.ok) throw new Error("HTTP " + r.status); await r.json(); }));
+    montrer();
+    lignes.push(await mesure(t("Bible (index)", "Bible (index)"), async () => { const r = await fetch("/bible/index.json", { cache: "no-store" }); if (!r.ok) throw new Error("HTTP " + r.status); await r.json(); }));
+    montrer();
+    if (S && user) {
+      lignes.push(await mesure(t("Base de données (profil)", "Database (profile)"), () => S.getUserProfile(user.uid)));
+      montrer();
+      lignes.push(await mesure(t("Base de données (correcteur)", "Database (corrector)"), () => S.amICorrecteur(user.email)));
+      montrer();
+    }
+    const erreurs = (window.__abbaErrs || []).slice(-4);
+    lignes.push(erreurs.length ? `${t("Erreurs récentes", "Recent errors")} :\n  - ${erreurs.join("\n  - ")}` : `${t("Erreurs récentes", "Recent errors")} : ${t("aucune", "none")}`);
+    montrer();
+    btn.disabled = false;
+  });
 }

@@ -884,3 +884,5 @@ html.i18n-wait body{visibility:hidden;}
 .jour-slot span{font-size:22px;}
 .fm-nav{display:flex;gap:10px;justify-content:space-between;margin:16px 0 6px;}
 .fm-nav .btn-primary,.fm-nav .btn-secondary{flex:1;}
+.diag-out{white-space:pre-wrap;word-break:break-word;font-size:12px;line-height:1.5;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px;margin:10px 0 0;min-height:0;}
+.diag-out:empty{display:none;}
