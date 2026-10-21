@@ -1,0 +1,160 @@
+{
+ "zones": [
+  {
+   "key": "emotions",
+   "titre": "Emotions",
+   "sous": "Welcome → Dissect → Investigate → Respond according to the Word",
+   "verset": "“Let every man be swift to hear, slow to speak, and slow to anger” — James 1:19",
+   "exercices": [
+    {
+     "id": "E1",
+     "titre": "The Emotions Journal",
+     "comment": "Each evening, write down: (1) What emotion did I feel today? (2) What triggered it? (3) How did I respond to it? (4) How should I have responded according to Phil 4:8? No more than 5 minutes. This is not a private diary — it is a diagnostic tool.",
+     "frequence": "Each evening for 21 days"
+    },
+    {
+     "id": "E2",
+     "titre": "The 60-Second Pause",
+     "comment": "When a strong emotion rises (anger, fear, intense sadness): STOP. Count to 10 slowly. Say softly: “The joy of Yahweh is your strength.” (Neh 8:10). Then identify the emotion before acting. The goal: never react in the heat of the moment to a difficult emotion.",
+     "frequence": "Each time an emotion rises"
+    },
+    {
+     "id": "E3",
+     "titre": "The Emotion Prayer",
+     "comment": "Learn to present your emotions to God like the Psalms: honestly. Write or say aloud: “Lord, I feel [emotion] because of [situation]. I entrust it to you. You promised [verse]. I choose to lean on you.” Do not suppress them, hand them over to God.",
+     "frequence": "3 times a week minimum"
+    }
+   ]
+  },
+  {
+   "key": "personnalite",
+   "titre": "Personality (MBTI type)",
+   "sous": "Knowing yourself to serve better — without the profile excusing sin",
+   "verset": "“God can use my personality for his glory and for my usefulness in his Kingdom” — Manual M5",
+   "exercices": [
+    {
+     "id": "E1",
+     "titre": "The Test & Reading Your Profile",
+     "comment": "Take the MBTI test online (16personalities.com — free). Read the full profile. Identify: (1) 3 strengths to put at the service of others, (2) 2 negative tendencies to watch. Write these 5 points and share them with your partner.",
+     "frequence": "Once — then reread at D+30"
+    },
+    {
+     "id": "E2",
+     "titre": "The Opposite Exercise",
+     "comment": "Each week, intentionally practice the opposite of your natural tendency. Example: if introverted → take the initiative for a meaningful conversation. If extraverted → spend 30 min alone in silence and reflection. If J (judging) → leave a decision pending for 24 hours. Goal: flexibility in the service of the mission.",
+     "frequence": "Once a week"
+    },
+    {
+     "id": "E3",
+     "titre": "Reconciling Profile and Word",
+     "comment": "Choose 2 biblical commandments that go against your natural tendency (e.g. if quick-tempered: be gentle / if slow to act: act quickly). Write them down. Declare them every morning. Ask your partner to follow them with you this month.",
+     "frequence": "Declaration every morning"
+    }
+   ]
+  },
+  {
+   "key": "pensee",
+   "titre": "Thought",
+   "sous": "Sorting thoughts — not fighting them but replacing them",
+   "verset": "“Whatever things are true, whatever things are honorable, whatever things are just, whatever things are pure, whatever things are lovely… think about these things” — Philippians 4:8",
+   "exercices": [
+    {
+     "id": "E1",
+     "titre": "The Quarantine of Thoughts",
+     "comment": "As soon as a bad thought arrives: do not fight it (that strengthens it). Simply say: “No.” and immediately move on to a thought from Phil 4:8. Have a list of 5 positive thoughts ready (a verse, a project, a loved one, a memory of blessing). Exercise: keep a count over 7 days.",
+     "frequence": "In real time, all day long"
+    },
+    {
+     "id": "E2",
+     "titre": "The 10-Minute Meditation",
+     "comment": "Each morning: take a verse, read it slowly 3 times, say it aloud, close your eyes and think about it for 5 minutes, ask yourself: what does this verse mean for my day today? Write one sentence of application. This is not Bible study — it is the renewing of the mind (Rom 12:2).",
+     "frequence": "Each morning — 10 min"
+    },
+    {
+     "id": "E3",
+     "titre": "The Mental Identity Declaration",
+     "comment": "Write and memorize: “I have the mind of Christ. A sound, blessed, strong, divine mind.” (1 Cor 2:16). Say it aloud 3 times each morning. Then add 2 other personal declarations about your areas of mental weakness. Example: “I do not dwell on what is negative.” “My mind is governed by the Spirit.”",
+     "frequence": "Each morning — 2 min"
+    }
+   ]
+  },
+  {
+   "key": "habitudes",
+   "titre": "Habits",
+   "sous": "Habits are changed by repetition — with the same stick",
+   "verset": "“Don’t be conformed to this world, but be transformed by the renewing of your mind” — Romans 12:2",
+   "exercices": [
+    {
+     "id": "E1",
+     "titre": "The Replacement Plan",
+     "comment": "Identify ONE bad habit to change this month. Write: (1) The exact habit and how often it occurs. (2) What triggers it. (3) What I replace it with (a concrete, positive action). (4) The practice period: 7 days / 15 days / 21 days according to discipline. Share with your partner, who will follow the progress.",
+     "frequence": "For 21 consecutive days"
+    },
+    {
+     "id": "E2",
+     "titre": "The Habit Calendar",
+     "comment": "Draw a table of 21 boxes (one per day). Tick each day the habit was kept. If a day is missed, do not give up — resume the next day. Show the table to your partner at the end of the month. Visible regularity is more motivating than invisible good intention.",
+     "frequence": "Daily review — 1 min"
+    },
+    {
+     "id": "E3",
+     "titre": "The Small Morning Victory",
+     "comment": "Take ONE new good habit to anchor. Start with only 5 minutes (not 30). Examples: read the Bible 5 min / do 5 push-ups / drink a glass of water before coffee / pray before looking at the phone. The goal: create regularity first, increase afterward. From the smallest to the greatest.",
+     "frequence": "Each morning — any length"
+    }
+   ]
+  },
+  {
+   "key": "decision",
+   "titre": "Decision-making",
+   "sous": "Deciding in record time — Bible · Prayer · Reflection",
+   "verset": "“Indecision is definitely a bad decision” — Manual M5",
+   "exercices": [
+    {
+     "id": "E1",
+     "titre": "The Quick Decision Sheet",
+     "comment": "For every important decision this month: (1) What does the Bible say on this subject? (2) Have I prayed — even 30 seconds? (3) What are the facts? (4) What is my precise goal? (5) Are the risks manageable? (6) Whom can I consult? Answer these 6 questions — then decide. Do not wait for absolute certainty.",
+     "frequence": "For each important decision"
+    },
+    {
+     "id": "E2",
+     "titre": "The 24-Hour Decision",
+     "comment": "Choose a decision that has been pending for more than a week. Apply the 6 steps above. Give yourself 24 hours maximum to decide. Inform your partner of the decision made. The goal: break the pattern of chronic indecision by a concrete, courageous act.",
+     "frequence": "Once a week for 4 weeks"
+    },
+    {
+     "id": "E3",
+     "titre": "The Council of the Wise",
+     "comment": "For the big decisions of the month: identify 2 or 3 people who have already been through this kind of situation and who are spiritually mature. Consult them separately. Write down their opinions. Compare them with the Word. Decide. This step is not an escape from responsibility — it is the wisdom of Proverbs 20:18.",
+     "frequence": "For each big decision"
+    }
+   ]
+  },
+  {
+   "key": "esprit",
+   "titre": "Handling your character through your spirit",
+   "sous": "The born-again spirit sets free from the law of sin — living from the inside",
+   "verset": "“Be strong in the Lord, and in the strength of his might” — Ephesians 6:10",
+   "exercices": [
+    {
+     "id": "E1",
+     "titre": "The Spiritual Identity Declaration",
+     "comment": "Each morning, say aloud and with conviction: “I am a spirit. I have a soul. I live in a body. My spirit is born of God and cannot sin. (1 John 3:9). The law of the Spirit of life in Christ Jesus has made me free from the law of sin and of death. (Rom 8:1-2). Lord, strengthen my inner man even more. (Eph 3:16).” Then obey your spirit instantly all day long.",
+     "frequence": "Each morning — 3 min"
+    },
+    {
+     "id": "E2",
+     "titre": "Praying in the Spirit",
+     "comment": "Devote 10 minutes a day to praying in tongues (if you have received the baptism of the Holy Spirit) or to interceding with groanings — let the Holy Spirit pray through you (Rom 8:26-27). This is not a performance but an exercise of submitting the soul to the spirit. It strengthens the inner man more than any other exercise.",
+     "frequence": "10 min/day — preferably in the morning"
+    },
+    {
+     "id": "E3",
+     "titre": "Instant Obedience",
+     "comment": "Keep a notebook for 7 days: each time your spirit (conscience, spiritual intuition, conviction) gives an instruction, note it — and note whether you obeyed or not, and how long afterward. Goal: reduce the delay between the spirit’s instruction and the body’s obedience. The final goal: instant, systematic obedience.",
+     "frequence": "Notebook over 7 days — then review"
+    }
+   ]
+  }
+ ]
+}

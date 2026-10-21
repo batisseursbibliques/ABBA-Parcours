@@ -1,0 +1,61 @@
+{
+ "id": "autoeval",
+ "titre": "My starting self-assessment",
+ "intro": "Before starting the course, look honestly at where you stand. For each dimension, choose the number that best matches your real situation today: 1 = very weak or absent, 2 = weak, 3 = average, 4 = good, 5 = excellent or solid. Be honest: this sheet is a personal mirror, not a contest or a judgment.",
+ "dimensions": [
+  {
+   "n": 1,
+   "bloc": "Block 1 — Spiritual foundation",
+   "nom": "Spirit",
+   "desc": "My relationship with God is alive, nourished, concrete in daily life."
+  },
+  {
+   "n": 2,
+   "bloc": "Block 1 — Spiritual foundation",
+   "nom": "Psychology",
+   "desc": "I master my thoughts and emotions — I am not tossed about by them."
+  },
+  {
+   "n": 3,
+   "bloc": "Block 2 — Practical life",
+   "nom": "Body",
+   "desc": "I take care of my health, my hygiene, my physical well-being."
+  },
+  {
+   "n": 4,
+   "bloc": "Block 2 — Practical life",
+   "nom": "Livelihood",
+   "desc": "My basic needs are covered — housing, food, clothing."
+  },
+  {
+   "n": 5,
+   "bloc": "Block 2 — Practical life",
+   "nom": "Education",
+   "desc": "I keep learning, reading, training myself in modern tools."
+  },
+  {
+   "n": 6,
+   "bloc": "Block 3 — Impact",
+   "nom": "Profession",
+   "desc": "I carry out a stable activity — professional, entrepreneurial or ministerial."
+  },
+  {
+   "n": 7,
+   "bloc": "Block 3 — Impact",
+   "nom": "Finance",
+   "desc": "I manage my resources wisely — savings, giving, controlled spending."
+  },
+  {
+   "n": 8,
+   "bloc": "Block 3 — Impact",
+   "nom": "Society",
+   "desc": "I have a positive impact on those around me. I contribute to my community."
+  }
+ ],
+ "questions": [
+  "What do you see on this sheet that you had not yet clearly named?",
+  "Which module of the Course do you need the most — and why?",
+  "What is the ONE concrete thing you commit to changing in the next 30 days?"
+ ],
+ "engagement": "I acknowledge where I am. I do not condemn myself. I choose to move forward."
+}
