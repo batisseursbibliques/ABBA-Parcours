@@ -148,6 +148,13 @@ service cloud.firestore {
         allow delete: if isAdmin();
       }
 
+      // Révisions après validation : réponses refaites, privées (ni correcteur ni coordinateur ne les lisent)
+      match /revisions/{mid} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow create, update: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['lu','qcm','exercices','updatedAt']);
+      }
+
       // Indisponibilités signalées par l'élève (maladie, déplacement…) : visibles par lui, son correcteur et les coordinateurs
       match /indispos/{iid} {
         allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid) || isCorrecteurOf(uid);

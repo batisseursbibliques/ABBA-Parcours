@@ -195,7 +195,7 @@ async function onAuthChanged(user) {
   document.getElementById("enrollmentScreen").style.display = "none";
   document.getElementById("app").style.display = "";
   document.getElementById("accountEmailHint").textContent = `Connecté(e) en tant que ${user.displayName || user.email} (${user.email})`;
-  document.getElementById("accountEmailHintAccueil").textContent = `Connecté(e) en tant que ${user.displayName || user.email} (${user.email})`;
+  const ehA = document.getElementById("accountEmailHintAccueil"); if (ehA) ehA.textContent = `Connecté(e) en tant que ${user.displayName || user.email} (${user.email})`;
 
   try {
     CURRENT_PROFILE = await window.AbbaSync.getUserProfile(user.uid) || {};
@@ -504,6 +504,7 @@ function detailEleve(r) {
   else h += `<p class="small"><strong>Ma journée</strong> : pas commencée</p>`;
   h += `<p class="small"><strong>Charte</strong> : ${a.charte ? "signée" + (a.charte > 1 ? " le " + new Date(a.charte).toLocaleDateString("fr-FR") : "") : "pas encore signée"}</p>`;
   if (a.indispo && a.indispo.liste.length) h += `<div class="small"><strong>Indisponibilités signalées</strong>${a.indispo.liste.map(v => `<p>${v.vivant ? "⏸ " : ""}${escC(v.texte)}<br>${escC(v.motif)}<br>${v.vu ? "✓ Pris en compte" : `<button class="btn-secondary" data-indvu="${v.id}">Pris en compte</button>`}</p>`).join("")}</div>`;
+  if (a.suiviForce && a.valides === a.total) h += `<button class="btn-secondary" data-suivi="off">Parcours terminé : retirer du suivi</button>`;
   h += `<p class="small"><strong>Correcteur</strong> : ${escC(r.correcteur || "non attribué")}</p>`;
   if (a.bloque) h += `<div class="coord-bloc"><p class="small" style="color:#b3261e"><strong>Parcours bloqué</strong>${a.bloque.motif ? " — " + escC(a.bloque.motif) : ""}</p><button class="btn-secondary" data-bloc="off">Débloquer le Parcours</button></div>`;
   else h += `<div class="coord-bloc"><input type="text" class="text-input" data-bloc-motif placeholder="Motif (ex. absent à la présentielle sans excuse)"><button class="btn-secondary" data-bloc="on">Bloquer l'accès au Parcours</button></div>`;
@@ -530,9 +531,10 @@ async function renderCoordModules() {
     }));
     rows.sort((x, y) => (y.modulesFaits || 0) - (x.modulesFaits || 0) || ((y.a && y.a.lastMs) || 0) - ((x.a && x.a.lastMs) || 0));
     LAST_COORD_ROWS = rows;
+    const anciens = rows.filter(r => r.a && r.a.termine), actifs = rows.filter(r => !(r.a && r.a.termine));
     body.innerHTML = "";
     emptyHint.style.display = rows.length === 0 ? "block" : "none";
-    rows.forEach(r => {
+    actifs.forEach(r => {
       let marquees = 0, presentes = 0;
       SEANCES.forEach(s => { const rec = (s.presences || {})[r.uid]; if (rec) { marquees++; if (rec.present) presentes++; } });
       const presPct = marquees > 0 ? `${Math.round((presentes / marquees) * 100)}%` : "—";
@@ -552,6 +554,12 @@ async function renderCoordModules() {
       det.innerHTML = `<td colspan="5">${detailEleve(r)}</td>`;
       tr.addEventListener("click", () => { const open = det.style.display === "none"; det.style.display = open ? "" : "none"; if (open) COORD_OPEN.add(r.uid); else COORD_OPEN.delete(r.uid); });
       det.addEventListener("click", async (ev) => {
+        const sf = ev.target.closest("[data-suivi]");
+        if (sf) {
+          try { await window.AbbaSync.setSuiviForce(r.uid, sf.dataset.suivi === "on"); renderCoordModules(); }
+          catch (e) { alert("Impossible de modifier le suivi : " + (e.code || e.message)); }
+          return;
+        }
         const vu = ev.target.closest("[data-indvu]");
         if (vu) {
           try { await window.AbbaSync.updateIndispo(r.uid, vu.dataset.indvu, { vu: { par: CURRENT_USER.email, at: new Date().toISOString() } }); renderCoordModules(); }
@@ -570,7 +578,20 @@ async function renderCoordModules() {
       });
       body.appendChild(tr); body.appendChild(det);
     });
-    const avec = rows.filter(r => r.alertes.length);
+    const boxA = document.getElementById("coordAnciens");
+    if (boxA) {
+      boxA.innerHTML = anciens.length
+        ? `<details><summary><strong>Anciens — parcours terminé (${anciens.length})</strong></summary>${anciens.map(r => `<p class="small"><strong>${escC(r.nom || r.email || "—")}</strong> — terminé${r.a.termineLe ? " le " + new Date(r.a.termineLe).toLocaleDateString("fr-FR") : ""} <button class="btn-secondary" data-suivi="on" data-uid="${r.uid}">Remettre dans le suivi</button></p>`).join("")}</details>`
+        : "";
+      boxA.style.display = anciens.length ? "" : "none";
+      boxA.onclick = async (ev) => {
+        const b = ev.target.closest("[data-suivi]");
+        if (!b) return;
+        try { await window.AbbaSync.setSuiviForce(b.dataset.uid, b.dataset.suivi === "on"); renderCoordModules(); }
+        catch (e) { alert("Impossible de modifier le suivi : " + (e.code || e.message)); }
+      };
+    }
+    const avec = actifs.filter(r => r.alertes.length);
     alertsBox.innerHTML = avec.length
       ? avec.map(r => `<p class="small"><strong>${escC(r.nom || r.email)}</strong> — ${r.alertes.map(escC).join(" · ")}</p>`).join("")
       : `<p class="settings-hint">Rien à signaler pour l'instant ✓</p>`;

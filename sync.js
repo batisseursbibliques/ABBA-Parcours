@@ -361,6 +361,19 @@ async function addIndispo(uid, data) {
 async function updateIndispo(uid, id, partial) {
   await updateDoc(doc(db, "formation", uid, "indispos", id), { ...partial, updatedAt: serverTimestamp() });
 }
+function watchRevisions(uid, callback) {
+  return onSnapshot(collection(db, "formation", uid, "revisions"), (snap) => {
+    const map = {};
+    snap.docs.forEach(d => { map[d.id] = d.data(); });
+    callback(map);
+  }, (err) => console.error("watchRevisions:", err));
+}
+async function saveRevision(uid, mid, partial) {
+  await setDoc(doc(db, "formation", uid, "revisions", mid), { ...partial, updatedAt: serverTimestamp() }, { merge: true });
+}
+async function setSuiviForce(uid, actif) {
+  await setDoc(doc(db, "formation", uid), { suiviForce: !!actif }, { merge: true });
+}
 async function loadStudentIndispos(uid) {
   const snap = await getDocs(collection(db, "formation", uid, "indispos"));
   const map = {};
@@ -393,5 +406,6 @@ window.AbbaSync = {
   watchFormationMeta, setAcquis, watchFormationModules, saveModulePart, loadStudentModules, reviewFiche,
   watchSuivis, startSuivi, updateSuivi, loadStudentSuivis,
   watchIndispos, addIndispo, updateIndispo, loadStudentIndispos,
+  watchRevisions, saveRevision, setSuiviForce,
   watchZonesPlan, saveZonesPlan, saveMyProgress,
 };

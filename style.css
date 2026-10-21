@@ -894,3 +894,17 @@ html.i18n-wait body{visibility:hidden;}
 .ind-form .fm-check{display:flex;font-weight:400;}
 .ind-form .text-input{width:100%;box-sizing:border-box;}
 .ind-err{color:#b3261e;font-size:14px;min-height:18px;margin:6px 0;}
+
+/* Guide dépliable dans le bloc bleu */
+.abba-guide{margin-top:14px;border-top:1px solid rgba(201,162,39,.3);padding-top:10px;}
+.abba-guide>summary{cursor:pointer;color:#C9A227;font-weight:700;font-size:14px;list-style:none;}
+.abba-guide>summary::-webkit-details-marker,.g-sec>summary::-webkit-details-marker{display:none;}
+.abba-guide>summary::before{content:"▸ ";}
+.abba-guide[open]>summary::before{content:"▾ ";}
+.g-sec{margin:8px 0;border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:8px 12px;background:rgba(255,255,255,.04);}
+.g-sec>summary{cursor:pointer;font-weight:600;color:#fff;font-size:13.5px;list-style:none;}
+.g-sec>summary::before{content:"+ ";color:#C9A227;}
+.g-sec[open]>summary::before{content:"– ";}
+.g-sec p,.g-sec li{font-size:13px;color:rgba(255,255,255,.85);line-height:1.55;margin:6px 0;}
+.g-sec ul,.g-sec ol{padding-left:20px;margin:6px 0;}
+.g-charte{margin-top:6px;width:100%;background:transparent;border:1px solid rgba(201,162,39,.6);color:#C9A227;border-radius:10px;padding:10px 12px;font-weight:700;font-size:13px;cursor:pointer;}

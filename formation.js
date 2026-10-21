@@ -62,7 +62,7 @@ function stop() {
   unsubs = [];
   if (st.adm && st.adm.unsub) { try { st.adm.unsub(); } catch (e) {} }
   st.adm = { open: false, correcteurs: [], liens: [], students: [], loaded: false };
-  st.user = null; st.meta = {}; st.prog = {}; st.suivis = {}; st.indispos = {}; st.indForm = false; st.zp.plan = {}; st.binome = { pair: null, last: "" }; st.loaded = { prog: false, meta: false }; st.parcours = []; st.lien = null;
+  st.user = null; st.meta = {}; st.prog = {}; st.suivis = {}; st.indispos = {}; st.indForm = false; st.rev = {}; st.zp.plan = {}; st.binome = { pair: null, last: "" }; st.loaded = { prog: false, meta: false }; st.parcours = []; st.lien = null;
   st.isAdmin = false; st.isCorrecteur = false; st.view = { mod: null, step: "lecture" };
   render(); renderIndispo();
 }
@@ -93,6 +93,7 @@ async function start(user) {
   loadDeclContent();
   unsubs.push(S().watchSuivis(user.uid, (m) => { st.suivis = m || {}; render(); }));
   unsubs.push(S().watchIndispos(user.uid, (m) => { st.indispos = m || {}; renderIndispo(); render(); }));
+  unsubs.push(S().watchRevisions(user.uid, (m) => { st.rev = m || {}; render(); }));
   unsubs.push(S().watchParcours(user.uid, (l) => { st.parcours = l || []; afterProgress(); }));
   render();
 }
@@ -476,15 +477,17 @@ function renderModuleView() {
   if (!c) return h + '<p class="settings-hint">Chargement du module…</p></div>';
   if (c.error) return h + '<p class="auth-error">Impossible de charger ce module. Vérifie ta connexion puis réessaie.</p></div>';
   if (c.__fr) h += '<p class="fm-return">Ce module n\'est pas encore traduit en anglais : il s\'affiche en français.</p>';
-  const p = st.prog[mid] || {};
+  const porig = st.prog[mid] || {}, review = inReview(mid);
+  const p = review ? progView(mid) : porig;
   const ss = stepStatus(c, p);
   if (st.msg) h += `<p class="fm-msg">${esc(st.msg)}</p>`;
+  if (review) h += '<div class="fm-return"><strong>Mode révision.</strong> Ce module est validé. Tu peux le relire, refaire les questions et les exercices autant que tu veux : tes nouvelles réponses restent privées, personne d’autre ne les voit, et elles ne changent pas ta validation.</div>';
   h += '<div class="fm-steps">' + STEPS.map(([k, l], i) => `<button class="fm-step ${st.view.step === k ? "on" : ""} ${ss[k] ? "ok" : ""}" data-act="step" data-s="${k}">${ss[k] ? "✓" : i + 1}<small>${l}</small></button>`).join("") + "</div>";
-  const readonlyAll = p.ficheStatus === "submitted" || p.ficheStatus === "validated";
+  const readonlyAll = !review && (p.ficheStatus === "submitted" || p.ficheStatus === "validated");
   if (st.view.step === "lecture") h += renderLecture(c, p);
   else if (st.view.step === "qcm") h += renderQcm(c, p);
   else if (st.view.step === "exercices") h += renderExercices(c, p, readonlyAll);
-  else h += renderFiche(c, p, ss);
+  else h += renderFiche(c, porig, ss);
   return h + "</div>";
 }
 
@@ -607,8 +610,8 @@ function onFieldInput(el) {
 function currentSaved(k) {
   const [scope, ...rest] = k.split(":");
   const fid = rest.pop();
-  const mid = st.view.mod, p = st.prog[mid] || {};
-  if (scope === "fiche") return (p.ficheData || {})[fid];
+  const mid = st.view.mod, p = progView(mid), po = st.prog[mid] || {};
+  if (scope === "fiche") return (po.ficheData || {})[fid];
   if (scope === "ex") { const exId = rest.join(":"); return ((p.exercices || {})[exId] || {})[fid]; }
   return undefined;
 }
@@ -653,7 +656,7 @@ async function onClick(e) {
     if (act === "open") { S().getMyLien(st.user.uid).then((l) => { st.lien = l; }); st.view = { mod: b.dataset.m, step: "lecture" }; st.cache = {}; st.qcmDraft = {}; render(); window.scrollTo(0, 0); return; }
     if (act === "goto-zones") { const t = document.querySelector('.tab[data-tab="caractere"]'); if (t) t.click(); return; }
     if (act === "tasks-toggle") { st.tasksOpen = !st.tasksOpen; renderTasks(); return; }
-    if (act === "suivi-start") return suiviStart(b.dataset.sk);
+    if (act === "suivi-start") { if (st.view.mod && inReview(st.view.mod)) { st.msg = "Ce suivi se fait pendant le parcours."; render(); return; } return suiviStart(b.dataset.sk); }
     if (act === "task-open") {
       const sv = st.suivis[b.dataset.sk];
       if (!sv) return;
@@ -668,6 +671,10 @@ async function onClick(e) {
     if (act === "back") { st.view = { mod: null, step: "lecture" }; st.cache = {}; render(); return; }
     if (act === "step") { st.view.step = b.dataset.s; render(); window.scrollTo(0, 0); return; }
     if (act === "lu") {
+      if (inReview(mid)) {
+        const r = (st.rev || {})[mid] || {};
+        await S().saveRevision(st.user.uid, mid, { lu: Array.from(new Set([...(r.lu || []), b.dataset.l])) }); return;
+      }
       const p = st.prog[mid] || {};
       const lu = Array.from(new Set([...(p.lu || []), b.dataset.l]));
       await S().saveModulePart(st.user.uid, mid, { lu }); return;
@@ -710,16 +717,18 @@ async function submitQcm() {
   if (answers.some((a) => a == null)) { st.msg = "Réponds à toutes les questions avant de valider."; render(); return; }
   const score = answers.filter((a, i) => a === q[i].b).length;
   const pct = Math.round((score / q.length) * 100);
-  const essais = ((((st.prog[mid] || {}).qcm) || {}).essais || 0) + 1;
+  const essais = (((progView(mid).qcm) || {}).essais || 0) + 1;
   const qcm = { answers, score, total: q.length, pct, ok: pct >= (c.seuil || 70), essais, at: new Date().toISOString() };
   st.qcmDraft = {};
+  if (inReview(mid)) { await S().saveRevision(st.user.uid, mid, { qcm }); return; }
   await S().saveModulePart(st.user.uid, mid, { qcm });
 }
 async function saveExercise(exId) {
-  const mid = st.view.mod, p = st.prog[mid] || {};
+  const mid = st.view.mod, p = progView(mid);
   const saved = (p.exercices || {})[exId] || {};
   const vals = scopeValues("ex:" + exId, saved);
-  await S().saveModulePart(st.user.uid, mid, { exercices: { ...(p.exercices || {}), [exId]: vals } });
+  if (inReview(mid)) { const r = (st.rev || {})[mid] || {}; await S().saveRevision(st.user.uid, mid, { exercices: { ...(r.exercices || {}), [exId]: vals } }); }
+  else await S().saveModulePart(st.user.uid, mid, { exercices: { ...(p.exercices || {}), [exId]: vals } });
   const c = st.content[mid], ex = (c.exercices || []).find((x) => x.id === exId);
   if (ex && fieldsComplete(ex.champs, vals, mid + "_" + exId)) delete st.openEx[mid + ":" + exId];
   st.msg = "Exercice enregistré.";
@@ -1065,6 +1074,7 @@ async function suiviNote(attr, val) {
 function tasksToday() {
   const out = [];
   Object.entries(st.suivis).forEach(([key, sv]) => {
+    if (key === JOUR_KEY && parcoursTermine()) return;
     // Ancien suivi « 7 jours » de la déclaration (avant qu'elle devienne permanente) : remplacé par le suivi permanent, on ne le compte plus
     if (key !== DECL_KEY && sv.mid === "m1" && sv.exId === "declaration" && sv.fid === "suivi") return;
     if (isBlocked() && !isPerm(key)) return;
@@ -1101,6 +1111,22 @@ function renderTasks() {
         <div class="dash-task-b">${isPerm(t.key) ? (t.sv.labels || []).map((lb, i) => ((t.sv.done || {})[String(t.per)] || []).includes(i) ? "" : `<button class="btn-secondary" data-decl="tick" data-key="${t.key}" data-slot="${i}">✓ ${esc(lb)}</button>`).join("") : ""}<button class="btn-primary" data-act="task-open" data-sk="${esc(t.key)}">Ouvrir</button></div></div>`).join("");
   }
   box.innerHTML = h + "</div>";
+}
+
+/* ---------- Parcours terminé : sortie du suivi et mode révision privé ---------- */
+function parcoursTermine() { return MODULES.length > 0 && MODULES.every((m) => isComplete(m.id)) && !st.meta.suiviForce; }
+function termineDe(mods, meta) {
+  if (meta && meta.suiviForce) return false;
+  const acq = (meta && meta.acquis) || [];
+  return MODULES.length > 0 && MODULES.every((m) => acq.includes(m.id) || (mods[m.id] && mods[m.id].ficheStatus === "validated" && mods[m.id].qcm && mods[m.id].qcm.ok));
+}
+const metaOnce = (uid) => new Promise((res) => { const u = S().watchFormationMeta(uid, (m) => { try { u(); } catch (e) {} res(m || {}); }); });
+const inReview = (mid) => !!isComplete(mid);
+function progView(mid) {
+  const p = st.prog[mid] || {};
+  if (!inReview(mid)) return p;
+  const r = (st.rev || {})[mid] || {};
+  return { ...p, ficheStatus: "draft", lu: Array.from(new Set([...(p.lu || []), ...(r.lu || [])])), qcm: r.qcm || p.qcm, exercices: { ...(p.exercices || {}), ...(r.exercices || {}) } };
 }
 
 /* ---------- Indisponibilité signalée ---------- */
@@ -1408,14 +1434,15 @@ async function loadCorrections() {
     const rows = [];
     st.corr.ind = [];
     for (const l of liens) {
-      try {
-        const iv = await S().loadStudentIndispos(l.uid || l.id), t0 = todayStr();
-        indList(iv).filter((v) => { const x = indLast(v); return x === null || x >= t0; }).forEach((v) => st.corr.ind.push({ ...v, uid: l.uid || l.id, nom: l.nom || l.email || "" }));
-      } catch (e) {}
       let mods = {};
       let sv = {};
       try { mods = await S().loadStudentModules(l.uid || l.id); } catch (e) {}
       try { sv = await S().loadStudentSuivis(l.uid || l.id); } catch (e) {}
+      try { if (termineDe(mods, await metaOnce(l.uid || l.id))) continue; } catch (e) {}
+      try {
+        const iv = await S().loadStudentIndispos(l.uid || l.id), t0 = todayStr();
+        indList(iv).filter((v) => { const x = indLast(v); return x === null || x >= t0; }).forEach((v) => st.corr.ind.push({ ...v, uid: l.uid || l.id, nom: l.nom || l.email || "" }));
+      } catch (e) {}
       Object.keys(mods).forEach((mid) => {
         const d = mods[mid];
         if (["submitted", "validated", "returned"].includes(d.ficheStatus)) rows.push({ uid: l.uid || l.id, nom: l.nom || l.email || "", mid, doc: d, suivis: sv });
@@ -1586,6 +1613,13 @@ function boot() {
   if (dt) dt.addEventListener("click", declAction);
   const di = $("dashIndispo");
   if (di) { di.addEventListener("click", indAction); di.addEventListener("change", indChange); }
+  const gc = document.querySelector(".abba-invite-card");
+  if (gc) gc.addEventListener("click", (e) => {
+    if (!e.target.closest("[data-guide-charte]")) return;
+    st.view = { mod: "charte", cs: 0 }; st.cache = {};
+    const t = document.querySelector('.tab[data-tab="parcours"]'); if (t) t.click();
+    render(); window.scrollTo(0, 0);
+  });
   root.addEventListener("click", ttsEvent);
   root.addEventListener("change", ttsEvent);
   window.addEventListener("pagehide", () => ttsStop(false));
@@ -1660,6 +1694,8 @@ async function coordAnalyse(uid) {
     modules: rows, current: cur, valides: rows.filter((r) => r.complete).length, total: rows.length,
     decl: declStats(suivis[DECL_KEY], 0, off), journee: declStats(suivis[JOUR_KEY], JOUR_MIN, off), indispo: indSummary(off), charte: (prog.charte && prog.charte.done) ? (toMs(prog.charte.doneAt) || 1) : 0, enCours, bloque: meta.bloque && meta.bloque.actif ? meta.bloque : null, lastMs: last, refMs: ref,
     autoeval: !!(meta.autoevalFaite || (prog.autoeval && prog.autoeval.done)),
+    termine: rows.length > 0 && rows.every((r) => r.complete) && !meta.suiviForce,
+    termineLe: Math.max(0, ...rows.map((r) => r.validatedAt || 0)), suiviForce: !!meta.suiviForce,
   };
 }
 window.Formation = { start, stop, analyse: coordAnalyse };
