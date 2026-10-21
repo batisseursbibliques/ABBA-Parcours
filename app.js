@@ -1261,11 +1261,28 @@ function generateResume() {
 
   const today = new Date();
   const dateStr = `${String(today.getDate()).padStart(2,"0")}/${String(today.getMonth()+1).padStart(2,"0")}/${today.getFullYear()}`;
+  const EN = !!(window.I18N && window.I18N.lang === "en");
+  const T = (fr, en) => (EN ? en : fr);
   const periodeLabel = (dateDebut || dateFin)
-    ? `${dateDebut || "début"} → ${dateFin || "aujourd'hui"}`
-    : "toutes les séances enregistrées";
+    ? `${dateDebut || T("début", "start")} → ${dateFin || T("aujourd'hui", "today")}`
+    : T("toutes les séances enregistrées", "all recorded sessions");
 
-  const texte = `RÉSUMÉ PARCOURS BÂTISSEUR — généré le ${dateStr}
+  const texte = EN
+    ? `BUILDER COURSE SUMMARY — generated on ${dateStr}
+———————————————————————————
+Number of registered Builders: ${total}
+
+ATTENDANCE — period: ${periodeLabel}
+Number of sessions in this period: ${seancesPeriode.length}
+Average attendance rate: ${moyPresence}%
+  of which ${sous80} Builder(s) below the 80% threshold required by the charter
+
+CURRENT STATUS (as of ${dateStr}, not tied to the period above):
+Modules completed (average): ${moyModules}%
+Daily declaration over the last 7 days (average): ${moyDecl}%
+Builders who have filled in their profile (MBTI): ${avecMbti}/${total}
+———————————————————————————`
+    : `RÉSUMÉ PARCOURS BÂTISSEUR — généré le ${dateStr}
 ———————————————————————————
 Nombre de Bâtisseurs inscrits : ${total}
 
