@@ -408,7 +408,16 @@ function renderIndicateurs(f, ans) {
 }
 
 /* ---------- Écran principal ---------- */
+function renderTermine() {
+  const box = $("dashTermine");
+  if (!box) return;
+  if (!st.user || !parcoursTermine()) { box.hidden = true; box.innerHTML = ""; return; }
+  const last = Math.max(0, ...MODULES.map((m) => toMs((st.prog[m.id] || {}).validatedAt) || 0));
+  box.hidden = false;
+  box.innerHTML = `<p class="eyebrow">🎉 Parcours terminé</p><p>Tu as validé tous les modules${last ? " le " + new Date(last).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : ""}. Félicitations !</p><p class="small">Tu n’es plus suivi par un correcteur. Tes modules restent ouverts : relis-les et refais les exercices quand tu veux, tes réponses restent privées.</p><a class="link-btn" href="https://batisseursbibliques.org/abba-life/" style="display:block;">Continuer avec ABBA Life (checklist, finance, agenda) →</a><a class="link-btn" href="https://batisseursbibliques.org/abba-mise-en-action/" style="display:block;margin-top:6px;">Commencer la Mise en Action (Phase 2) →</a>`;
+}
 function render() {
+  renderTermine();
   renderDash();
   renderBinomeProgress();
   renderZonesPlan();
