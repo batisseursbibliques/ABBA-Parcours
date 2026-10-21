@@ -146,7 +146,7 @@
 
       <div class="card dash-card" id="dashRing"></div>
 
-      <div class="card admin-only" id="accueilCoordCard" style="display:none;">
+      <div class="card admin-only" id="accueilCoordCard" data-droit="suivi" style="display:none;">
         <p class="eyebrow">★ Coordination</p>
         <p class="settings-hint">Avancement de tous les Bâtisseurs dans les modules.</p>
         <button class="link-btn" data-goto="coordination">Ouvrir Coordination →</button>
@@ -310,7 +310,7 @@
         <p class="empty-hint" id="presenceEmpty">Aucune séance enregistrée pour l'instant.</p>
       </div>
 
-      <div class="card admin-only" id="presenceAdminCard" style="display:none;">
+      <div class="card admin-only" id="presenceAdminCard" data-droit="presences" style="display:none;">
         <p class="eyebrow">Gérer les séances (coordinateurs)</p>
         <form id="addSeanceForm" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">
           <input type="text" id="seanceTitre" class="text-input" placeholder="Ex. P2 — Modules M4 à M6" required>
@@ -390,7 +390,7 @@
       </div>
       <div class="card"><p class="eyebrow">Langue</p><div data-no-i18n style="margin-top:4px;"><label class="field"><span>Langue · Language</span><select data-lang-select class="text-input"><option value="fr">Français</option><option value="en">English</option></select></label></div></div>
 
-      <div class="card admin-only" id="adminsCard" style="display:none;">
+      <div class="card admin-only" id="adminsCard" data-droit="coordinateurs" style="display:none;">
         <p class="eyebrow">Coordinateurs</p>
         <p class="settings-hint">Un coordinateur voit toute la page Coordination. Les correcteurs n'y ont pas accès.</p>
         <div id="adminsList"></div>
@@ -413,6 +413,12 @@
         <a class="link-btn" href="installer.html" style="display:block;">📲 Installer l'application Android →</a>
       </div>
 
+      <div class="card settings-card admin-only" id="apercuCard" data-droit="apercu" style="display:none;">
+        <p class="eyebrow">Aperçu des cours</p>
+        <p class="settings-hint">Activé, tu vois et tu ouvres tous les modules, même verrouillés ou en préparation. Désactivé, tu vois exactement ce que voit un étudiant.</p>
+        <label class="fm-check"><input type="checkbox" id="apercuToggle"><span>Voir les cours en aperçu</span></label>
+      </div>
+
       <div class="card settings-card" id="diagCard">
         <p class="eyebrow">Diagnostic</p>
         <p class="settings-hint">Si une page reste vide, touche « Tester la connexion » puis envoie une capture de ce cadre.</p>
@@ -420,7 +426,7 @@
         <pre class="diag-out" id="diagOut"></pre>
       </div>
 
-      <div class="card settings-card admin-only" id="binomesManagerCard" style="display:none;">
+      <div class="card settings-card admin-only" id="binomesManagerCard" data-droit="binomes" style="display:none;">
         <p class="eyebrow">Gérer les binômes</p>
         <p class="settings-hint">Relie deux Bâtisseurs déjà inscrits pour former un binôme.</p>
         <div id="binomesList"></div>

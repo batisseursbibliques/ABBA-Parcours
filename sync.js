@@ -46,8 +46,29 @@ function watchAdmins(callback) {
 }
 
 /* ---------- COORDINATEURS & BLOCAGE DU PARCOURS ---------- */
+const DROITS = ["apercu", "suivi", "corrections", "presences", "binomes"];
+// Liste complète des coordinateurs avec leurs droits : { email: données }
+function watchAdminsData(callback) {
+  return onSnapshot(collection(db, "admins"), (snap) => {
+    const map = {};
+    snap.docs.forEach(d => { map[d.id.toLowerCase()] = d.data(); });
+    callback(map);
+  }, (err) => console.error("watchAdminsData:", err));
+}
+// Droits d'un coordinateur. Le principal a tout. Un coordinateur sans réglage de droits garde tout sauf l'aperçu ;
+// un coordinateur ajouté depuis Parcours commence sans aucun droit.
+function droitsDe(email, map) {
+  const e = String(email || "").toLowerCase(), principal = isAdminEmail(e), d = (map || {})[e];
+  const out = { principal, admin: principal || !!d, coordinateurs: principal };
+  DROITS.forEach(k => { out[k] = principal || (!!d && (d.droits ? d.droits[k] === true : k !== "apercu")); });
+  return out;
+}
 async function addAdmin(email, byEmail) {
-  await setDoc(doc(db, "admins", lc(email)), { addedBy: lc(byEmail), addedAt: serverTimestamp() });
+  const droits = {}; DROITS.forEach(k => { droits[k] = false; });
+  await setDoc(doc(db, "admins", lc(email)), { addedBy: lc(byEmail), addedAt: serverTimestamp(), droits });
+}
+async function setDroits(email, droits) {
+  await setDoc(doc(db, "admins", lc(email)), { droits }, { merge: true });
 }
 async function removeAdmin(email) { await deleteDoc(doc(db, "admins", lc(email))); }
 async function setBloque(uid, data) {
@@ -407,5 +428,6 @@ window.AbbaSync = {
   watchSuivis, startSuivi, updateSuivi, loadStudentSuivis,
   watchIndispos, addIndispo, updateIndispo, loadStudentIndispos,
   watchRevisions, saveRevision, setSuiviForce,
+  watchAdminsData, droitsDe, setDroits,
   watchZonesPlan, saveZonesPlan, saveMyProgress,
 };

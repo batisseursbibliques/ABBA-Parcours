@@ -62,7 +62,7 @@ function stop() {
   unsubs = [];
   if (st.adm && st.adm.unsub) { try { st.adm.unsub(); } catch (e) {} }
   st.adm = { open: false, correcteurs: [], liens: [], students: [], loaded: false };
-  st.user = null; st.meta = {}; st.prog = {}; st.suivis = {}; st.indispos = {}; st.indForm = false; st.rev = {}; st.zp.plan = {}; st.binome = { pair: null, last: "" }; st.loaded = { prog: false, meta: false }; st.parcours = []; st.lien = null;
+  st.user = null; st.meta = {}; st.prog = {}; st.suivis = {}; st.indispos = {}; st.indForm = false; st.rev = {}; st.rights = {}; st.zp.plan = {}; st.binome = { pair: null, last: "" }; st.loaded = { prog: false, meta: false }; st.parcours = []; st.lien = null;
   st.isAdmin = false; st.isCorrecteur = false; st.view = { mod: null, step: "lecture" };
   render(); renderIndispo();
 }
@@ -71,8 +71,11 @@ async function start(user) {
   st.user = user;
   const root = $("formationRoot");
   if (root) root.innerHTML = '<p class="settings-hint">Chargement…</p>';
-  unsubs.push(S().watchAdmins((emails) => {
-    st.isAdmin = S().isAdminEmail(user.email) || (emails || []).map((e) => e.toLowerCase()).includes(user.email.toLowerCase());
+  st.apercuOn = (() => { try { return localStorage.getItem("abba_apercu") !== "0"; } catch (e) { return true; } })();
+  unsubs.push(S().watchAdminsData((map) => {
+    st.rights = S().droitsDe(user.email, map || {});
+    st.isAdmin = !!st.rights.admin;
+    const at = $("apercuToggle"); if (at) at.checked = apercuActif();
     render();
   }));
   S().getUserProfile(user.uid).then((p) => { st.profile = p || {}; renderDash(); }).catch(() => {});
@@ -101,6 +104,8 @@ async function start(user) {
 /* ---------- Règles de progression ---------- */
 const acquis = () => st.meta.acquis || [];
 const isComplete = (mid) => acquis().includes(mid) || (st.prog[mid] && st.prog[mid].ficheStatus === "validated" && st.prog[mid].qcm && st.prog[mid].qcm.ok);
+const can = (d) => !!(st.rights && st.rights[d]);
+const apercuActif = () => can("apercu") && st.apercuOn !== false;
 const isBlocked = () => !st.isAdmin && !!(st.meta.bloque && st.meta.bloque.actif);
 const autoevalDone = () => !!(st.meta.autoevalFaite || (st.prog.autoeval && st.prog.autoeval.done));
 function isUnlocked(i) {
@@ -432,8 +437,8 @@ function render() {
   else if (st.view.mod === "charte") h += renderCharte();
   else if (st.view.mod) h += renderModuleView();
   else h += renderModuleList();
-  if (st.isCorrecteur || st.isAdmin) h += renderCorrCard();
-  if (st.isAdmin) h += renderAdminCard();
+  if (st.isCorrecteur || can("corrections")) h += renderCorrCard();
+  if (can("corrections")) h += renderAdminCard();
   root.innerHTML = h;
   ttsRestore();
   if (st.msg) { const m = root.querySelector(".fm-msg"); if (m) setTimeout(() => { st.msg = ""; if (m.parentNode) m.remove(); }, 4000); }
@@ -470,7 +475,7 @@ function renderModuleList() {
       cls = "open";
       badge = p.ficheStatus === "submitted" ? "⏳ En correction" : p.ficheStatus === "returned" ? "↩️ À reprendre" : (p.lu || p.qcm || p.exercices) ? "En cours" : "À commencer";
     }
-    const prev = st.isAdmin && ((m.preview && !m.ready) || (m.ready && !done && !open)); // aperçu coordinateur : un coordinateur peut ouvrir tous les modules (même verrouillés) pour relire/vérifier les traductions
+    const prev = apercuActif() && ((m.preview && !m.ready) || (m.ready && !done && !open)); // aperçu coordinateur : un coordinateur peut ouvrir tous les modules (même verrouillés) pour relire/vérifier les traductions
     if (prev) { cls = "open"; badge = "👁 Aperçu coordinateur"; }
     const clickable = (open && m.ready) || done || prev;
     h += `<button class="fm-mod ${cls}" ${clickable ? `data-act="open" data-m="${m.id}"` : "disabled"}><span class="fm-mod-t">${esc(modTitle(m))}</span><span class="fm-mod-b">${badge}</span></button>`;
@@ -1439,7 +1444,7 @@ function renderCorrCard() {
 async function loadCorrections() {
   st.corr.loading = true;
   try {
-    const liens = st.isAdmin ? await S().loadAllLiens() : await S().loadMyStudents(st.user.email);
+    const liens = can("corrections") ? await S().loadAllLiens() : await S().loadMyStudents(st.user.email);
     const rows = [];
     st.corr.ind = [];
     for (const l of liens) {
@@ -1568,9 +1573,9 @@ function renderAdminCard() {
     h += `<div class="fm-ex"><p class="eyebrow">${esc(s.nom || s.email)}</p><p class="small">${esc(s.email)}</p>
       <label class="field"><span>Correcteur</span><select class="text-input" id="admLien-${s.uid}"><option value="">— aucun —</option>${st.adm.correcteurs.map((c) => `<option value="${esc(c.email)}" ${lien && lien.correcteurEmail === c.email ? "selected" : ""}>${esc(c.nom || c.email)}</option>`).join("")}</select></label>
       <button class="btn-secondary" data-act="adm-setlien" data-u="${s.uid}">Enregistrer le lien</button>
-      <label class="fm-check"><input type="checkbox" id="admAuto-${s.uid}" ${((st.adm.metas || {})[s.uid] || {}).autoevalFaite ? "checked" : ""}><span>Auto-évaluation déjà faite (dispensée)</span></label>
+${can("suivi") ? `      <label class="fm-check"><input type="checkbox" id="admAuto-${s.uid}" ${((st.adm.metas || {})[s.uid] || {}).autoevalFaite ? "checked" : ""}><span>Auto-évaluation déjà faite (dispensée)</span></label>
       <div class="fm-acq">${MODULES.map((m) => `<label><input type="checkbox" id="admAcq-${s.uid}-${m.id}" ${acq.includes(m.id) ? "checked" : ""}> M${modNum(m)}</label>`).join("")}</div>
-      <button class="btn-secondary" data-act="adm-setacquis" data-u="${s.uid}">Enregistrer les modules acquis</button></div>`;
+      <button class="btn-secondary" data-act="adm-setacquis" data-u="${s.uid}">Enregistrer les modules acquis</button>` : ""}</div>`;
   });
   return h + "</div>";
 }
@@ -1622,6 +1627,8 @@ function boot() {
   if (dt) dt.addEventListener("click", declAction);
   const di = $("dashIndispo");
   if (di) { di.addEventListener("click", indAction); di.addEventListener("change", indChange); }
+  const atg = $("apercuToggle");
+  if (atg) atg.addEventListener("change", () => { st.apercuOn = atg.checked; try { localStorage.setItem("abba_apercu", atg.checked ? "1" : "0"); } catch (e) {} render(); });
   const gc = document.querySelector(".abba-invite-card");
   if (gc) gc.addEventListener("click", (e) => {
     if (!e.target.closest("[data-guide-charte]")) return;

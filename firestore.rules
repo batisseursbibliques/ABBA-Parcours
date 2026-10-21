@@ -20,15 +20,26 @@ service cloud.firestore {
       );
     }
 
+    // Droits d'un coordinateur, cochés par le coordinateur principal dans l'app (doc admins/{email}.droits).
+    // Le principal a tous les droits. Sans réglage de droits, un coordinateur garde tout sauf l'aperçu.
+    function adminDocData() { return get(/databases/$(database)/documents/admins/$(request.auth.token.email.lower())).data; }
+    function hasDroit(d) {
+      return request.auth != null && (
+        isBootstrapAdmin() ||
+        (exists(/databases/$(database)/documents/admins/$(request.auth.token.email.lower())) &&
+          (('droits' in adminDocData()) ? adminDocData().droits.get(d, false) == true : d != 'apercu'))
+      );
+    }
+
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
-      allow read: if isAdmin();
+      allow read: if hasDroit('suivi') || hasDroit('corrections') || hasDroit('presences') || hasDroit('binomes');
 
       match /priv/{doc} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
         // Le coordinateur a besoin d'écrire ce repère précis quand il relie deux Bâtisseurs —
         // il ne touche à rien d'autre dans l'espace privé de la personne.
-        allow write: if isAdmin() && doc == "binome";
+        allow write: if hasDroit('binomes') && doc == "binome";
       }
 
       // Données mensuelles (spirituel + bilans + finance), un document par mois AAAA-MM
@@ -38,7 +49,7 @@ service cloud.firestore {
     }
 
     match /summaries/{uid} {
-      allow read: if isAdmin();
+      allow read: if hasDroit('suivi');
       allow write: if request.auth != null && request.auth.uid == uid;
     }
 
@@ -51,31 +62,31 @@ service cloud.firestore {
     // Liste des coordinateurs, modifiable uniquement par un coordinateur déjà actif
     match /admins/{email} {
       allow read: if isAdmin();
-      allow write: if isAdmin();
+      allow write: if isBootstrapAdmin();
     }
 
     // Binômes (accountability) : le coordinateur crée/supprime la paire,
     // les deux membres peuvent ensuite modifier librement leur fiche partagée.
     match /binomes/{pairId} {
-      allow read: if isAdmin() || (request.auth != null && request.auth.token.email.lower() in [resource.data.membre1, resource.data.membre2]);
-      allow create, delete: if isAdmin();
-      allow update: if isAdmin() || (request.auth != null && request.auth.token.email.lower() in [resource.data.membre1, resource.data.membre2]);
+      allow read: if hasDroit('binomes') || (request.auth != null && request.auth.token.email.lower() in [resource.data.membre1, resource.data.membre2]);
+      allow create, delete: if hasDroit('binomes');
+      allow update: if hasDroit('binomes') || (request.auth != null && request.auth.token.email.lower() in [resource.data.membre1, resource.data.membre2]);
     }
 
     // Séances et présence — chacun voit son propre suivi, seul le coordinateur marque la présence.
     match /seances/{seanceId} {
       allow read: if request.auth != null;
-      allow write: if isAdmin();
+      allow write: if hasDroit('presences');
     }
 
     match /enrollments/{enrollId} {
-      allow read: if isAdmin()
+      allow read: if hasDroit('presences')
         || (request.auth != null && enrollId.matches(request.auth.uid + '_.*'));
       allow create: if request.auth != null
         && enrollId.matches(request.auth.uid + '_.*')
         && request.resource.data.status == "pending";
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow update: if hasDroit('presences');
+      allow delete: if hasDroit('presences');
     }
 
     // ===== FORMATION EN AUTONOMIE (correcteurs, liens, progression par module) =====
@@ -90,16 +101,16 @@ service cloud.firestore {
 
     // Liste des correcteurs : gérée par le coordinateur
     match /correcteurs/{email} {
-      allow read: if isAdmin() || (request.auth != null && email == myEmail());
-      allow write: if isAdmin();
+      allow read: if hasDroit('corrections') || hasDroit('suivi') || (request.auth != null && email == myEmail());
+      allow write: if hasDroit('corrections');
     }
 
     // Lien étudiant -> correcteur : posé par le coordinateur
     match /liens/{uid} {
-      allow read: if isAdmin()
+      allow read: if hasDroit('corrections') || hasDroit('suivi')
         || (request.auth != null && request.auth.uid == uid)
         || (request.auth != null && resource.data.correcteurEmail == myEmail());
-      allow write: if isAdmin();
+      allow write: if hasDroit('corrections');
     }
 
     // Parcours bloqué par le coordinateur (champ formation/{uid}.bloque.actif) : l'élève ne peut plus écrire dans ses modules
@@ -110,11 +121,11 @@ service cloud.firestore {
 
     match /formation/{uid} {
       // Document de synthèse (modules acquis, posés par le coordinateur)
-      allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid) || isCorrecteurOf(uid);
-      allow write: if isAdmin();
+      allow read: if hasDroit('suivi') || hasDroit('corrections') || (request.auth != null && request.auth.uid == uid) || isCorrecteurOf(uid);
+      allow write: if hasDroit('suivi');
 
       match /modules/{mid} {
-        allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid) || isCorrecteurOf(uid);
+        allow read: if hasDroit('suivi') || hasDroit('corrections') || (request.auth != null && request.auth.uid == uid) || isCorrecteurOf(uid);
 
         // L'étudiant écrit ses réponses, jamais la validation
         allow create: if request.auth != null && request.auth.uid == uid && !isBlocked(uid)
@@ -131,21 +142,21 @@ service cloud.firestore {
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ficheStatus','validatedBy','validatedAt','correctorComment'])
             && resource.data.get('ficheStatus', 'draft') == 'submitted'
             && request.resource.data.ficheStatus in ['validated', 'returned'])
-          || isAdmin();
+          || hasDroit('corrections') || hasDroit('suivi');
 
-        allow delete: if isAdmin();
+        allow delete: if hasDroit('suivi');
       }
 
       // Exercices qui s'étalent sur plusieurs jours (7 jours, 21 jours...) : le simple fait de les
       // commencer compte ; les cases quotidiennes restent cochables même après l'envoi de la fiche.
       match /suivis/{sid} {
-        allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid) || isCorrecteurOf(uid);
+        allow read: if hasDroit('suivi') || hasDroit('corrections') || (request.auth != null && request.auth.uid == uid) || isCorrecteurOf(uid);
         allow create: if request.auth != null && request.auth.uid == uid && (sid == 'declaration' || sid == 'journee' || !isBlocked(uid))
           && request.resource.data.keys().hasOnly(['mid','exId','fid','titre','jours','labels','cibles','pas','start','done','notes','updatedAt']);
         allow update: if (request.auth != null && request.auth.uid == uid && (sid == 'declaration' || sid == 'journee' || !isBlocked(uid))
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['done','notes','updatedAt']))
-          || isAdmin();
-        allow delete: if isAdmin();
+          || hasDroit('suivi');
+        allow delete: if hasDroit('suivi');
       }
 
       // Révisions après validation : réponses refaites, privées (ni correcteur ni coordinateur ne les lisent)
@@ -157,7 +168,7 @@ service cloud.firestore {
 
       // Indisponibilités signalées par l'élève (maladie, déplacement…) : visibles par lui, son correcteur et les coordinateurs
       match /indispos/{iid} {
-        allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid) || isCorrecteurOf(uid);
+        allow read: if hasDroit('suivi') || hasDroit('corrections') || (request.auth != null && request.auth.uid == uid) || isCorrecteurOf(uid);
         allow create: if request.auth != null && request.auth.uid == uid
           && request.resource.data.keys().hasOnly(['debut','fin','finInconnue','motif','creeLe','updatedAt'])
           && request.resource.data.motif is string
@@ -165,9 +176,9 @@ service cloud.firestore {
         // L'élève met fin ou annule ; le correcteur ou le coordinateur marque seulement « pris en compte »
         allow update: if (request.auth != null && request.auth.uid == uid
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fin','finInconnue','repriseLe','annule','updatedAt']))
-          || ((isAdmin() || isCorrecteurOf(uid))
+          || ((hasDroit('suivi') || hasDroit('corrections') || isCorrecteurOf(uid))
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['vu','updatedAt']));
-        allow delete: if isAdmin();
+        allow delete: if hasDroit('suivi');
       }
     }
   }

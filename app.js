@@ -31,6 +31,9 @@ function escapeAttr(s) {
 let CURRENT_USER = null;
 let CURRENT_PROFILE = {};
 let IS_ADMIN = false;
+let RIGHTS = {};
+let ADMINS_DATA = {};
+const DROITS_LABELS = { apercu: "Aperçu des cours", suivi: "Suivi des étudiants", corrections: "Corrections et correcteurs", presences: "Séances et présences", binomes: "Binômes" };
 let MODULES_CONFIG = [];
 let MODULES_TERMINES = [];
 let EDIT_MODULES = [];
@@ -203,16 +206,18 @@ async function onAuthChanged(user) {
     CURRENT_PROFILE = {};
   }
 
-  unsubAdmins = window.AbbaSync.watchAdmins((emails) => {
-    const isBootstrap = window.AbbaSync.isAdminEmail(user.email);
-    const inList = (emails || []).map(e => e.toLowerCase()).includes(user.email.toLowerCase());
-    IS_ADMIN = isBootstrap || inList;
-    document.querySelectorAll(".admin-only").forEach(el => { el.style.display = IS_ADMIN ? "" : "none"; });
+  unsubAdmins = window.AbbaSync.watchAdminsData((map) => {
+    ADMINS_DATA = map || {};
+    RIGHTS = window.AbbaSync.droitsDe(user.email, ADMINS_DATA);
+    IS_ADMIN = !!RIGHTS.admin;
+    document.querySelectorAll(".admin-only").forEach(el => { const d = el.dataset.droit; el.style.display = IS_ADMIN && (!d || RIGHTS[d]) ? "" : "none"; });
     renderModulesEditor();
     renderZonesEditor();
-    LAST_ADMIN_EMAILS = emails || [];
-    if (IS_ADMIN) renderAdminsCard();
-    if (IS_ADMIN) { renderCoordModules(); loadBinomesManager(); renderSeancesAdmin(); setupEnrollmentsAdmin(); }
+    LAST_ADMIN_EMAILS = Object.keys(ADMINS_DATA);
+    if (RIGHTS.coordinateurs) renderAdminsCard();
+    if (RIGHTS.suivi) renderCoordModules();
+    if (RIGHTS.binomes) loadBinomesManager();
+    if (RIGHTS.presences) { renderSeancesAdmin(); setupEnrollmentsAdmin(); }
   });
 
   unsubModulesConfig = window.AbbaSync.watchModulesConfig((list) => {
@@ -427,10 +432,20 @@ function renderAdminsCard() {
   const all = Array.from(new Set(LAST_ADMIN_EMAILS.map(e => e.toLowerCase())));
   list.innerHTML = all.length ? all.map(e => {
     const principal = window.AbbaSync.isAdminEmail(e);
-    return `<p class="small" style="display:flex;justify-content:space-between;gap:8px;align-items:center;"><span>${escC(e)}${principal ? " (principal)" : ""}${e === me ? " — vous" : ""}</span>${principal || e === me ? "" : `<button class="btn-secondary" data-rmadmin="${escC(e)}">Retirer</button>`}</p>`;
+    const dd = (ADMINS_DATA[e] || {}).droits, val = (k) => dd ? dd[k] === true : k !== "apercu";
+    const cases = principal ? "" : `<div class="fm-acq" style="margin:2px 0 10px;">${Object.keys(DROITS_LABELS).map(k => `<label><input type="checkbox" data-dk="${k}" data-dkemail="${escC(e)}" ${val(k) ? "checked" : ""}> ${DROITS_LABELS[k]}</label>`).join("")}</div>`;
+    return `<div>` + `<p class="small" style="display:flex;justify-content:space-between;gap:8px;align-items:center;"><span>${escC(e)}${principal ? " (principal)" : ""}${e === me ? " — vous" : ""}</span>${principal || e === me ? "" : `<button class="btn-secondary" data-rmadmin="${escC(e)}">Retirer</button>`}</p>` + cases + `</div>`;
   }).join("") : `<p class="settings-hint">Aucun coordinateur dans la liste (le coordinateur principal reste actif).</p>`;
   if (!list.dataset.bound) {
     list.dataset.bound = "1";
+    list.addEventListener("change", async (ev) => {
+      const c = ev.target.closest("[data-dk]");
+      if (!c) return;
+      const em = c.dataset.dkemail, droits = {};
+      list.querySelectorAll(`[data-dkemail="${em}"]`).forEach(x => { droits[x.dataset.dk] = x.checked; });
+      try { await window.AbbaSync.setDroits(em, droits); document.getElementById("adminsMsg").textContent = "Droits de " + em + " enregistrés."; }
+      catch (e2) { document.getElementById("adminsMsg").textContent = "Impossible d'enregistrer : " + (e2.code || e2.message); }
+    });
     list.addEventListener("click", async (ev) => {
       const b = ev.target.closest("[data-rmadmin]");
       if (!b || !confirm("Retirer " + b.dataset.rmadmin + " des coordinateurs ?")) return;
@@ -440,7 +455,7 @@ function renderAdminsCard() {
       const inp = document.getElementById("newAdminEmail"), msg = document.getElementById("adminsMsg");
       const em = inp.value.trim().toLowerCase();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { msg.textContent = "Entre une adresse e-mail valide."; return; }
-      try { await window.AbbaSync.addAdmin(em, CURRENT_USER.email); inp.value = ""; msg.textContent = em + " est maintenant coordinateur."; }
+      try { await window.AbbaSync.addAdmin(em, CURRENT_USER.email); inp.value = ""; msg.textContent = em + " est maintenant coordinateur, sans aucun droit : coche ses droits dans la liste."; }
       catch (e) { msg.textContent = "Impossible d'ajouter : " + (e.code || e.message); }
     });
   }
