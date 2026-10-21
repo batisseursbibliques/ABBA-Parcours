@@ -419,7 +419,7 @@ function renderTermine() {
   if (!st.user || !parcoursTermine()) { box.hidden = true; box.innerHTML = ""; return; }
   const last = Math.max(0, ...MODULES.map((m) => toMs((st.prog[m.id] || {}).validatedAt) || 0));
   box.hidden = false;
-  box.innerHTML = `<p class="eyebrow">🎉 Parcours terminé</p><p>Tu as validé tous les modules${last ? " le " + new Date(last).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : ""}. Félicitations !</p><p class="small">Tu n’es plus suivi par un correcteur. Tes modules restent ouverts : relis-les et refais les exercices quand tu veux, tes réponses restent privées.</p><a class="link-btn" href="https://batisseursbibliques.org/abba-life/" style="display:block;">Continuer avec ABBA Life (checklist, finance, agenda) →</a><a class="link-btn" href="https://batisseursbibliques.org/abba-mise-en-action/" style="display:block;margin-top:6px;">Commencer la Mise en Action (Phase 2) →</a>`;
+  box.innerHTML = `<p class="eyebrow">🎉 Parcours terminé</p><p>Tu as validé tous les modules${last ? " le " + new Date(last).toLocaleDateString(LOC(), { day: "numeric", month: "long", year: "numeric" }) : ""}. Félicitations !</p><p class="small">Tu n’es plus suivi par un correcteur. Tes modules restent ouverts : relis-les et refais les exercices quand tu veux, tes réponses restent privées.</p><a class="link-btn" href="https://batisseursbibliques.org/abba-life/" style="display:block;">Continuer avec ABBA Life (checklist, finance, agenda) →</a><a class="link-btn" href="https://batisseursbibliques.org/abba-mise-en-action/" style="display:block;margin-top:6px;">Commencer la Mise en Action (Phase 2) →</a>`;
 }
 function render() {
   renderTermine();
@@ -1145,7 +1145,7 @@ function progView(mid) {
 
 /* ---------- Indisponibilité signalée ---------- */
 function addDays(str, n) { const [y, m, d] = str.split("-").map(Number); const t = new Date(Date.UTC(y, m - 1, d + n)); return `${t.getUTCFullYear()}-${pad2(t.getUTCMonth() + 1)}-${pad2(t.getUTCDate())}`; }
-const indDate = (str) => { if (!str) return ""; const [y, m, d] = str.split("-").map(Number); return new Date(y, m - 1, d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }); };
+const indDate = (str) => { if (!str) return ""; const [y, m, d] = str.split("-").map(Number); return new Date(y, m - 1, d).toLocaleDateString(LOC(), { day: "numeric", month: "long", year: "numeric" }); };
 function indList(map) { return Object.entries(map || {}).map(([id, v]) => ({ id, ...v })).filter((v) => !v.annule && v.debut).sort((a, b) => b.debut.localeCompare(a.debut)); }
 function indLast(v) { if (v.repriseLe) return addDays(String(v.repriseLe).slice(0, 10), -1); return v.finInconnue ? null : (v.fin || null); }
 function indOff(list, day) { return list.some((v) => { const l = indLast(v); return v.debut <= day && (l === null || l >= day); }); }
@@ -1182,7 +1182,7 @@ function renderIndispo() {
       <label for="indDebut">Date de début</label><input type="date" id="indDebut" class="text-input" value="${t}">
       <label class="fm-check"><input type="checkbox" id="indInconnue"><span>Je ne sais pas quand je pourrai reprendre</span></label>
       <div id="indFinWrap"><label for="indFin">Date de fin</label><input type="date" id="indFin" class="text-input" min="${t}"></div>
-      <label for="indMotif">Explique ta situation</label><textarea id="indMotif" class="text-input" rows="4" maxlength="1000" placeholder="Maladie, déplacement, deuil, travail… Dis ce que tu veux bien partager."></textarea>
+      <label for="indMotif">Explique ta situation</label><textarea id="indMotif" class="text-input" rows="4" maxlength="1000" placeholder="${esc(window.I18N ? window.I18N.t("Maladie, déplacement, deuil, travail… Dis ce que tu veux bien partager.") : "Maladie, déplacement, deuil, travail… Dis ce que tu veux bien partager.")}"></textarea>
       <p class="small">Ton correcteur et les coordinateurs verront ce message.</p>
       <p class="ind-err" id="indMsg"></p>
       <button class="btn-primary full" data-ind="envoyer">Envoyer</button> <button class="btn-secondary" data-ind="fermer">Fermer</button></div>`;
@@ -1222,7 +1222,8 @@ function indChange(e) {
 
 /* ---------- Charte du Bâtisseur ---------- */
 const charteDone = () => !!(st.prog.charte && st.prog.charte.done);
-const charteDate = (ms) => new Date(ms).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+const LOC = () => (window.I18N && window.I18N.lang === "en" ? "en-GB" : "fr-FR");
+const charteDate = (ms) => new Date(ms).toLocaleDateString(LOC(), { day: "numeric", month: "long", year: "numeric" });
 function renderCharteCard() {
   if (charteDone()) {
     const at = toMs(st.prog.charte.doneAt);

@@ -517,7 +517,7 @@ function detailEleve(r) {
   else h += `<p class="small"><strong>Déclaration</strong> : pas commencée</p>`;
   if (a.journee) h += `<p class="small"><strong>Ma journée</strong> : ${a.journee.ok}/${a.journee.tot} jours tenus sur les 7 derniers (4 cases sur 5 ou plus)${a.journee.streak >= 2 ? ` · 🔥 ${a.journee.streak} jours de suite` : ""}</p>`;
   else h += `<p class="small"><strong>Ma journée</strong> : pas commencée</p>`;
-  h += `<p class="small"><strong>Charte</strong> : ${a.charte ? "signée" + (a.charte > 1 ? " le " + new Date(a.charte).toLocaleDateString("fr-FR") : "") : "pas encore signée"}</p>`;
+  h += `<p class="small"><strong>Charte</strong> : ${a.charte ? "signée" + (a.charte > 1 ? " le " + new Date(a.charte).toLocaleDateString(window.I18N && window.I18N.lang === "en" ? "en-GB" : "fr-FR") : "") : "pas encore signée"}</p>`;
   if (a.indispo && a.indispo.liste.length) h += `<div class="small"><strong>Indisponibilités signalées</strong>${a.indispo.liste.map(v => `<p>${v.vivant ? "⏸ " : ""}${escC(v.texte)}<br>${escC(v.motif)}<br>${v.vu ? "✓ Pris en compte" : `<button class="btn-secondary" data-indvu="${v.id}">Pris en compte</button>`}</p>`).join("")}</div>`;
   if (a.suiviForce && a.valides === a.total) h += `<button class="btn-secondary" data-suivi="off">Parcours terminé : retirer du suivi</button>`;
   h += `<p class="small"><strong>Correcteur</strong> : ${escC(r.correcteur || "non attribué")}</p>`;
@@ -596,7 +596,7 @@ async function renderCoordModules() {
     const boxA = document.getElementById("coordAnciens");
     if (boxA) {
       boxA.innerHTML = anciens.length
-        ? `<details><summary><strong>Anciens — parcours terminé (${anciens.length})</strong></summary>${anciens.map(r => `<p class="small"><strong>${escC(r.nom || r.email || "—")}</strong> — terminé${r.a.termineLe ? " le " + new Date(r.a.termineLe).toLocaleDateString("fr-FR") : ""} <button class="btn-secondary" data-suivi="on" data-uid="${r.uid}">Remettre dans le suivi</button></p>`).join("")}</details>`
+        ? `<details><summary><strong>Anciens — parcours terminé (${anciens.length})</strong></summary>${anciens.map(r => `<p class="small"><strong>${escC(r.nom || r.email || "—")}</strong> — terminé${r.a.termineLe ? " le " + new Date(r.a.termineLe).toLocaleDateString(window.I18N && window.I18N.lang === "en" ? "en-GB" : "fr-FR") : ""} <button class="btn-secondary" data-suivi="on" data-uid="${r.uid}">Remettre dans le suivi</button></p>`).join("")}</details>`
         : "";
       boxA.style.display = anciens.length ? "" : "none";
       boxA.onclick = async (ev) => {
