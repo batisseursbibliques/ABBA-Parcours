@@ -460,7 +460,7 @@ function renderModuleList() {
       cls = "open";
       badge = p.ficheStatus === "submitted" ? "⏳ En correction" : p.ficheStatus === "returned" ? "↩️ À reprendre" : (p.lu || p.qcm || p.exercices) ? "En cours" : "À commencer";
     }
-    const prev = st.isAdmin && m.preview && !m.ready;
+    const prev = st.isAdmin && ((m.preview && !m.ready) || (m.ready && !done && !open)); // aperçu coordinateur : un coordinateur peut ouvrir tous les modules (même verrouillés) pour relire/vérifier les traductions
     if (prev) { cls = "open"; badge = "👁 Aperçu coordinateur"; }
     const clickable = (open && m.ready) || done || prev;
     h += `<button class="fm-mod ${cls}" ${clickable ? `data-act="open" data-m="${m.id}"` : "disabled"}><span class="fm-mod-t">${esc(modTitle(m))}</span><span class="fm-mod-b">${badge}</span></button>`;
