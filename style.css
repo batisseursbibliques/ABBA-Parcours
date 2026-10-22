@@ -940,3 +940,32 @@ html.i18n-wait body{visibility:hidden;}
 .lec-n{font-weight:600;min-width:62px;font-size:14px;}
 .lec-lect{display:flex;flex-wrap:wrap;gap:6px;flex:1;}
 .lec-lect .lec-chap{padding:3px 9px;font-size:13px;}
+
+/* Lecture du jour : accordéon en une ligne, vert / orange / rouge */
+.lec-acc>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;padding:2px 0;}
+.lec-acc>summary::-webkit-details-marker{display:none;}
+.lec-acc>summary::after{content:"▾";margin-left:auto;color:var(--ink-soft);flex:none;}
+.lec-acc[open]>summary::after{content:"▴";}
+.lec-ligne{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;}
+.lec-acc[open] .lec-ligne{white-space:normal;}
+.lec-puce-etat{width:12px;height:12px;border-radius:50%;flex:none;background:var(--gold);}
+.lec-corps{margin-top:12px;}
+.lec-ligne-j{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);}
+.lec-ligne-j .lec-puces{margin:0;flex:1;}
+.lec-ligne-j .btn-secondary{padding:6px 12px;}
+.lec-carte.lec-ok{border-color:#2e7d32;}
+.lec-carte.lec-ok .lec-puce-etat{background:#2e7d32;}
+.lec-carte.lec-orange{border-color:#e08a00;}
+.lec-carte.lec-orange .lec-puce-etat{background:#e08a00;}
+.lec-carte.lec-rouge{border-color:#c62828;}
+.lec-carte.lec-rouge .lec-puce-etat{background:#c62828;}
+.lec-carte.lec-rouge .lec-ligne{color:#c62828;}
+.lec-statut{font-weight:600;margin:8px 0;}
+.lec-statut.lec-ok{color:#2e7d32;}
+.lec-statut.lec-orange{color:#b86e00;}
+.lec-statut.lec-rouge{color:#c62828;}
+.lec-row.retard .lec-n{color:#c62828;}
+.lec-row.auj{background:rgba(224,138,0,.12);border-radius:8px;padding-left:6px;padding-right:6px;}
+.lec-tag{font-size:11px;font-weight:700;color:#b86e00;text-transform:uppercase;}
+.lec-tag.rouge{color:#c62828;}
+.lec-debut{margin:8px 0;}

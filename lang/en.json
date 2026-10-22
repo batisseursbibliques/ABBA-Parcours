@@ -815,5 +815,6 @@
 "Tél : {0}": "Phone: {0}",
 "Né(e) le {0} · {1} ans": "Born on {0} · {1} years old",
 "Né(e) le {0}": "Born on {0}",
-"Mineur(e) : autorisation parentale déclarée — {0}, {1}": "Minor: parental authorization declared — {0}, {1}"
+"Mineur(e) : autorisation parentale déclarée — {0}, {1}": "Minor: parental authorization declared — {0}, {1}",
+"lecture en retard de {0} jours": "reading {0} days behind"
 }

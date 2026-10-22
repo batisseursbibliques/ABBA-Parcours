@@ -420,12 +420,37 @@ function renderLectureJour() {
   const L = st.user && window.AbbaLecture && window.AbbaLecture.prochain ? window.AbbaLecture.prochain() : null;
   if (!L || L.fini) { box.hidden = true; box.innerHTML = ""; return; }
   const nom = (l) => (window.AbbaBible && window.AbbaBible.nom ? window.AbbaBible.nom(l) : "#" + l);
-  const premier = L.segs[0];
+  const puces = (segs) => `<span class="lec-puces">${segs.map((s) => `<button type="button" class="lec-chap" data-lh="lire" data-l="${s.l}" data-c="${s.c}">${esc(nom(s.l))} ${s.c}</button>`).join("")}</span>`;
+  const ligneJour = (x) => `<div class="lec-ligne-j"><strong>${TT("Jour", "Day")} ${x.n}</strong> ${puces(x.segs)}<button type="button" class="btn-secondary" data-lh="fait" data-j="${x.n}">✓ ${TT("J’ai lu", "I have read")}</button></div>`;
+  const pl = (n) => (n > 1 ? "s" : "");
+  const premier = L.du[0];
+  let classe, titre, corps = "";
+  if (L.statut === "pas-commence") {
+    classe = "neutre"; titre = `📖 ${TT("Lecture du jour · pas encore commencée", "Today’s reading · not started yet")}`;
+    corps = `<p class="small">${TT("Le calendrier compte à partir du jour où tu commences : ce jour-là, c’est le jour 1.", "The calendar counts from the day you start: that day is day 1.")}</p>
+      <button type="button" class="btn-primary full" data-lh="demarrer">▶ ${TT("Commencer aujourd’hui", "Start today")}</button>
+      <div class="fm-nav"><button type="button" class="btn-secondary" data-lh="plan">${TT("Voir le calendrier", "See the calendar")}</button></div>`;
+  } else if (L.statut === "retard" || L.statut === "aujourdhui") {
+    const rouge = L.statut === "retard";
+    classe = rouge ? "rouge" : "orange";
+    titre = rouge
+      ? `📖 ${TT(`En retard de ${L.retards} jour${pl(L.retards)}`, `${L.retards} day${pl(L.retards)} behind`)} · ${esc(premier.libelle)}`
+      : `📖 ${TT("Lecture du jour", "Today’s reading")} · ${TT("Jour", "Day")} ${premier.n} · ${esc(premier.libelle)}`;
+    corps = `${L.du.slice(0, 5).map(ligneJour).join("")}${L.du.length > 5 ? `<p class="small">${TT(`… et ${L.du.length - 5} autre${pl(L.du.length - 5)} : voir le calendrier.`, `… and ${L.du.length - 5} more: see the calendar.`)}</p>` : ""}
+      <button type="button" class="btn-primary full" data-lh="lire" data-l="${premier.segs[0].l}" data-c="${premier.segs[0].c}">${TT("Lire maintenant →", "Read now →")}</button>
+      <div class="fm-nav"><button type="button" class="btn-secondary" data-lh="plan">${TT("Voir le calendrier", "See the calendar")}</button></div>`;
+  } else {
+    classe = "ok";
+    titre = L.rattrapageAujourdhui
+      ? `✓ ${TT("Jour de rattrapage · rien à rattraper", "Catch-up day · nothing to catch up on")}`
+      : `✓ ${TT("Lecture du jour faite", "Today’s reading done")}${L.avance > 0 ? ` · ${TT(`${L.avance} jour${pl(L.avance)} d’avance`, `${L.avance} day${pl(L.avance)} ahead`)}` : ""}`;
+    corps = `<p class="small">${TT("Tu es à jour. Bravo !", "You are up to date. Well done!")}</p>
+      ${L.suivant ? `<p class="small">${TT("Si tu veux avancer :", "If you want to get ahead:")}</p>${ligneJour(L.suivant)}` : ""}
+      <div class="fm-nav"><button type="button" class="btn-secondary" data-lh="plan">${TT("Voir le calendrier", "See the calendar")}</button></div>`;
+  }
   box.hidden = false;
-  box.innerHTML = `<p class="eyebrow">📖 ${TT("Lecture du jour", "Today’s reading")} · ${TT("Jour", "Day")} ${L.n}</p><p class="lec-titre">${esc(L.libelle)}</p>
-    <div class="lec-puces">${L.segs.map((s) => `<button type="button" class="lec-chap" data-lh="lire" data-l="${s.l}" data-c="${s.c}">${esc(nom(s.l))} ${s.c}</button>`).join("")}</div>
-    <button type="button" class="btn-primary full" data-lh="lire" data-l="${premier.l}" data-c="${premier.c}">${TT("Lire maintenant →", "Read now →")}</button>
-    <div class="fm-nav"><button type="button" class="btn-secondary" data-lh="fait">✓ ${TT("J’ai lu", "I have read")}</button><button type="button" class="btn-secondary" data-lh="plan">${TT("Voir le calendrier", "See the calendar")}</button></div>`;
+  box.className = `card lec-carte lec-${classe}`;
+  box.innerHTML = `<details class="lec-acc"${st.lecOuvert ? " open" : ""}><summary><span class="lec-puce-etat"></span><span class="lec-ligne">${titre}</span></summary><div class="lec-corps">${corps}</div></details>`;
 }
 function renderTermine() {
   const box = $("dashTermine");
@@ -1143,6 +1168,18 @@ function renderTasks() {
 }
 
 /* ---------- Parcours terminé : sortie du suivi et mode révision privé ---------- */
+// Retard de lecture selon le calendrier (plan « nt-180 » : jours de rattrapage = 7, 14… 175)
+function lectureStats(doc) {
+  if (!doc || !doc.resume) return null;
+  const r = { ...doc.resume };
+  if (doc.start && doc.plan === "nt-180") {
+    const auj = Math.min(180, Math.max(1, dayNum(todayStr()) - dayNum(doc.start) + 1)), done = doc.done || {};
+    let retard = 0;
+    for (let n = 1; n < auj; n++) { if (n % 7 === 0 && n <= 175) continue; if (!done[n]) retard++; }
+    r.auj = auj; r.retard = retard;
+  }
+  return r;
+}
 function parcoursTermine() { return MODULES.length > 0 && MODULES.every((m) => isComplete(m.id)) && !st.meta.suiviForce; }
 function termineDe(mods, meta) {
   if (meta && meta.suiviForce) return false;
@@ -1653,17 +1690,21 @@ function boot() {
   });
   window.addEventListener("abba-lecture-maj", renderLectureJour);
   const dl = $("dashLecture");
-  if (dl) dl.addEventListener("click", async (e) => {
-    const b = e.target.closest("[data-lh]");
-    if (!b) return;
-    const a = b.dataset.lh, bib = window.AbbaBible, lec = window.AbbaLecture;
-    try {
-      if (a === "lire" || a === "plan") { const t = document.querySelector('.tab[data-tab="bible"]'); if (t) t.click(); }
-      if (a === "lire" && bib && bib.lire) bib.lire(Number(b.dataset.l), Number(b.dataset.c));
-      else if (a === "plan" && bib && bib.plan) bib.plan();
-      else if (a === "fait" && lec) { const p = lec.prochain(); if (p && !p.fini) await lec.marquer(p.n); }
-    } catch (err) { /* la lecture se coche aussi dans le calendrier */ }
-  });
+  if (dl) {
+    dl.addEventListener("toggle", (e) => { if (e.target.matches && e.target.matches("details.lec-acc")) st.lecOuvert = e.target.open; }, true);
+    dl.addEventListener("click", async (e) => {
+      const b = e.target.closest("[data-lh]");
+      if (!b) return;
+      const a = b.dataset.lh, bib = window.AbbaBible, lec = window.AbbaLecture;
+      try {
+        if (a === "lire" || a === "plan") { const t = document.querySelector('.tab[data-tab="bible"]'); if (t) t.click(); }
+        if (a === "lire" && bib && bib.lire) bib.lire(Number(b.dataset.l), Number(b.dataset.c));
+        else if (a === "plan" && bib && bib.plan) bib.plan();
+        else if (a === "demarrer" && lec) { st.lecOuvert = false; await lec.demarrer(); }
+        else if (a === "fait" && lec) { st.lecOuvert = false; await lec.marquer(Number(b.dataset.j)); }
+      } catch (err) { /* la lecture se coche aussi dans le calendrier */ }
+    });
+  }
   const atg = $("apercuToggle");
   if (atg) atg.addEventListener("change", () => { st.apercuOn = atg.checked; try { localStorage.setItem("abba_apercu", atg.checked ? "1" : "0"); } catch (e) {} render(); });
   const gc = document.querySelector(".abba-invite-card");
@@ -1746,7 +1787,7 @@ async function coordAnalyse(uid) {
   });
   return {
     modules: rows, current: cur, valides: rows.filter((r) => r.complete).length, total: rows.length,
-    decl: declStats(suivis[DECL_KEY], 0, off), journee: declStats(suivis[JOUR_KEY], JOUR_MIN, off), indispo: indSummary(off), lecture: lecDoc && lecDoc.resume ? lecDoc.resume : null, charte: (prog.charte && prog.charte.done) ? (toMs(prog.charte.doneAt) || 1) : 0, enCours, bloque: meta.bloque && meta.bloque.actif ? meta.bloque : null, lastMs: last, refMs: ref,
+    decl: declStats(suivis[DECL_KEY], 0, off), journee: declStats(suivis[JOUR_KEY], JOUR_MIN, off), indispo: indSummary(off), lecture: lectureStats(lecDoc), charte: (prog.charte && prog.charte.done) ? (toMs(prog.charte.doneAt) || 1) : 0, enCours, bloque: meta.bloque && meta.bloque.actif ? meta.bloque : null, lastMs: last, refMs: ref,
     autoeval: !!(meta.autoevalFaite || (prog.autoeval && prog.autoeval.done)),
     termine: rows.length > 0 && rows.every((r) => r.complete) && !meta.suiviForce,
     termineLe: Math.max(0, ...rows.map((r) => r.validatedAt || 0)), suiviForce: !!meta.suiviForce,

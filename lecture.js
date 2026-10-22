@@ -75,6 +75,18 @@ function etat() {
   if (start) attendu = Math.min(180, Math.max(1, dayNum(today()) - dayNum(start) + 1));
   return { done, lect, faits: faits.length, prochain, chapitres, dernier: dates.length ? dates[dates.length - 1] : "", start, attendu, fini: !prochain };
 }
+const estRattrapage = (n) => !!(L.plan && L.plan.jours[n - 1] && L.plan.jours[n - 1].rattrapage);
+function etatTemps() {
+  const e = etat();
+  if (!e.start) return { e, statut: "pas-commence", auj: 1, dus: [], retards: 0, avance: 0, suivant: e.prochain };
+  const auj = Math.min(L.plan.jours.length, Math.max(1, dayNum(today()) - dayNum(e.start) + 1));
+  const dus = e.lect.filter((j) => j.n <= auj && !e.done[j.n]);              // lectures dues (jusqu'à aujourd'hui) et pas faites
+  const retards = dus.filter((j) => j.n < auj).length;                       // dont celles d'avant aujourd'hui
+  const avance = e.lect.filter((j) => j.n > auj && e.done[j.n]).length;
+  const suivant = e.lect.find((j) => j.n > auj && !e.done[j.n]) || null;
+  const statut = e.fini ? "fini" : retards > 0 ? "retard" : dus.length > 0 ? "aujourdhui" : "ok";
+  return { e, statut, auj, dus, retards, avance, suivant, rattrapageAujourdhui: estRattrapage(auj) };
+}
 const resumeDe = (e) => ({ jour: e.prochain ? e.prochain.n : 180, faits: e.faits, total: e.lect.length, chapitres: e.chapitres, dernier: e.dernier });
 
 /* ---------- Écriture ---------- */
@@ -105,17 +117,22 @@ function carteProchain(e) {
   if (suiv && suiv.rattrapage) h += `<p class="small">${T("Le jour suivant est un jour de rattrapage.", "The next day is a catch-up day.")}</p>`;
   return h + "</div>";
 }
-function ligneRythme(e) {
-  if (!e.start || e.fini) return "";
-  const ecart = e.attendu - (e.prochain ? e.prochain.n : 180);
+function ligneStatut(t) {
+  const s = t.statut;
+  if (s === "pas-commence" || s === "fini") return "";
   let msg;
-  if (ecart > 3) msg = T(`Tu as environ ${ecart} jours de retard sur un rythme de six mois. Aucune panique : avance à ton rythme et utilise les jours de rattrapage.`, `You are about ${ecart} days behind a six-month pace. No panic: move at your own pace and use the catch-up days.`);
-  else if (ecart < -3) msg = T(`Tu as environ ${-ecart} jours d’avance sur un rythme de six mois. Bravo !`, `You are about ${-ecart} days ahead of a six-month pace. Well done!`);
-  else msg = T("Tu es dans le rythme des six mois.", "You are on a six-month pace.");
-  return `<p class="small lec-rythme">${esc(msg)}</p>`;
+  if (s === "retard") msg = T(`En retard de ${t.retards} jour${t.retards > 1 ? "s" : ""} : rattrape tes lectures, les jours de rattrapage sont là pour ça.`, `${t.retards} day${t.retards > 1 ? "s" : ""} behind: catch up on your readings, that is what the catch-up days are for.`);
+  else if (s === "aujourdhui") msg = T(`Aujourd’hui, jour ${t.auj} : ta lecture du jour t’attend.`, `Today, day ${t.auj}: your reading for the day is waiting.`);
+  else msg = t.avance > 0 ? T(`À jour, avec ${t.avance} jour${t.avance > 1 ? "s" : ""} d’avance.`, `Up to date, ${t.avance} day${t.avance > 1 ? "s" : ""} ahead.`) : T("À jour : ta lecture du jour est faite.", "Up to date: today’s reading is done.");
+  const cl = s === "retard" ? "rouge" : s === "aujourdhui" ? "orange" : "ok";
+  return `<p class="lec-statut lec-${cl}">${esc(msg)}</p>`;
 }
-function phaseHtml(p, e) {
-  const done = e.done;
+function editeurDebut(e) {
+  if (!e.start) return "";
+  return `<details class="lec-debut"><summary class="small">${T("Ma date de début", "My start date")} : ${esc(e.start)}</summary><p class="small">${T("Si tu as déjà commencé avant, corrige la date : le calendrier compte à partir de ce jour (jour 1).", "If you started earlier, correct the date: the calendar counts from this day (day 1).")}</p><input type="date" id="lecDebut" class="text-input" value="${esc(e.start)}" max="${today()}"> <button type="button" class="btn-secondary" data-lec="debut">${T("Enregistrer la date", "Save the date")}</button></details>`;
+}
+function phaseHtml(p, t) {
+  const e = t.e, done = e.done;
   const jr = L.plan.jours.filter((j) => j.n >= p.de && j.n <= p.a);
   const chLus = jr.filter((j) => !j.rattrapage && done[j.n]).reduce((n, j) => n + lecturesDe(j).length, 0);
   const contient = e.prochain && e.prochain.n >= p.de && e.prochain.n <= p.a;
@@ -126,7 +143,8 @@ function phaseHtml(p, e) {
   h += '<div class="lec-jours">';
   jr.forEach((j) => {
     const fait = !!done[j.n], prochain = e.prochain && e.prochain.n === j.n;
-    h += `<div class="lec-row${fait ? " fait" : ""}${prochain ? " prochain" : ""}${j.rattrapage ? " ratt" : ""}"><button type="button" class="lec-box" data-lec="toggle" data-j="${j.n}" aria-label="${T("Jour", "Day")} ${j.n}" aria-pressed="${fait}">${fait ? "☑" : "☐"}</button><span class="lec-n">${T("Jour", "Day")} ${j.n}</span><span class="lec-lect">${j.rattrapage ? `<em>${esc(L.plan.rattrapage)}</em>` : puces(j)}</span></div>`;
+    const enRetard = !fait && !j.rattrapage && e.start && j.n < t.auj, aujourdhui = e.start && j.n === t.auj;
+    h += `<div class="lec-row${fait ? " fait" : ""}${prochain ? " prochain" : ""}${j.rattrapage ? " ratt" : ""}${enRetard ? " retard" : ""}${aujourdhui ? " auj" : ""}"><button type="button" class="lec-box" data-lec="toggle" data-j="${j.n}" aria-label="${T("Jour", "Day")} ${j.n}" aria-pressed="${fait}">${fait ? "☑" : "☐"}</button><span class="lec-n">${T("Jour", "Day")} ${j.n}${aujourdhui ? `<br><span class="lec-tag">${T("aujourd’hui", "today")}</span>` : enRetard ? `<br><span class="lec-tag rouge">${T("en retard", "late")}</span>` : ""}</span><span class="lec-lect">${j.rattrapage ? `<em>${esc(L.plan.rattrapage)}</em>` : puces(j)}</span></div>`;
   });
   return h + "</div></details>";
 }
@@ -134,10 +152,13 @@ function emettre() { try { window.dispatchEvent(new CustomEvent("abba-lecture-ma
 // Prochaine lecture, pour la carte « Lecture du jour » de l'accueil
 function prochainInfo() {
   if (!L.user || !L.plan) return null;
-  const e = etat();
-  if (e.fini) return { fini: true, chapitres: e.chapitres };
-  const j = e.prochain;
-  return { fini: false, n: j.n, segs: lecturesDe(j), libelle: libelle(j), demarre: !!L.prog };
+  const t = etatTemps();
+  if (t.statut === "fini") return { fini: true, statut: "fini", chapitres: t.e.chapitres };
+  const vue = (j) => ({ n: j.n, segs: lecturesDe(j), libelle: libelle(j) });
+  return {
+    fini: false, statut: t.statut, demarre: !!t.e.start, auj: t.auj, rattrapageAujourdhui: !!t.rattrapageAujourdhui,
+    du: t.dus.map(vue), retards: t.retards, avance: t.avance, suivant: t.suivant ? vue(t.suivant) : null,
+  };
 }
 function rendre() {
   emettre();
@@ -146,20 +167,21 @@ function rendre() {
   if (L.chargement) { box.innerHTML = `<p class="small">${T("Chargement…", "Loading…")}</p>`; return; }
   if (L.erreur || !L.plan) { box.innerHTML = `<p class="bib-alerte">${T("Impossible de charger le calendrier. Vérifie ta connexion puis rouvre cet onglet.", "The calendar could not be loaded. Check your connection and reopen this tab.")}</p>`; return; }
   if (!L.user) { box.innerHTML = `<p class="small">${T("Connecte-toi pour suivre ton calendrier de lecture.", "Sign in to follow your reading calendar.")}</p>`; return; }
-  const e = etat();
+  const t = etatTemps(), e = t.e;
   let h = "";
   if (L.plans.length > 1) h += `<label class="field"><span>${T("Calendrier", "Calendar")}</span><select class="text-input" data-lec="plan">${L.plans.map((p) => `<option value="${esc(p.id)}"${p.id === L.planId ? " selected" : ""}>${esc(EN() ? (p.titre_en || p.titre) : p.titre)}</option>`).join("")}</select></label>`;
   h += `<div class="card"><p class="eyebrow">${esc(L.plan.titre)}</p><p class="small">${esc(L.plan.sous)}</p>`;
   const pct = Math.round((e.faits / e.lect.length) * 100);
   h += `<div class="lec-barre" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><span style="width:${pct}%"></span></div>`;
   h += `<p class="small"><strong>${e.chapitres}</strong> / ${L.plan.chapitres} ${T("chapitres lus", "chapters read")} · ${e.faits} / ${e.lect.length} ${T("jours de lecture", "reading days")}</p>`;
-  h += ligneRythme(e);
-  if (!L.prog) h += `<button type="button" class="btn-primary full" data-lec="demarrer">▶ ${T("Commencer le plan", "Start the plan")}</button>`;
+  h += ligneStatut(t);
+  if (!e.start) h += `<p class="small">${T("Le calendrier compte à partir du jour où tu commences : ce jour-là, c’est le jour 1.", "The calendar counts from the day you start: that day is day 1.")}</p><button type="button" class="btn-primary full" data-lec="demarrer">▶ ${T("Commencer aujourd’hui", "Start today")}</button>`;
+  h += editeurDebut(e);
   h += "</div>";
   h += carteProchain(e);
   const ouvertIntro = L.intro !== null ? L.intro : !L.prog;
   h += `<details class="lec-intro card" data-intro${ouvertIntro ? " open" : ""}><summary><strong>${T("Comment utiliser ce plan", "How to use this plan")}</strong></summary><ul>${L.plan.intro.map((t) => `<li>${esc(t)}</li>`).join("")}</ul></details>`;
-  h += L.plan.phases.map((p) => phaseHtml(p, e)).join("");
+  h += L.plan.phases.map((p) => phaseHtml(p, t)).join("");
   box.innerHTML = h;
 }
 
@@ -172,6 +194,11 @@ document.addEventListener("click", async (ev) => {
     if (a === "lire") { if (window.AbbaBible && window.AbbaBible.lire) window.AbbaBible.lire(Number(b.dataset.l), Number(b.dataset.c)); return; }
     if (a === "fait" || a === "toggle") { await basculer(Number(b.dataset.j)); return; }
     if (a === "demarrer") { await demarrer(); return; }
+    if (a === "debut") {
+      const v = (document.getElementById("lecDebut") || {}).value || "";
+      if (!v || v > today()) { alert(T("Choisis une date qui n’est pas dans le futur.", "Choose a date that is not in the future.")); return; }
+      await sauver({ ...((L.prog && L.prog.done) || {}) }, v); return;
+    }
   } catch (err) { alert(T("Impossible d’enregistrer : ", "Unable to save: ") + (err.code || err.message)); }
 });
 document.addEventListener("change", (ev) => {
@@ -187,6 +214,7 @@ document.addEventListener("toggle", (ev) => {
 
 window.AbbaLecture = {
   prochain: prochainInfo,
+  demarrer: async () => { if (L.user && L.plan && !(L.prog && L.prog.start)) await demarrer(); },
   marquer: async (n) => { if (L.user && L.plan && !((L.prog && L.prog.done) || {})[n]) await basculer(n); },
   rendre: async (boite) => {
     L.boite = boite;

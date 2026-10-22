@@ -590,6 +590,7 @@ function alertesDe(r) {
     if (a.indispo.finInconnue && a.indispo.jours >= 14) out.push(`indisponible depuis ${a.indispo.jours} jours, fin inconnue`);
     return out;
   }
+  if (a.lecture && a.lecture.retard >= 3) out.push(`lecture en retard de ${a.lecture.retard} jours`);
   const d = joursDepuis(a.lastMs);
   if (d !== null && d >= 7) out.push(`sans activité depuis ${d} jours`);
   a.modules.forEach(m => {
@@ -618,7 +619,7 @@ function detailEleve(r) {
   if (a.journee) h += `<p class="small"><strong>Ma journée</strong> : ${a.journee.ok}/${a.journee.tot} jours tenus sur les 7 derniers (4 cases sur 5 ou plus)${a.journee.streak >= 2 ? ` · 🔥 ${a.journee.streak} jours de suite` : ""}</p>`;
   else h += `<p class="small"><strong>Ma journée</strong> : pas commencée</p>`;
   h += `<p class="small"><strong>Charte</strong> : ${a.charte ? "signée" + (a.charte > 1 ? " le " + new Date(a.charte).toLocaleDateString(window.I18N && window.I18N.lang === "en" ? "en-GB" : "fr-FR") : "") : "pas encore signée"}</p>`;
-  if (a.lecture) h += `<p class="small"><strong>Lecture</strong> : jour ${a.lecture.jour}/180 · ${a.lecture.chapitres}/260 chapitres${a.lecture.dernier ? " · dernière lecture le " + new Date(a.lecture.dernier + "T00:00:00").toLocaleDateString(window.I18N && window.I18N.lang === "en" ? "en-GB" : "fr-FR") : ""}</p>`;
+  if (a.lecture) h += `<p class="small"><strong>Lecture</strong> : jour ${a.lecture.jour}/180 · ${a.lecture.chapitres}/260 chapitres${a.lecture.retard ? ` · ⚠ en retard de ${a.lecture.retard} jour(s)` : a.lecture.auj ? " · à jour" : ""}${a.lecture.dernier ? " · dernière lecture le " + new Date(a.lecture.dernier + "T00:00:00").toLocaleDateString(window.I18N && window.I18N.lang === "en" ? "en-GB" : "fr-FR") : ""}</p>`;
   else h += `<p class="small"><strong>Lecture</strong> : calendrier pas commencé</p>`;
   if (a.indispo && a.indispo.liste.length) h += `<div class="small"><strong>Indisponibilités signalées</strong>${a.indispo.liste.map(v => `<p>${v.vivant ? "⏸ " : ""}${escC(v.texte)}<br>${escC(v.motif)}<br>${v.vu ? "✓ Pris en compte" : `<button class="btn-secondary" data-indvu="${v.id}">Pris en compte</button>`}</p>`).join("")}</div>`;
   if (a.suiviForce && a.valides === a.total) h += `<button class="btn-secondary" data-suivi="off">Parcours terminé : retirer du suivi</button>`;
