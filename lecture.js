@@ -22,7 +22,7 @@ async function chargerJSON(chemin) {
   return r.json();
 }
 async function chargerPlans() {
-  if (L.plans.length && L.plan && L.plan._lang === (EN() ? "en" : "fr")) return;
+  if (L.plans.length && L.plan && L.plan._lang === (EN() ? "en" : "fr")) { L.chargement = false; return; }
   L.chargement = true; L.erreur = false;
   const dossier = EN() ? "content/en/plans/" : "content/plans/";
   try {
