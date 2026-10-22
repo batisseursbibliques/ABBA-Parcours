@@ -757,7 +757,7 @@ async function ouvrirOnglet() {
 }
 
 window.addEventListener("abba:bible-ouvert", ouvrirOnglet);
-window.AbbaBible = { ouvrir: ouvrirOnglet, aller: (l, c, v) => { ouvrirOnglet().then(() => aller(l, c, v)); }, nom: (l) => nomLivre(l), lire: (l, c) => { S.vue = "lire"; majOnglets(); aller(l, c); } };
+window.AbbaBible = { ouvrir: ouvrirOnglet, aller: (l, c, v) => { ouvrirOnglet().then(() => aller(l, c, v)); }, nom: (l) => nomLivre(l), lire: (l, c) => ouvrirOnglet().then(() => { S.vue = "lire"; majOnglets(); aller(l, c); }), plan: () => ouvrirOnglet().then(() => { S.vue = "plan"; majOnglets(); if (window.AbbaLecture) window.AbbaLecture.rendre($("bibPlan")); }) };
 
 /* ============================================================
    FENÊTRE DE VERSETS (déclaration, leçons) : « 📎 » ou référence cliquée.

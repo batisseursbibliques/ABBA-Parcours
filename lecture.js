@@ -45,11 +45,13 @@ function ecouter() {
   if (!L.user || !L.planId || !S() || !S().watchLecture) return;
   L.unsub = S().watchLecture(L.user.uid, L.planId, (doc) => { L.prog = doc || null; rendre(); });
 }
-if (S() && S().watchAuth) {
-  S().watchAuth((u) => { L.user = u || null; L.prog = null; ecouter(); rendre(); });
-} else {
-  window.addEventListener("load", () => { if (S() && S().watchAuth) S().watchAuth((u) => { L.user = u || null; L.prog = null; ecouter(); rendre(); }); });
-}
+const surConnexion = (u) => {
+  L.user = u || null; L.prog = null;
+  if (!L.user) { ecouter(); rendre(); return; }
+  chargerPlans().then(() => { ecouter(); rendre(); });
+};
+if (S() && S().watchAuth) S().watchAuth(surConnexion);
+else window.addEventListener("load", () => { if (S() && S().watchAuth) S().watchAuth(surConnexion); });
 
 /* ---------- Calculs ---------- */
 function lecturesDe(j) {
@@ -128,7 +130,17 @@ function phaseHtml(p, e) {
   });
   return h + "</div></details>";
 }
+function emettre() { try { window.dispatchEvent(new CustomEvent("abba-lecture-maj")); } catch (e) {} }
+// Prochaine lecture, pour la carte « Lecture du jour » de l'accueil
+function prochainInfo() {
+  if (!L.user || !L.plan) return null;
+  const e = etat();
+  if (e.fini) return { fini: true, chapitres: e.chapitres };
+  const j = e.prochain;
+  return { fini: false, n: j.n, segs: lecturesDe(j), libelle: libelle(j), demarre: !!L.prog };
+}
 function rendre() {
+  emettre();
   const box = L.boite;
   if (!box || !box.isConnected) return;
   if (L.chargement) { box.innerHTML = `<p class="small">${T("Chargement…", "Loading…")}</p>`; return; }
@@ -174,6 +186,8 @@ document.addEventListener("toggle", (ev) => {
 }, true);
 
 window.AbbaLecture = {
+  prochain: prochainInfo,
+  marquer: async (n) => { if (L.user && L.plan && !((L.prog && L.prog.done) || {})[n]) await basculer(n); },
   rendre: async (boite) => {
     L.boite = boite;
     L.chargement = true; rendre();

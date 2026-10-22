@@ -413,6 +413,20 @@ function renderIndicateurs(f, ans) {
 }
 
 /* ---------- Écran principal ---------- */
+const TT = (fr, en) => (window.I18N && window.I18N.lang === "en" ? en : fr);
+function renderLectureJour() {
+  const box = $("dashLecture");
+  if (!box) return;
+  const L = st.user && window.AbbaLecture && window.AbbaLecture.prochain ? window.AbbaLecture.prochain() : null;
+  if (!L || L.fini) { box.hidden = true; box.innerHTML = ""; return; }
+  const nom = (l) => (window.AbbaBible && window.AbbaBible.nom ? window.AbbaBible.nom(l) : "#" + l);
+  const premier = L.segs[0];
+  box.hidden = false;
+  box.innerHTML = `<p class="eyebrow">📖 ${TT("Lecture du jour", "Today’s reading")} · ${TT("Jour", "Day")} ${L.n}</p><p class="lec-titre">${esc(L.libelle)}</p>
+    <div class="lec-puces">${L.segs.map((s) => `<button type="button" class="lec-chap" data-lh="lire" data-l="${s.l}" data-c="${s.c}">${esc(nom(s.l))} ${s.c}</button>`).join("")}</div>
+    <button type="button" class="btn-primary full" data-lh="lire" data-l="${premier.l}" data-c="${premier.c}">${TT("Lire maintenant →", "Read now →")}</button>
+    <div class="fm-nav"><button type="button" class="btn-secondary" data-lh="fait">✓ ${TT("J’ai lu", "I have read")}</button><button type="button" class="btn-secondary" data-lh="plan">${TT("Voir le calendrier", "See the calendar")}</button></div>`;
+}
 function renderTermine() {
   const box = $("dashTermine");
   if (!box) return;
@@ -423,6 +437,7 @@ function renderTermine() {
 }
 function render() {
   renderTermine();
+  renderLectureJour();
   renderDash();
   renderBinomeProgress();
   renderZonesPlan();
@@ -1635,6 +1650,19 @@ function boot() {
       const idx = dayIndex(sv.start), got = (sv.done || {})[String(idx)] || [];
       if (!got.includes(3)) await suiviTick(`${JOUR_KEY}|${idx}|3`, true);
     } catch (e) { /* la case se coche aussi à la main */ }
+  });
+  window.addEventListener("abba-lecture-maj", renderLectureJour);
+  const dl = $("dashLecture");
+  if (dl) dl.addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-lh]");
+    if (!b) return;
+    const a = b.dataset.lh, bib = window.AbbaBible, lec = window.AbbaLecture;
+    try {
+      if (a === "lire" || a === "plan") { const t = document.querySelector('.tab[data-tab="bible"]'); if (t) t.click(); }
+      if (a === "lire" && bib && bib.lire) bib.lire(Number(b.dataset.l), Number(b.dataset.c));
+      else if (a === "plan" && bib && bib.plan) bib.plan();
+      else if (a === "fait" && lec) { const p = lec.prochain(); if (p && !p.fini) await lec.marquer(p.n); }
+    } catch (err) { /* la lecture se coche aussi dans le calendrier */ }
   });
   const atg = $("apercuToggle");
   if (atg) atg.addEventListener("change", () => { st.apercuOn = atg.checked; try { localStorage.setItem("abba_apercu", atg.checked ? "1" : "0"); } catch (e) {} render(); });
