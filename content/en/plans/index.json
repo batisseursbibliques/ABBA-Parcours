@@ -1,0 +1,13 @@
+{
+ "plans": [
+  {
+   "id": "nt-180",
+   "fichier": "nt-180.json",
+   "titre": "Plan de lecture du Nouveau Testament",
+   "titre_en": "New Testament reading plan",
+   "sous": "180 jours · 6 mois · 260 chapitres",
+   "sous_en": "180 days · 6 months · 260 chapters",
+   "defaut": true
+  }
+ ]
+}

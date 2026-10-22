@@ -1628,6 +1628,14 @@ function boot() {
   if (dt) dt.addEventListener("click", declAction);
   const di = $("dashIndispo");
   if (di) { di.addEventListener("click", indAction); di.addEventListener("change", indChange); }
+  window.addEventListener("abba-lecture-faite", async () => {
+    try {
+      const sv = st.suivis && st.suivis[JOUR_KEY];
+      if (!sv) return;
+      const idx = dayIndex(sv.start), got = (sv.done || {})[String(idx)] || [];
+      if (!got.includes(3)) await suiviTick(`${JOUR_KEY}|${idx}|3`, true);
+    } catch (e) { /* la case se coche aussi à la main */ }
+  });
   const atg = $("apercuToggle");
   if (atg) atg.addEventListener("change", () => { st.apercuOn = atg.checked; try { localStorage.setItem("abba_apercu", atg.checked ? "1" : "0"); } catch (e) {} render(); });
   const gc = document.querySelector(".abba-invite-card");
@@ -1665,10 +1673,11 @@ function declStats(sv, min, off) {
   return { ok, tot, streak, idx };
 }
 async function coordAnalyse(uid) {
-  const [prog, suivis, meta, indisRaw] = await Promise.all([
+  const [prog, suivis, meta, indisRaw, lecDoc] = await Promise.all([
     S().loadStudentModules(uid), S().loadStudentSuivis(uid),
     new Promise((res) => { const u = S().watchFormationMeta(uid, (m) => { try { u(); } catch (e) {} res(m || {}); }); }),
     S().loadStudentIndispos(uid).catch(() => ({})),
+    S().loadStudentLecture(uid).catch(() => null),
   ]);
   const off = indList(indisRaw);
   const mods = MODULES.filter((m) => m.ready);
@@ -1709,7 +1718,7 @@ async function coordAnalyse(uid) {
   });
   return {
     modules: rows, current: cur, valides: rows.filter((r) => r.complete).length, total: rows.length,
-    decl: declStats(suivis[DECL_KEY], 0, off), journee: declStats(suivis[JOUR_KEY], JOUR_MIN, off), indispo: indSummary(off), charte: (prog.charte && prog.charte.done) ? (toMs(prog.charte.doneAt) || 1) : 0, enCours, bloque: meta.bloque && meta.bloque.actif ? meta.bloque : null, lastMs: last, refMs: ref,
+    decl: declStats(suivis[DECL_KEY], 0, off), journee: declStats(suivis[JOUR_KEY], JOUR_MIN, off), indispo: indSummary(off), lecture: lecDoc && lecDoc.resume ? lecDoc.resume : null, charte: (prog.charte && prog.charte.done) ? (toMs(prog.charte.doneAt) || 1) : 0, enCours, bloque: meta.bloque && meta.bloque.actif ? meta.bloque : null, lastMs: last, refMs: ref,
     autoeval: !!(meta.autoevalFaite || (prog.autoeval && prog.autoeval.done)),
     termine: rows.length > 0 && rows.every((r) => r.complete) && !meta.suiviForce,
     termineLe: Math.max(0, ...rows.map((r) => r.validatedAt || 0)), suiviForce: !!meta.suiviForce,

@@ -908,3 +908,26 @@ html.i18n-wait body{visibility:hidden;}
 .g-sec p,.g-sec li{font-size:13px;color:rgba(255,255,255,.85);line-height:1.55;margin:6px 0;}
 .g-sec ul,.g-sec ol{padding-left:20px;margin:6px 0;}
 .g-charte{margin-top:6px;width:100%;background:transparent;border:1px solid rgba(201,162,39,.6);color:#C9A227;border-radius:10px;padding:10px 12px;font-weight:700;font-size:13px;cursor:pointer;}
+
+/* Calendrier de lecture (Bible > Calendrier) */
+.lec-carte{border-color:var(--gold);}
+.lec-titre{font-family:var(--font-display);font-size:22px;color:var(--navy);margin:4px 0 10px;}
+.lec-puces{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+.lec-chap{border:1px solid var(--navy);background:transparent;color:var(--navy);border-radius:999px;padding:6px 12px;font:inherit;font-size:14px;cursor:pointer;}
+.lec-barre{height:10px;background:var(--paper);border:1px solid var(--line);border-radius:999px;overflow:hidden;margin:8px 0;}
+.lec-barre span{display:block;height:100%;background:var(--gold);}
+.lec-rythme{color:var(--ink-soft);}
+.lec-intro ul{padding-left:20px;margin:8px 0;}
+.lec-intro li{margin:6px 0;font-size:14px;}
+.lec-phase{border:1px solid var(--line);border-radius:var(--radius);background:var(--card-bg);padding:10px 12px;margin:10px 0;}
+.lec-phase>summary{cursor:pointer;}
+.lec-livres{margin:6px 0;}
+.lec-jours{margin-top:8px;}
+.lec-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);flex-wrap:wrap;}
+.lec-row.fait .lec-lect{opacity:.55;}
+.lec-row.prochain{background:var(--paper);border-radius:8px;padding-left:6px;padding-right:6px;}
+.lec-row.ratt{color:var(--ink-soft);}
+.lec-box{border:0;background:transparent;font-size:26px;line-height:1;cursor:pointer;color:var(--navy);padding:0 4px;}
+.lec-n{font-weight:600;min-width:62px;font-size:14px;}
+.lec-lect{display:flex;flex-wrap:wrap;gap:6px;flex:1;}
+.lec-lect .lec-chap{padding:3px 9px;font-size:13px;}

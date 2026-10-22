@@ -166,6 +166,14 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(['lu','qcm','exercices','updatedAt']);
       }
 
+      // Calendrier de lecture : jours lus (écrits par l'élève) + résumé lisible par le suivi
+      match /lecture/{pid} {
+        allow read: if hasDroit('suivi') || hasDroit('corrections') || (request.auth != null && request.auth.uid == uid) || isCorrecteurOf(uid);
+        allow create, update: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['plan','start','done','resume','updatedAt']);
+        allow delete: if hasDroit('suivi');
+      }
+
       // Indisponibilités signalées par l'élève (maladie, déplacement…) : visibles par lui, son correcteur et les coordinateurs
       match /indispos/{iid} {
         allow read: if hasDroit('suivi') || hasDroit('corrections') || (request.auth != null && request.auth.uid == uid) || isCorrecteurOf(uid);

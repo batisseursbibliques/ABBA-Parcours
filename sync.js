@@ -395,6 +395,17 @@ async function saveRevision(uid, mid, partial) {
 async function setSuiviForce(uid, actif) {
   await setDoc(doc(db, "formation", uid), { suiviForce: !!actif }, { merge: true });
 }
+function watchLecture(uid, planId, callback) {
+  return onSnapshot(doc(db, "formation", uid, "lecture", planId), (snap) => callback(snap.exists() ? snap.data() : null),
+    (err) => console.error("watchLecture:", err));
+}
+async function saveLecture(uid, planId, data) {
+  await setDoc(doc(db, "formation", uid, "lecture", planId), { ...data, updatedAt: serverTimestamp() });
+}
+async function loadStudentLecture(uid, planId = "nt-180") {
+  const snap = await getDoc(doc(db, "formation", uid, "lecture", planId));
+  return snap.exists() ? snap.data() : null;
+}
 async function loadStudentIndispos(uid) {
   const snap = await getDocs(collection(db, "formation", uid, "indispos"));
   const map = {};
@@ -429,5 +440,6 @@ window.AbbaSync = {
   watchIndispos, addIndispo, updateIndispo, loadStudentIndispos,
   watchRevisions, saveRevision, setSuiviForce,
   watchAdminsData, droitsDe, setDroits,
+  watchLecture, saveLecture, loadStudentLecture,
   watchZonesPlan, saveZonesPlan, saveMyProgress,
 };

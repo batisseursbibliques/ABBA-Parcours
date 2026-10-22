@@ -1,0 +1,1936 @@
+{
+ "id": "nt-180",
+ "titre": "New Testament reading plan",
+ "sous": "180 days · 6 months · 260 chapters",
+ "intro": [
+  "Follow the plan day by day: Day 1, Day 2… up to Day 180. No dates: start whenever you want.",
+  "The books are not read in Bible order. We start with the most gripping stories, then the short letters, then the longer books, and finally the densest content.",
+  "Every 7th day is a catch-up day (Days 7, 14, 21…): no new reading. Catch up on a delay or re-read a passage that touched you.",
+  "There are 155 reading days left, about 1 to 2 chapters per day: allow 10 to 15 minutes.",
+  "If you miss a day, don’t be discouraged: pick up where you stopped and use the next catch-up day."
+ ],
+ "phases": [
+  {
+   "n": 1,
+   "titre": "Discovering Jesus and the early Church",
+   "de": 1,
+   "a": 67,
+   "chapitres": 89,
+   "resume": "The most vivid stories of the New Testament: we step into the story.",
+   "livres": [
+    {
+     "nom": "Marc",
+     "l": 41,
+     "ch": 16,
+     "desc": "The fastest Gospel: Jesus in action, from miracles to the cross."
+    },
+    {
+     "nom": "Actes",
+     "l": 44,
+     "ch": 28,
+     "desc": "The Church is born and explodes: Peter, Stephen, Paul and the missionary journeys."
+    },
+    {
+     "nom": "Luc",
+     "l": 42,
+     "ch": 24,
+     "desc": "Jesus told with compassion: parables, encounters, grace for the lost."
+    },
+    {
+     "nom": "Jean",
+     "l": 43,
+     "ch": 21,
+     "desc": "Jesus in depth: “I am”, love, eternal life."
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "titre": "Short, practical letters",
+   "de": 68,
+   "a": 109,
+   "chapitres": 63,
+   "resume": "Small books you finish quickly, with concrete advice for living out your faith.",
+   "livres": [
+    {
+     "nom": "Philippiens",
+     "l": 50,
+     "ch": 4,
+     "desc": "Joy, even in trials."
+    },
+    {
+     "nom": "Éphésiens",
+     "l": 49,
+     "ch": 6,
+     "desc": "Who we are in Christ, and how to live together."
+    },
+    {
+     "nom": "Colossiens",
+     "l": 51,
+     "ch": 4,
+     "desc": "The supremacy of Christ."
+    },
+    {
+     "nom": "Philémon",
+     "l": 57,
+     "ch": 1,
+     "desc": "A short letter about forgiveness and reconciliation."
+    },
+    {
+     "nom": "Jacques",
+     "l": 59,
+     "ch": 5,
+     "desc": "A faith that acts: practical wisdom."
+    },
+    {
+     "nom": "1 Pierre",
+     "l": 60,
+     "ch": 5,
+     "desc": "Standing firm in suffering."
+    },
+    {
+     "nom": "2 Pierre",
+     "l": 61,
+     "ch": 3,
+     "desc": "Growing in faith, staying alert."
+    },
+    {
+     "nom": "Jude",
+     "l": 65,
+     "ch": 1,
+     "desc": "Contending for the faith."
+    },
+    {
+     "nom": "1 Jean",
+     "l": 62,
+     "ch": 5,
+     "desc": "Loving, walking in the light, being sure of your salvation."
+    },
+    {
+     "nom": "2 Jean",
+     "l": 63,
+     "ch": 1,
+     "desc": "Truth and love."
+    },
+    {
+     "nom": "3 Jean",
+     "l": 64,
+     "ch": 1,
+     "desc": "Welcoming and supporting those who serve."
+    },
+    {
+     "nom": "1 Thessaloniciens",
+     "l": 52,
+     "ch": 5,
+     "desc": "Encouragement and hope of Christ’s return."
+    },
+    {
+     "nom": "2 Thessaloniciens",
+     "l": 53,
+     "ch": 3,
+     "desc": "Persevering while waiting for the Lord."
+    },
+    {
+     "nom": "Tite",
+     "l": 56,
+     "ch": 3,
+     "desc": "An exemplary life in the Church."
+    },
+    {
+     "nom": "1 Timothée",
+     "l": 54,
+     "ch": 6,
+     "desc": "A father’s advice to a young leader."
+    },
+    {
+     "nom": "2 Timothée",
+     "l": 55,
+     "ch": 4,
+     "desc": "Paul’s spiritual testament."
+    },
+    {
+     "nom": "Galates",
+     "l": 48,
+     "ch": 6,
+     "desc": "Freedom in Christ, away from the law as a means of salvation."
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "titre": "The longer books",
+   "de": 110,
+   "a": 147,
+   "chapitres": 57,
+   "resume": "The rhythm is set: we take on the great books.",
+   "livres": [
+    {
+     "nom": "Matthieu",
+     "l": 40,
+     "ch": 28,
+     "desc": "The Sermon on the Mount, the parables of the Kingdom, the promised King."
+    },
+    {
+     "nom": "1 Corinthiens",
+     "l": 46,
+     "ch": 16,
+     "desc": "A Church with real problems, love (ch. 13), the resurrection."
+    },
+    {
+     "nom": "2 Corinthiens",
+     "l": 47,
+     "ch": 13,
+     "desc": "Ministry, weakness and strength, generosity."
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "titre": "The densest content",
+   "de": 148,
+   "a": 180,
+   "chapitres": 51,
+   "resume": "The summit of the journey: deep doctrine, then the final victory.",
+   "livres": [
+    {
+     "nom": "Romains",
+     "l": 45,
+     "ch": 16,
+     "desc": "The Gospel explained: sin, grace, faith, life in the Spirit."
+    },
+    {
+     "nom": "Hébreux",
+     "l": 58,
+     "ch": 13,
+     "desc": "Christ superior to everything: the high priest, the faith of the heroes."
+    },
+    {
+     "nom": "Apocalypse",
+     "l": 66,
+     "ch": 22,
+     "desc": "The revelation of Jesus Christ and the final victory."
+    }
+   ]
+  }
+ ],
+ "jours": [
+  {
+   "n": 1,
+   "lecture": [
+    {
+     "l": 41,
+     "de": 1,
+     "a": 2
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "lecture": [
+    {
+     "l": 41,
+     "de": 3,
+     "a": 3
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "lecture": [
+    {
+     "l": 41,
+     "de": 4,
+     "a": 5
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "lecture": [
+    {
+     "l": 41,
+     "de": 6,
+     "a": 6
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "lecture": [
+    {
+     "l": 41,
+     "de": 7,
+     "a": 8
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "lecture": [
+    {
+     "l": 41,
+     "de": 9,
+     "a": 9
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "rattrapage": true
+  },
+  {
+   "n": 8,
+   "lecture": [
+    {
+     "l": 41,
+     "de": 10,
+     "a": 11
+    }
+   ]
+  },
+  {
+   "n": 9,
+   "lecture": [
+    {
+     "l": 41,
+     "de": 12,
+     "a": 12
+    }
+   ]
+  },
+  {
+   "n": 10,
+   "lecture": [
+    {
+     "l": 41,
+     "de": 13,
+     "a": 14
+    }
+   ]
+  },
+  {
+   "n": 11,
+   "lecture": [
+    {
+     "l": 41,
+     "de": 15,
+     "a": 15
+    }
+   ]
+  },
+  {
+   "n": 12,
+   "lecture": [
+    {
+     "l": 41,
+     "de": 16,
+     "a": 16
+    },
+    {
+     "l": 44,
+     "de": 1,
+     "a": 1
+    }
+   ]
+  },
+  {
+   "n": 13,
+   "lecture": [
+    {
+     "l": 44,
+     "de": 2,
+     "a": 2
+    }
+   ]
+  },
+  {
+   "n": 14,
+   "rattrapage": true
+  },
+  {
+   "n": 15,
+   "lecture": [
+    {
+     "l": 44,
+     "de": 3,
+     "a": 4
+    }
+   ]
+  },
+  {
+   "n": 16,
+   "lecture": [
+    {
+     "l": 44,
+     "de": 5,
+     "a": 5
+    }
+   ]
+  },
+  {
+   "n": 17,
+   "lecture": [
+    {
+     "l": 44,
+     "de": 6,
+     "a": 7
+    }
+   ]
+  },
+  {
+   "n": 18,
+   "lecture": [
+    {
+     "l": 44,
+     "de": 8,
+     "a": 9
+    }
+   ]
+  },
+  {
+   "n": 19,
+   "lecture": [
+    {
+     "l": 44,
+     "de": 10,
+     "a": 10
+    }
+   ]
+  },
+  {
+   "n": 20,
+   "lecture": [
+    {
+     "l": 44,
+     "de": 11,
+     "a": 12
+    }
+   ]
+  },
+  {
+   "n": 21,
+   "rattrapage": true
+  },
+  {
+   "n": 22,
+   "lecture": [
+    {
+     "l": 44,
+     "de": 13,
+     "a": 13
+    }
+   ]
+  },
+  {
+   "n": 23,
+   "lecture": [
+    {
+     "l": 44,
+     "de": 14,
+     "a": 15
+    }
+   ]
+  },
+  {
+   "n": 24,
+   "lecture": [
+    {
+     "l": 44,
+     "de": 16,
+     "a": 16
+    }
+   ]
+  },
+  {
+   "n": 25,
+   "lecture": [
+    {
+     "l": 44,
+     "de": 17,
+     "a": 18
+    }
+   ]
+  },
+  {
+   "n": 26,
+   "lecture": [
+    {
+     "l": 44,
+     "de": 19,
+     "a": 19
+    }
+   ]
+  },
+  {
+   "n": 27,
+   "lecture": [
+    {
+     "l": 44,
+     "de": 20,
+     "a": 21
+    }
+   ]
+  },
+  {
+   "n": 28,
+   "rattrapage": true
+  },
+  {
+   "n": 29,
+   "lecture": [
+    {
+     "l": 44,
+     "de": 22,
+     "a": 22
+    }
+   ]
+  },
+  {
+   "n": 30,
+   "lecture": [
+    {
+     "l": 44,
+     "de": 23,
+     "a": 24
+    }
+   ]
+  },
+  {
+   "n": 31,
+   "lecture": [
+    {
+     "l": 44,
+     "de": 25,
+     "a": 25
+    }
+   ]
+  },
+  {
+   "n": 32,
+   "lecture": [
+    {
+     "l": 44,
+     "de": 26,
+     "a": 27
+    }
+   ]
+  },
+  {
+   "n": 33,
+   "lecture": [
+    {
+     "l": 44,
+     "de": 28,
+     "a": 28
+    },
+    {
+     "l": 42,
+     "de": 1,
+     "a": 1
+    }
+   ]
+  },
+  {
+   "n": 34,
+   "lecture": [
+    {
+     "l": 42,
+     "de": 2,
+     "a": 2
+    }
+   ]
+  },
+  {
+   "n": 35,
+   "rattrapage": true
+  },
+  {
+   "n": 36,
+   "lecture": [
+    {
+     "l": 42,
+     "de": 3,
+     "a": 4
+    }
+   ]
+  },
+  {
+   "n": 37,
+   "lecture": [
+    {
+     "l": 42,
+     "de": 5,
+     "a": 5
+    }
+   ]
+  },
+  {
+   "n": 38,
+   "lecture": [
+    {
+     "l": 42,
+     "de": 6,
+     "a": 7
+    }
+   ]
+  },
+  {
+   "n": 39,
+   "lecture": [
+    {
+     "l": 42,
+     "de": 8,
+     "a": 8
+    }
+   ]
+  },
+  {
+   "n": 40,
+   "lecture": [
+    {
+     "l": 42,
+     "de": 9,
+     "a": 10
+    }
+   ]
+  },
+  {
+   "n": 41,
+   "lecture": [
+    {
+     "l": 42,
+     "de": 11,
+     "a": 11
+    }
+   ]
+  },
+  {
+   "n": 42,
+   "rattrapage": true
+  },
+  {
+   "n": 43,
+   "lecture": [
+    {
+     "l": 42,
+     "de": 12,
+     "a": 13
+    }
+   ]
+  },
+  {
+   "n": 44,
+   "lecture": [
+    {
+     "l": 42,
+     "de": 14,
+     "a": 14
+    }
+   ]
+  },
+  {
+   "n": 45,
+   "lecture": [
+    {
+     "l": 42,
+     "de": 15,
+     "a": 16
+    }
+   ]
+  },
+  {
+   "n": 46,
+   "lecture": [
+    {
+     "l": 42,
+     "de": 17,
+     "a": 17
+    }
+   ]
+  },
+  {
+   "n": 47,
+   "lecture": [
+    {
+     "l": 42,
+     "de": 18,
+     "a": 19
+    }
+   ]
+  },
+  {
+   "n": 48,
+   "lecture": [
+    {
+     "l": 42,
+     "de": 20,
+     "a": 20
+    }
+   ]
+  },
+  {
+   "n": 49,
+   "rattrapage": true
+  },
+  {
+   "n": 50,
+   "lecture": [
+    {
+     "l": 42,
+     "de": 21,
+     "a": 22
+    }
+   ]
+  },
+  {
+   "n": 51,
+   "lecture": [
+    {
+     "l": 42,
+     "de": 23,
+     "a": 24
+    }
+   ]
+  },
+  {
+   "n": 52,
+   "lecture": [
+    {
+     "l": 43,
+     "de": 1,
+     "a": 1
+    }
+   ]
+  },
+  {
+   "n": 53,
+   "lecture": [
+    {
+     "l": 43,
+     "de": 2,
+     "a": 3
+    }
+   ]
+  },
+  {
+   "n": 54,
+   "lecture": [
+    {
+     "l": 43,
+     "de": 4,
+     "a": 4
+    }
+   ]
+  },
+  {
+   "n": 55,
+   "lecture": [
+    {
+     "l": 43,
+     "de": 5,
+     "a": 6
+    }
+   ]
+  },
+  {
+   "n": 56,
+   "rattrapage": true
+  },
+  {
+   "n": 57,
+   "lecture": [
+    {
+     "l": 43,
+     "de": 7,
+     "a": 7
+    }
+   ]
+  },
+  {
+   "n": 58,
+   "lecture": [
+    {
+     "l": 43,
+     "de": 8,
+     "a": 9
+    }
+   ]
+  },
+  {
+   "n": 59,
+   "lecture": [
+    {
+     "l": 43,
+     "de": 10,
+     "a": 10
+    }
+   ]
+  },
+  {
+   "n": 60,
+   "lecture": [
+    {
+     "l": 43,
+     "de": 11,
+     "a": 12
+    }
+   ]
+  },
+  {
+   "n": 61,
+   "lecture": [
+    {
+     "l": 43,
+     "de": 13,
+     "a": 13
+    }
+   ]
+  },
+  {
+   "n": 62,
+   "lecture": [
+    {
+     "l": 43,
+     "de": 14,
+     "a": 15
+    }
+   ]
+  },
+  {
+   "n": 63,
+   "rattrapage": true
+  },
+  {
+   "n": 64,
+   "lecture": [
+    {
+     "l": 43,
+     "de": 16,
+     "a": 16
+    }
+   ]
+  },
+  {
+   "n": 65,
+   "lecture": [
+    {
+     "l": 43,
+     "de": 17,
+     "a": 18
+    }
+   ]
+  },
+  {
+   "n": 66,
+   "lecture": [
+    {
+     "l": 43,
+     "de": 19,
+     "a": 19
+    }
+   ]
+  },
+  {
+   "n": 67,
+   "lecture": [
+    {
+     "l": 43,
+     "de": 20,
+     "a": 21
+    }
+   ]
+  },
+  {
+   "n": 68,
+   "lecture": [
+    {
+     "l": 50,
+     "de": 1,
+     "a": 2
+    }
+   ]
+  },
+  {
+   "n": 69,
+   "lecture": [
+    {
+     "l": 50,
+     "de": 3,
+     "a": 4
+    }
+   ]
+  },
+  {
+   "n": 70,
+   "rattrapage": true
+  },
+  {
+   "n": 71,
+   "lecture": [
+    {
+     "l": 49,
+     "de": 1,
+     "a": 1
+    }
+   ]
+  },
+  {
+   "n": 72,
+   "lecture": [
+    {
+     "l": 49,
+     "de": 2,
+     "a": 3
+    }
+   ]
+  },
+  {
+   "n": 73,
+   "lecture": [
+    {
+     "l": 49,
+     "de": 4,
+     "a": 5
+    }
+   ]
+  },
+  {
+   "n": 74,
+   "lecture": [
+    {
+     "l": 49,
+     "de": 6,
+     "a": 6
+    },
+    {
+     "l": 51,
+     "de": 1,
+     "a": 1
+    }
+   ]
+  },
+  {
+   "n": 75,
+   "lecture": [
+    {
+     "l": 51,
+     "de": 2,
+     "a": 2
+    }
+   ]
+  },
+  {
+   "n": 76,
+   "lecture": [
+    {
+     "l": 51,
+     "de": 3,
+     "a": 4
+    }
+   ]
+  },
+  {
+   "n": 77,
+   "rattrapage": true
+  },
+  {
+   "n": 78,
+   "lecture": [
+    {
+     "l": 57,
+     "de": 1,
+     "a": 1
+    },
+    {
+     "l": 59,
+     "de": 1,
+     "a": 1
+    }
+   ]
+  },
+  {
+   "n": 79,
+   "lecture": [
+    {
+     "l": 59,
+     "de": 2,
+     "a": 3
+    }
+   ]
+  },
+  {
+   "n": 80,
+   "lecture": [
+    {
+     "l": 59,
+     "de": 4,
+     "a": 4
+    }
+   ]
+  },
+  {
+   "n": 81,
+   "lecture": [
+    {
+     "l": 59,
+     "de": 5,
+     "a": 5
+    },
+    {
+     "l": 60,
+     "de": 1,
+     "a": 1
+    }
+   ]
+  },
+  {
+   "n": 82,
+   "lecture": [
+    {
+     "l": 60,
+     "de": 2,
+     "a": 3
+    }
+   ]
+  },
+  {
+   "n": 83,
+   "lecture": [
+    {
+     "l": 60,
+     "de": 4,
+     "a": 5
+    }
+   ]
+  },
+  {
+   "n": 84,
+   "rattrapage": true
+  },
+  {
+   "n": 85,
+   "lecture": [
+    {
+     "l": 61,
+     "de": 1,
+     "a": 1
+    }
+   ]
+  },
+  {
+   "n": 86,
+   "lecture": [
+    {
+     "l": 61,
+     "de": 2,
+     "a": 3
+    }
+   ]
+  },
+  {
+   "n": 87,
+   "lecture": [
+    {
+     "l": 65,
+     "de": 1,
+     "a": 1
+    },
+    {
+     "l": 62,
+     "de": 1,
+     "a": 1
+    }
+   ]
+  },
+  {
+   "n": 88,
+   "lecture": [
+    {
+     "l": 62,
+     "de": 2,
+     "a": 3
+    }
+   ]
+  },
+  {
+   "n": 89,
+   "lecture": [
+    {
+     "l": 62,
+     "de": 4,
+     "a": 4
+    }
+   ]
+  },
+  {
+   "n": 90,
+   "lecture": [
+    {
+     "l": 62,
+     "de": 5,
+     "a": 5
+    },
+    {
+     "l": 63,
+     "de": 1,
+     "a": 1
+    }
+   ]
+  },
+  {
+   "n": 91,
+   "rattrapage": true
+  },
+  {
+   "n": 92,
+   "lecture": [
+    {
+     "l": 64,
+     "de": 1,
+     "a": 1
+    },
+    {
+     "l": 52,
+     "de": 1,
+     "a": 1
+    }
+   ]
+  },
+  {
+   "n": 93,
+   "lecture": [
+    {
+     "l": 52,
+     "de": 2,
+     "a": 3
+    }
+   ]
+  },
+  {
+   "n": 94,
+   "lecture": [
+    {
+     "l": 52,
+     "de": 4,
+     "a": 4
+    }
+   ]
+  },
+  {
+   "n": 95,
+   "lecture": [
+    {
+     "l": 52,
+     "de": 5,
+     "a": 5
+    },
+    {
+     "l": 53,
+     "de": 1,
+     "a": 1
+    }
+   ]
+  },
+  {
+   "n": 96,
+   "lecture": [
+    {
+     "l": 53,
+     "de": 2,
+     "a": 3
+    }
+   ]
+  },
+  {
+   "n": 97,
+   "lecture": [
+    {
+     "l": 56,
+     "de": 1,
+     "a": 2
+    }
+   ]
+  },
+  {
+   "n": 98,
+   "rattrapage": true
+  },
+  {
+   "n": 99,
+   "lecture": [
+    {
+     "l": 56,
+     "de": 3,
+     "a": 3
+    }
+   ]
+  },
+  {
+   "n": 100,
+   "lecture": [
+    {
+     "l": 54,
+     "de": 1,
+     "a": 2
+    }
+   ]
+  },
+  {
+   "n": 101,
+   "lecture": [
+    {
+     "l": 54,
+     "de": 3,
+     "a": 4
+    }
+   ]
+  },
+  {
+   "n": 102,
+   "lecture": [
+    {
+     "l": 54,
+     "de": 5,
+     "a": 6
+    }
+   ]
+  },
+  {
+   "n": 103,
+   "lecture": [
+    {
+     "l": 55,
+     "de": 1,
+     "a": 1
+    }
+   ]
+  },
+  {
+   "n": 104,
+   "lecture": [
+    {
+     "l": 55,
+     "de": 2,
+     "a": 3
+    }
+   ]
+  },
+  {
+   "n": 105,
+   "rattrapage": true
+  },
+  {
+   "n": 106,
+   "lecture": [
+    {
+     "l": 55,
+     "de": 4,
+     "a": 4
+    },
+    {
+     "l": 48,
+     "de": 1,
+     "a": 1
+    }
+   ]
+  },
+  {
+   "n": 107,
+   "lecture": [
+    {
+     "l": 48,
+     "de": 2,
+     "a": 3
+    }
+   ]
+  },
+  {
+   "n": 108,
+   "lecture": [
+    {
+     "l": 48,
+     "de": 4,
+     "a": 4
+    }
+   ]
+  },
+  {
+   "n": 109,
+   "lecture": [
+    {
+     "l": 48,
+     "de": 5,
+     "a": 6
+    }
+   ]
+  },
+  {
+   "n": 110,
+   "lecture": [
+    {
+     "l": 40,
+     "de": 1,
+     "a": 2
+    }
+   ]
+  },
+  {
+   "n": 111,
+   "lecture": [
+    {
+     "l": 40,
+     "de": 3,
+     "a": 4
+    }
+   ]
+  },
+  {
+   "n": 112,
+   "rattrapage": true
+  },
+  {
+   "n": 113,
+   "lecture": [
+    {
+     "l": 40,
+     "de": 5,
+     "a": 5
+    }
+   ]
+  },
+  {
+   "n": 114,
+   "lecture": [
+    {
+     "l": 40,
+     "de": 6,
+     "a": 7
+    }
+   ]
+  },
+  {
+   "n": 115,
+   "lecture": [
+    {
+     "l": 40,
+     "de": 8,
+     "a": 9
+    }
+   ]
+  },
+  {
+   "n": 116,
+   "lecture": [
+    {
+     "l": 40,
+     "de": 10,
+     "a": 11
+    }
+   ]
+  },
+  {
+   "n": 117,
+   "lecture": [
+    {
+     "l": 40,
+     "de": 12,
+     "a": 12
+    }
+   ]
+  },
+  {
+   "n": 118,
+   "lecture": [
+    {
+     "l": 40,
+     "de": 13,
+     "a": 14
+    }
+   ]
+  },
+  {
+   "n": 119,
+   "rattrapage": true
+  },
+  {
+   "n": 120,
+   "lecture": [
+    {
+     "l": 40,
+     "de": 15,
+     "a": 16
+    }
+   ]
+  },
+  {
+   "n": 121,
+   "lecture": [
+    {
+     "l": 40,
+     "de": 17,
+     "a": 18
+    }
+   ]
+  },
+  {
+   "n": 122,
+   "lecture": [
+    {
+     "l": 40,
+     "de": 19,
+     "a": 20
+    }
+   ]
+  },
+  {
+   "n": 123,
+   "lecture": [
+    {
+     "l": 40,
+     "de": 21,
+     "a": 21
+    }
+   ]
+  },
+  {
+   "n": 124,
+   "lecture": [
+    {
+     "l": 40,
+     "de": 22,
+     "a": 23
+    }
+   ]
+  },
+  {
+   "n": 125,
+   "lecture": [
+    {
+     "l": 40,
+     "de": 24,
+     "a": 25
+    }
+   ]
+  },
+  {
+   "n": 126,
+   "rattrapage": true
+  },
+  {
+   "n": 127,
+   "lecture": [
+    {
+     "l": 40,
+     "de": 26,
+     "a": 27
+    }
+   ]
+  },
+  {
+   "n": 128,
+   "lecture": [
+    {
+     "l": 40,
+     "de": 28,
+     "a": 28
+    },
+    {
+     "l": 46,
+     "de": 1,
+     "a": 1
+    }
+   ]
+  },
+  {
+   "n": 129,
+   "lecture": [
+    {
+     "l": 46,
+     "de": 2,
+     "a": 2
+    }
+   ]
+  },
+  {
+   "n": 130,
+   "lecture": [
+    {
+     "l": 46,
+     "de": 3,
+     "a": 4
+    }
+   ]
+  },
+  {
+   "n": 131,
+   "lecture": [
+    {
+     "l": 46,
+     "de": 5,
+     "a": 6
+    }
+   ]
+  },
+  {
+   "n": 132,
+   "lecture": [
+    {
+     "l": 46,
+     "de": 7,
+     "a": 8
+    }
+   ]
+  },
+  {
+   "n": 133,
+   "rattrapage": true
+  },
+  {
+   "n": 134,
+   "lecture": [
+    {
+     "l": 46,
+     "de": 9,
+     "a": 9
+    }
+   ]
+  },
+  {
+   "n": 135,
+   "lecture": [
+    {
+     "l": 46,
+     "de": 10,
+     "a": 11
+    }
+   ]
+  },
+  {
+   "n": 136,
+   "lecture": [
+    {
+     "l": 46,
+     "de": 12,
+     "a": 13
+    }
+   ]
+  },
+  {
+   "n": 137,
+   "lecture": [
+    {
+     "l": 46,
+     "de": 14,
+     "a": 15
+    }
+   ]
+  },
+  {
+   "n": 138,
+   "lecture": [
+    {
+     "l": 46,
+     "de": 16,
+     "a": 16
+    },
+    {
+     "l": 47,
+     "de": 1,
+     "a": 1
+    }
+   ]
+  },
+  {
+   "n": 139,
+   "lecture": [
+    {
+     "l": 47,
+     "de": 2,
+     "a": 2
+    }
+   ]
+  },
+  {
+   "n": 140,
+   "rattrapage": true
+  },
+  {
+   "n": 141,
+   "lecture": [
+    {
+     "l": 47,
+     "de": 3,
+     "a": 4
+    }
+   ]
+  },
+  {
+   "n": 142,
+   "lecture": [
+    {
+     "l": 47,
+     "de": 5,
+     "a": 6
+    }
+   ]
+  },
+  {
+   "n": 143,
+   "lecture": [
+    {
+     "l": 47,
+     "de": 7,
+     "a": 8
+    }
+   ]
+  },
+  {
+   "n": 144,
+   "lecture": [
+    {
+     "l": 47,
+     "de": 9,
+     "a": 9
+    }
+   ]
+  },
+  {
+   "n": 145,
+   "lecture": [
+    {
+     "l": 47,
+     "de": 10,
+     "a": 11
+    }
+   ]
+  },
+  {
+   "n": 146,
+   "lecture": [
+    {
+     "l": 47,
+     "de": 12,
+     "a": 13
+    }
+   ]
+  },
+  {
+   "n": 147,
+   "rattrapage": true
+  },
+  {
+   "n": 148,
+   "lecture": [
+    {
+     "l": 45,
+     "de": 1,
+     "a": 2
+    }
+   ]
+  },
+  {
+   "n": 149,
+   "lecture": [
+    {
+     "l": 45,
+     "de": 3,
+     "a": 4
+    }
+   ]
+  },
+  {
+   "n": 150,
+   "lecture": [
+    {
+     "l": 45,
+     "de": 5,
+     "a": 5
+    }
+   ]
+  },
+  {
+   "n": 151,
+   "lecture": [
+    {
+     "l": 45,
+     "de": 6,
+     "a": 7
+    }
+   ]
+  },
+  {
+   "n": 152,
+   "lecture": [
+    {
+     "l": 45,
+     "de": 8,
+     "a": 9
+    }
+   ]
+  },
+  {
+   "n": 153,
+   "lecture": [
+    {
+     "l": 45,
+     "de": 10,
+     "a": 11
+    }
+   ]
+  },
+  {
+   "n": 154,
+   "rattrapage": true
+  },
+  {
+   "n": 155,
+   "lecture": [
+    {
+     "l": 45,
+     "de": 12,
+     "a": 12
+    }
+   ]
+  },
+  {
+   "n": 156,
+   "lecture": [
+    {
+     "l": 45,
+     "de": 13,
+     "a": 14
+    }
+   ]
+  },
+  {
+   "n": 157,
+   "lecture": [
+    {
+     "l": 45,
+     "de": 15,
+     "a": 16
+    }
+   ]
+  },
+  {
+   "n": 158,
+   "lecture": [
+    {
+     "l": 58,
+     "de": 1,
+     "a": 2
+    }
+   ]
+  },
+  {
+   "n": 159,
+   "lecture": [
+    {
+     "l": 58,
+     "de": 3,
+     "a": 3
+    }
+   ]
+  },
+  {
+   "n": 160,
+   "lecture": [
+    {
+     "l": 58,
+     "de": 4,
+     "a": 5
+    }
+   ]
+  },
+  {
+   "n": 161,
+   "rattrapage": true
+  },
+  {
+   "n": 162,
+   "lecture": [
+    {
+     "l": 58,
+     "de": 6,
+     "a": 7
+    }
+   ]
+  },
+  {
+   "n": 163,
+   "lecture": [
+    {
+     "l": 58,
+     "de": 8,
+     "a": 9
+    }
+   ]
+  },
+  {
+   "n": 164,
+   "lecture": [
+    {
+     "l": 58,
+     "de": 10,
+     "a": 10
+    }
+   ]
+  },
+  {
+   "n": 165,
+   "lecture": [
+    {
+     "l": 58,
+     "de": 11,
+     "a": 12
+    }
+   ]
+  },
+  {
+   "n": 166,
+   "lecture": [
+    {
+     "l": 58,
+     "de": 13,
+     "a": 13
+    },
+    {
+     "l": 66,
+     "de": 1,
+     "a": 1
+    }
+   ]
+  },
+  {
+   "n": 167,
+   "lecture": [
+    {
+     "l": 66,
+     "de": 2,
+     "a": 3
+    }
+   ]
+  },
+  {
+   "n": 168,
+   "rattrapage": true
+  },
+  {
+   "n": 169,
+   "lecture": [
+    {
+     "l": 66,
+     "de": 4,
+     "a": 4
+    }
+   ]
+  },
+  {
+   "n": 170,
+   "lecture": [
+    {
+     "l": 66,
+     "de": 5,
+     "a": 6
+    }
+   ]
+  },
+  {
+   "n": 171,
+   "lecture": [
+    {
+     "l": 66,
+     "de": 7,
+     "a": 8
+    }
+   ]
+  },
+  {
+   "n": 172,
+   "lecture": [
+    {
+     "l": 66,
+     "de": 9,
+     "a": 10
+    }
+   ]
+  },
+  {
+   "n": 173,
+   "lecture": [
+    {
+     "l": 66,
+     "de": 11,
+     "a": 11
+    }
+   ]
+  },
+  {
+   "n": 174,
+   "lecture": [
+    {
+     "l": 66,
+     "de": 12,
+     "a": 13
+    }
+   ]
+  },
+  {
+   "n": 175,
+   "rattrapage": true
+  },
+  {
+   "n": 176,
+   "lecture": [
+    {
+     "l": 66,
+     "de": 14,
+     "a": 15
+    }
+   ]
+  },
+  {
+   "n": 177,
+   "lecture": [
+    {
+     "l": 66,
+     "de": 16,
+     "a": 17
+    }
+   ]
+  },
+  {
+   "n": 178,
+   "lecture": [
+    {
+     "l": 66,
+     "de": 18,
+     "a": 18
+    }
+   ]
+  },
+  {
+   "n": 179,
+   "lecture": [
+    {
+     "l": 66,
+     "de": 19,
+     "a": 20
+    }
+   ]
+  },
+  {
+   "n": 180,
+   "lecture": [
+    {
+     "l": 66,
+     "de": 21,
+     "a": 22
+    }
+   ]
+  }
+ ],
+ "fin": "Well done: you have read the whole New Testament!",
+ "chapitres": 260,
+ "rattrapage": "Catch-up day"
+}

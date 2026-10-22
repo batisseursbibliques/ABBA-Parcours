@@ -439,6 +439,7 @@ function squelette() {
     <div class="bib-onglets">
       <button class="bib-onglet" data-bib="vue-lire">📖 ${T("Lire", "Read")}</button>
       <button class="bib-onglet" data-bib="vue-chercher">🔍 ${T("Rechercher", "Search")}</button>
+      <button class="bib-onglet" data-bib="vue-plan">📅 ${T("Calendrier", "Calendar")}</button>
     </div>
     <div id="bibLire">
       <div id="bibBarre" class="bib-barre"></div>
@@ -446,13 +447,15 @@ function squelette() {
       <div id="bibNav" class="bib-nav"></div>
       <p class="small bib-credit" id="bibCredit"></p>
     </div>
-    <div id="bibChercher" hidden></div>`;
+    <div id="bibChercher" hidden></div>
+    <div id="bibPlan" hidden></div>`;
   majOnglets();
 }
 function majOnglets() {
-  racine().querySelectorAll(".bib-onglet").forEach((b) => b.classList.toggle("active", b.dataset.bib === `vue-${S.vue === "lire" ? "lire" : "chercher"}`));
+  racine().querySelectorAll(".bib-onglet").forEach((b) => b.classList.toggle("active", b.dataset.bib === `vue-${S.vue === "lire" ? "lire" : S.vue === "plan" ? "plan" : "chercher"}`));
   $("bibLire").hidden = S.vue !== "lire";
   $("bibChercher").hidden = S.vue !== "chercher";
+  if ($("bibPlan")) $("bibPlan").hidden = S.vue !== "plan";
 }
 function optionsSelect(liste, courant) {
   return liste.map(([val, lib]) => `<option value="${esc(val)}"${String(val) === String(courant) ? " selected" : ""}>${esc(lib)}</option>`).join("");
@@ -686,6 +689,7 @@ function brancher() {
     switch (b.dataset.bib) {
       case "vue-lire": S.vue = "lire"; majOnglets(); break;
       case "vue-chercher": S.vue = "chercher"; majOnglets(); rendreRecherche(true); break;
+      case "vue-plan": S.vue = "plan"; majOnglets(); if (window.AbbaLecture) window.AbbaLecture.rendre($("bibPlan")); break;
       case "ecouter": lire((S.verset || 1) - 1); break;
       case "pause": pause(); break;
       case "options": S.options = !S.options; rendreOptions(); break;
@@ -753,7 +757,7 @@ async function ouvrirOnglet() {
 }
 
 window.addEventListener("abba:bible-ouvert", ouvrirOnglet);
-window.AbbaBible = { ouvrir: ouvrirOnglet, aller: (l, c, v) => { ouvrirOnglet().then(() => aller(l, c, v)); } };
+window.AbbaBible = { ouvrir: ouvrirOnglet, aller: (l, c, v) => { ouvrirOnglet().then(() => aller(l, c, v)); }, nom: (l) => nomLivre(l), lire: (l, c) => { S.vue = "lire"; majOnglets(); aller(l, c); } };
 
 /* ============================================================
    FENÊTRE DE VERSETS (déclaration, leçons) : « 📎 » ou référence cliquée.
