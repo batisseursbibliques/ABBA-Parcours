@@ -120,21 +120,117 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /* ============================================================
-   AUTHENTIFICATION (connexion seule — le compte se crée sur ABBA Life)
+   AUTHENTIFICATION : connexion, inscription, mot de passe oublié
+   (même compte qu'ABBA Life ; l'accès au Parcours reste validé par un coordinateur)
    ============================================================ */
+const EYE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_OFF_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19C5.5 19 1.5 12 1.5 12a19.7 19.7 0 0 1 4.6-5.4M9.9 5.2A10.4 10.4 0 0 1 12 5c6.5 0 10.5 7 10.5 7a19.6 19.6 0 0 1-2.2 3.2M1 1l22 22"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+// Ajoute l'œil « afficher / masquer » sur tous les champs mot de passe (à appeler aussi pour les champs ajoutés plus tard)
+function addPasswordEyes(root) {
+  (root || document).querySelectorAll('input[type="password"], input[data-pw]').forEach((inp) => {
+    if (inp.dataset.pwEye) return;
+    inp.dataset.pwEye = "1"; inp.dataset.pw = "1";
+    const wrap = document.createElement("span"); wrap.className = "pw-wrap";
+    inp.parentNode.insertBefore(wrap, inp); wrap.appendChild(inp);
+    const btn = document.createElement("button");
+    btn.type = "button"; btn.className = "pw-eye"; btn.innerHTML = EYE_SVG;
+    btn.title = "Afficher le mot de passe"; btn.setAttribute("aria-pressed", "false");
+    btn.addEventListener("click", () => {
+      const show = inp.type === "password";
+      inp.type = show ? "text" : "password";
+      btn.innerHTML = show ? EYE_OFF_SVG : EYE_SVG;
+      btn.title = show ? "Masquer le mot de passe" : "Afficher le mot de passe";
+      btn.setAttribute("aria-pressed", show ? "true" : "false");
+    });
+    wrap.appendChild(btn);
+  });
+}
+function ageFromBirth(iso) {
+  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+  const b = new Date(iso + "T00:00:00"), t = new Date();
+  if (isNaN(b.getTime()) || b > t || b.getFullYear() < 1900) return null;
+  return t.getFullYear() - b.getFullYear() - ((t.getMonth() < b.getMonth() || (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) ? 1 : 0);
+}
 function setupAuthScreen() {
-  document.getElementById("loginForm").addEventListener("submit", async (e) => {
+  addPasswordEyes(document.getElementById("authScreen"));
+  const loginForm = document.getElementById("loginForm");
+  const signupForm = document.getElementById("signupForm");
+  const showTab = (name) => {
+    loginForm.style.display = name === "login" ? "" : "none";
+    signupForm.style.display = name === "signup" ? "" : "none";
+    document.querySelectorAll("#authTabs .auth-tab").forEach(b => b.classList.toggle("active", b.dataset.authTab === name));
+    document.getElementById("loginError").textContent = ""; document.getElementById("loginInfo").textContent = "";
+    document.getElementById("signupError").textContent = "";
+  };
+  document.querySelectorAll("#authTabs .auth-tab").forEach(b => b.addEventListener("click", () => showTab(b.dataset.authTab)));
+
+  loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const email = document.getElementById("loginEmail").value;
     const password = document.getElementById("loginPassword").value;
     const errEl = document.getElementById("loginError");
-    errEl.textContent = "";
+    errEl.textContent = ""; document.getElementById("loginInfo").textContent = "";
     try {
       await window.AbbaSync.logIn(email, password);
     } catch (err) {
       errEl.textContent = traduireErreurAuth(err);
     }
   });
+
+  document.getElementById("forgotPasswordBtn").addEventListener("click", async () => {
+    const email = document.getElementById("loginEmail").value.trim();
+    const errEl = document.getElementById("loginError"), infoEl = document.getElementById("loginInfo");
+    errEl.textContent = ""; infoEl.textContent = "";
+    if (!email) { errEl.textContent = "Écris d'abord ton adresse e-mail ci-dessus, puis clique sur « Mot de passe oublié ? »."; return; }
+    try {
+      await window.AbbaSync.resetPassword(email);
+      infoEl.textContent = "Si un compte existe pour cette adresse, un e-mail de réinitialisation vient d'être envoyé. Pense à regarder dans les courriers indésirables.";
+    } catch (err) {
+      errEl.textContent = traduireErreurAuth(err);
+    }
+  });
+
+  // Date de naissance : adapte le formulaire (15-17 ans = autorisation parentale)
+  const naiss = document.getElementById("signupNaissance");
+  naiss.max = new Date().toISOString().slice(0, 10);
+  const tuteurBox = document.getElementById("signupTuteurBox");
+  const refreshTuteur = () => {
+    const age = ageFromBirth(naiss.value);
+    const mineur = age !== null && age >= 15 && age < 18;
+    tuteurBox.style.display = mineur ? "" : "none";
+    ["signupTuteurNom", "signupTuteurTel"].forEach(id => { document.getElementById(id).required = mineur; });
+    document.getElementById("signupTuteurOk").required = mineur;
+  };
+  naiss.addEventListener("input", refreshTuteur); naiss.addEventListener("change", refreshTuteur);
+
+  signupForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById("signupError"); errEl.textContent = "";
+    const val = (id) => document.getElementById(id).value.trim();
+    const d = {
+      prenom: val("signupPrenom"), nom: val("signupNom"), telephone: val("signupTel"),
+      email: val("signupEmail"), password: document.getElementById("signupPassword").value,
+      naissance: val("signupNaissance"), tuteurNom: val("signupTuteurNom"), tuteurTel: val("signupTuteurTel"),
+    };
+    if (d.prenom.length < 2 || d.nom.length < 2) { errEl.textContent = "Écris ton prénom et ton nom."; return; }
+    if (d.telephone.replace(/\D/g, "").length < 8) { errEl.textContent = "Numéro de téléphone invalide (au moins 8 chiffres, avec l'indicatif du pays si tu es à l'étranger)."; return; }
+    if (d.password.length < 6) { errEl.textContent = "Le mot de passe doit faire au moins 6 caractères."; return; }
+    const age = ageFromBirth(d.naissance);
+    if (age === null) { errEl.textContent = "Date de naissance invalide."; return; }
+    if (age < 15) { errEl.textContent = "Le Parcours est ouvert à partir de 15 ans."; return; }
+    if (age < 18) {
+      if (d.tuteurNom.length < 3 || d.tuteurTel.replace(/\D/g, "").length < 8) { errEl.textContent = "Indique le nom et le téléphone de ton parent ou tuteur."; return; }
+      if (!document.getElementById("signupTuteurOk").checked) { errEl.textContent = "L'accord de ton parent ou tuteur est nécessaire."; return; }
+    }
+    if (!document.getElementById("signupConsent").checked) { errEl.textContent = "Coche la case d'accord pour continuer."; return; }
+    const btn = signupForm.querySelector('button[type="submit"]'); btn.disabled = true;
+    try {
+      await window.AbbaSync.signUp(d);
+    } catch (err) {
+      errEl.textContent = traduireErreurAuth(err);
+    } finally { btn.disabled = false; }
+  });
+
   document.getElementById("logoutBtn").addEventListener("click", async () => {
     await window.AbbaSync.logOut();
   });
@@ -142,7 +238,11 @@ function setupAuthScreen() {
 function traduireErreurAuth(err) {
   const code = err && err.code ? err.code : "";
   if (code.includes("invalid-credential") || code.includes("wrong-password") || code.includes("user-not-found")) return "E-mail ou mot de passe incorrect.";
+  if (code.includes("email-already-in-use")) return "Cette adresse e-mail a déjà un compte (par exemple sur ABBA Life). Utilise l'onglet « Se connecter ».";
+  if (code.includes("weak-password")) return "Mot de passe trop faible : au moins 6 caractères.";
   if (code.includes("invalid-email")) return "Adresse e-mail invalide.";
+  if (code.includes("missing-email")) return "Écris ton adresse e-mail.";
+  if (code.includes("too-many-requests")) return "Trop de tentatives. Patiente quelques minutes puis réessaie.";
   if (code.includes("network-request-failed")) return "Pas de connexion internet. Réessaie plus tard.";
   return "Une erreur est survenue. Réessaie.";
 }
@@ -1366,6 +1466,9 @@ function renderEnrollmentsAdmin() {
         <span class="enrollment-name">${nom}</span>
         <span class="enrollment-email">${e.email}</span>
         <span class="enrollment-date">Demande : ${date}</span>
+        ${e.telephone ? `<span class="enrollment-email">Tél : ${e.telephone}</span>` : ""}
+        ${e.naissance ? `<span class="enrollment-email">Né(e) le ${e.naissance}${ageFromBirth(e.naissance) !== null ? " · " + ageFromBirth(e.naissance) + " ans" : ""}</span>` : ""}
+        ${e.mineur ? `<span class="enrollment-email" style="color:var(--brick);font-weight:600;">Mineur(e) : autorisation parentale déclarée — ${e.tuteurNom || "?"}, ${e.tuteurTel || "?"}</span>` : ""}
       </div>
       ${actions}
     </div>`;

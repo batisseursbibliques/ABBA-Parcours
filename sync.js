@@ -1,12 +1,13 @@
 // ============================================================
 // sync.js — Parcours Bâtisseur
 // Utilise EXACTEMENT le même projet Firebase qu'ABBA Life : mêmes comptes,
-// même base de données. Un Bâtisseur se connecte ici avec le même e-mail/
-// mot de passe que sur ABBA Life — pas de double inscription.
+// même base de données. Un Bâtisseur peut s'inscrire ici OU sur ABBA Life, et
+// utiliser le même e-mail / mot de passe sur les deux — pas de double inscription.
 // ============================================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut,
+  createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp,
@@ -25,14 +26,68 @@ function isAdminEmail(email) {
 }
 
 /* ---------- AUTHENTIFICATION ----------
-   Pas d'inscription ici : le compte se crée uniquement depuis ABBA Life.
-   Parcours Bâtisseur ne fait que se connecter avec le compte déjà existant. */
+   Connexion, inscription (même compte et même fiche `users/{uid}` qu'ABBA Life)
+   et mot de passe oublié. Après une inscription, l'accès au Parcours reste soumis
+   à la validation d'un coordinateur (collection `enrollments`). */
+let pendingSignUp = null;
 async function logIn(email, password) {
   const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
   return cred.user;
 }
 async function logOut() { await signOut(auth); }
-function watchAuth(callback) { onAuthStateChanged(auth, callback); }
+function watchAuth(callback) {
+  onAuthStateChanged(auth, async (u) => {
+    // Pendant une inscription, on attend que la fiche et la demande d'accès soient écrites
+    if (pendingSignUp) { try { await pendingSignUp; } catch (e) {} }
+    callback(u);
+  });
+}
+// d = { prenom, nom, telephone, email, password, naissance (AAAA-MM-JJ), tuteurNom, tuteurTel }
+async function signUp(d) {
+  const run = (async () => {
+    const prenom = (d.prenom || "").trim(), nomFam = (d.nom || "").trim();
+    const full = (prenom + " " + nomFam).trim();
+    const email = (d.email || "").trim();
+    const cred = await createUserWithEmailAndPassword(auth, email, d.password);
+    const uid = cred.user.uid;
+    try { await updateProfile(cred.user, { displayName: full }); } catch (e) {}
+    try {
+      // Même structure qu'ABBA Life : `nom` = prénom + nom, plus des champs séparés pour Parcours
+      await setDoc(doc(db, "users", uid), {
+        nom: full, prenomSaisi: prenom, nomFamille: nomFam,
+        telephone: (d.telephone || "").trim(), email, createdAt: serverTimestamp(), via: "parcours",
+      }, { merge: true });
+    } catch (e) { console.error("signUp users:", e); }
+    let mineur = false, age = null;
+    if (d.naissance) {
+      const b = new Date(d.naissance + "T00:00:00"), t = new Date();
+      age = t.getFullYear() - b.getFullYear() - ((t.getMonth() < b.getMonth() || (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) ? 1 : 0);
+      mineur = age < 18;
+    }
+    try {
+      await setDoc(doc(db, "users", uid, "priv", "contact"), {
+        naissance: d.naissance || "", telephone: (d.telephone || "").trim(),
+        tuteurNom: (d.tuteurNom || "").trim(), tuteurTel: (d.tuteurTel || "").trim(),
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+    } catch (e) { console.error("signUp contact:", e); }
+    try {
+      // Demande d'accès au Parcours, avec ce dont le coordinateur a besoin pour décider
+      await setDoc(doc(db, "enrollments", uid + "_parcours"), {
+        uid, app: "parcours", nom: full, prenom: "", email,
+        telephone: (d.telephone || "").trim(), naissance: d.naissance || "", mineur,
+        tuteurNom: mineur ? (d.tuteurNom || "").trim() : "", tuteurTel: mineur ? (d.tuteurTel || "").trim() : "",
+        autorisationParentale: mineur ? true : false,
+        via: "inscription-parcours",
+        status: "pending", requestedAt: serverTimestamp(), reviewedBy: null, reviewedAt: null,
+      });
+    } catch (e) { console.error("signUp enrollment:", e); }
+    return cred.user;
+  })();
+  pendingSignUp = run;
+  try { return await run; } finally { pendingSignUp = null; }
+}
+async function resetPassword(email) { await sendPasswordResetEmail(auth, (email || "").trim()); }
 async function getUserProfile(uid) {
   const snap = await getDoc(doc(db, "users", uid));
   return snap.exists() ? snap.data() : null;
@@ -421,7 +476,7 @@ async function loadStudentSuivis(uid) {
 
 window.AbbaSync = {
   isAdminEmail,
-  logIn, logOut, watchAuth, getUserProfile,
+  logIn, logOut, signUp, resetPassword, watchAuth, getUserProfile,
   watchAdmins, addAdmin, removeAdmin, setBloque,
   watchModulesConfig, saveModulesConfig,
   watchParcours, saveParcours,
