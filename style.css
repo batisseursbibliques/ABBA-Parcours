@@ -1005,3 +1005,15 @@ html.i18n-wait body{visibility:hidden;}
 .fiche-row b{flex:0 0 120px;color:var(--ink-soft);font-weight:600;}
 .fiche-row span,.fiche-row a{flex:1;word-break:break-word;}
 @media (min-width:700px){.fiche-overlay{align-items:center;}.fiche-box{border-radius:14px;}}
+
+/* Mon profil : accordéons, résumé, bandeau */
+details.pf-acc{border:1px solid var(--line);border-radius:10px;margin:8px 0;background:var(--paper,#fff);}
+details.pf-acc>summary{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;cursor:pointer;list-style:none;font-weight:600;font-size:14px;}
+details.pf-acc>summary::-webkit-details-marker{display:none;}
+details.pf-acc>summary::after{content:"+";font-size:18px;color:var(--ink-soft);margin-left:10px;}
+details.pf-acc[open]>summary::after{content:"–";}
+details.pf-acc[open]>summary{border-bottom:1px dashed var(--line);}
+.pf-acc-body{padding:10px 14px 4px;}
+.pf-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
+.pf-bandeau{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#fff7e6;border:1px solid #f0c987;color:#5b4310;border-radius:10px;padding:10px 12px;margin:0 0 12px;font-size:13.5px;line-height:1.4;}
+.pf-bandeau-btns{display:flex;gap:8px;}

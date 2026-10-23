@@ -27,7 +27,11 @@ function ageDe(iso) {
 }
 const opt = (v, label, sel) => `<option value="${esc(v)}"${sel ? " selected" : ""}>${esc(label)}</option>`;
 
-function html() {
+const profilRempli = (c, pr) => !!(c && c.naissance && (c.commune || c.ville || c.region || c.quartier) && ((pr && pr.telephone) || (c && c.telephone)));
+const accordeon = (id, titre, inner, ouvert) => `<details class="pf-acc" data-acc="${id}"${ouvert ? " open" : ""}><summary>${titre}</summary><div class="pf-acc-body">${inner}</div></details>`;
+const ligneVue = (label, val) => `<div class="fiche-row"><b>${esc(label)}</b><span>${val ? esc(val) : '<em style="color:var(--ink-soft);">—</em>'}</span></div>`;
+
+function formSections() {
   const c = P.contact || {}, pr = P.profil || {};
   const prenom = pr.prenomSaisi || (pr.nom || "").split(" ")[0] || "";
   const nomFam = pr.nomFamille || (pr.nom || "").split(" ").slice(1).join(" ") || "";
@@ -35,71 +39,118 @@ function html() {
   const sexes = [["", T("— choisir —", "— choose —")], ["M", T("Homme", "Man")], ["F", T("Femme", "Woman")]];
   const canaux = [["appel", T("Appel téléphonique", "Phone call")], ["whatsapp", "WhatsApp"], ["sms", "SMS"]];
   const moments = [["", T("Peu importe", "Any time")], ["matin", T("Le matin", "In the morning")], ["midi", T("À midi", "At midday")], ["soir", T("Le soir", "In the evening")]];
+  return [
+    ["identite", T("Identité", "Identity"), `
+      <label class="field"><span>${T("Prénom", "First name")}</span><input type="text" id="pf-prenom" value="${esc(prenom)}" autocomplete="given-name"></label>
+      <label class="field"><span>${T("Nom de famille", "Last name")}</span><input type="text" id="pf-nom" value="${esc(nomFam)}" autocomplete="family-name"></label>
+      <label class="field"><span>${T("Téléphone", "Phone")}</span><input type="tel" id="pf-tel" value="${esc(pr.telephone || "")}" autocomplete="tel" placeholder="+229 01 …"></label>
+      <label class="field"><span>${T("Numéro WhatsApp (s'il est différent)", "WhatsApp number (if different)")}</span><input type="tel" id="pf-whatsapp" value="${esc(c.whatsapp || "")}" placeholder="+229 01 …"></label>
+      <label class="field"><span>${T("Date de naissance", "Date of birth")}</span><input type="date" id="pf-naissance" value="${esc(c.naissance || "")}" max="${todayISO()}"></label>
+      <label class="field"><span>${T("Sexe", "Sex")}</span><select id="pf-sexe" class="text-input">${sexes.map(([v, l]) => opt(v, l, (c.sexe || "") === v)).join("")}</select></label>`],
+    ["adresse", T("Où habites-tu ?", "Where do you live?"), `
+      <label class="field"><span>${T("Pays", "Country")}</span><select id="pf-pays" class="text-input">${P.pays.map((x) => opt(x.code, x.nom, x.code === pays)).join("")}</select></label>
+      <div id="pf-geo-bj" style="display:${pays === "BJ" ? "" : "none"};">
+        <label class="field"><span>${T("Département", "Department")}</span><select id="pf-dep" class="text-input"></select></label>
+        <label class="field"><span>${T("Commune", "Commune")}</span><select id="pf-com" class="text-input"></select></label>
+        <label class="field"><span>${T("Arrondissement", "Arrondissement")}</span><select id="pf-arr" class="text-input"></select></label>
+        <label class="field" id="pf-arr-libre-box" style="display:none;"><span>${T("Écris ton arrondissement", "Write your arrondissement")}</span><input type="text" id="pf-arr-libre" value="${esc(c.arrondissement || "")}"></label>
+      </div>
+      <div id="pf-geo-autre" style="display:${pays === "BJ" ? "none" : ""};">
+        <label class="field"><span>${T("Région, province ou État", "Region, province or state")}</span><input type="text" id="pf-region" value="${esc(c.region || "")}"></label>
+        <label class="field"><span>${T("Ville", "City")}</span><input type="text" id="pf-ville" value="${esc(c.ville || "")}"></label>
+      </div>
+      <label class="field"><span>${T("Quartier ou village", "Neighborhood or village")}</span><input type="text" id="pf-quartier" value="${esc(c.quartier || "")}"></label>
+      <label class="field"><span>${T("Complément d'adresse (maison, numéro de carré, nom du propriétaire, repère connu…)", "Address details (house, plot number, owner's name, known landmark…)")}</span><textarea id="pf-complement" class="text-input" rows="3">${esc(c.complement || "")}</textarea></label>`],
+    ["contact", T("Comment te joindre", "How to reach you"), `
+      <label class="field"><span>${T("Canal préféré", "Preferred channel")}</span><select id="pf-canal" class="text-input">${canaux.map(([v, l]) => opt(v, l, (c.canal || "appel") === v)).join("")}</select></label>
+      <label class="field"><span>${T("Meilleur moment pour te joindre", "Best time to reach you")}</span><select id="pf-moment" class="text-input">${moments.map(([v, l]) => opt(v, l, (c.moment || "") === v)).join("")}</select></label>
+      <label class="field"><span>${T("Église ou assemblée que tu fréquentes", "Church or assembly you attend")}</span><input type="text" id="pf-eglise" value="${esc(c.eglise || "")}"></label>`],
+    ["urgence", T("Contact d'urgence", "Emergency contact"), `
+      <p class="settings-hint">${T("Une personne proche à prévenir si on n'arrive plus à te joindre.", "A close person to contact if you can no longer be reached.")}</p>
+      <label class="field"><span>${T("Nom", "Name")}</span><input type="text" id="pf-urg-nom" value="${esc(c.urgenceNom || "")}"></label>
+      <label class="field"><span>${T("Lien avec toi (conjoint, parent, frère, ami…)", "Relationship (spouse, parent, brother, friend…)")}</span><input type="text" id="pf-urg-lien" value="${esc(c.urgenceLien || "")}"></label>
+      <label class="field"><span>${T("Téléphone", "Phone")}</span><input type="tel" id="pf-urg-tel" value="${esc(c.urgenceTel || "")}"></label>`],
+    ["rappel", T("Rappel quotidien", "Daily reminder"), `
+      <label class="fm-check"><input type="checkbox" id="pf-rappel-on"${c.rappelActif ? " checked" : ""}><span>${T("Me rappeler de faire ma journée", "Remind me to do my day")}</span></label>
+      <label class="field"><span>${T("Heure du rappel", "Reminder time")}</span><input type="time" id="pf-rappel-heure" value="${esc(c.heureRappel || "20:00")}"></label>
+      <p class="settings-hint">${T("Le rappel s'affiche quand l'application est ouverte sur ton appareil.", "The reminder is shown when the app is open on your device.")}</p>`],
+  ];
+}
+
+function vueSections() {
+  const c = P.contact || {}, pr = P.profil || {};
+  const canaux = { appel: T("Appel téléphonique", "Phone call"), whatsapp: "WhatsApp", sms: "SMS" };
+  const moments = { "": T("Peu importe", "Any time"), matin: T("Le matin", "In the morning"), midi: T("À midi", "At midday"), soir: T("Le soir", "In the evening") };
+  const age = ageDe(c.naissance);
+  const adresse = [c.quartier, c.arrondissement, c.commune, c.departement, c.ville, c.region, c.paysNom].filter(Boolean).join(", ");
+  return [
+    ["identite", T("Identité", "Identity"), ligneVue(T("Nom", "Name"), pr.nom || "") + ligneVue(T("Téléphone", "Phone"), pr.telephone || "") + ligneVue("WhatsApp", c.whatsapp || "")
+      + ligneVue(T("Né(e) le", "Born on"), c.naissance ? c.naissance + (age !== null ? " (" + age + " " + T("ans", "years old") + ")" : "") : "")
+      + ligneVue(T("Sexe", "Sex"), c.sexe === "M" ? T("Homme", "Man") : c.sexe === "F" ? T("Femme", "Woman") : "")],
+    ["adresse", T("Où habites-tu ?", "Where do you live?"), ligneVue(T("Adresse", "Address"), adresse) + ligneVue(T("Précisions", "Details"), c.complement || "")],
+    ["contact", T("Comment te joindre", "How to reach you"), ligneVue(T("Canal préféré", "Preferred channel"), canaux[c.canal] || "") + ligneVue(T("Meilleur moment", "Best time"), moments[c.moment || ""] || "") + ligneVue(T("Église", "Church"), c.eglise || "")],
+    ["urgence", T("Contact d'urgence", "Emergency contact"), ligneVue(T("Nom", "Name"), [c.urgenceNom, c.urgenceLien && "(" + c.urgenceLien + ")"].filter(Boolean).join(" ")) + ligneVue(T("Téléphone", "Phone"), c.urgenceTel || "")],
+    ["rappel", T("Rappel quotidien", "Daily reminder"), ligneVue(T("Rappel", "Reminder"), c.rappelActif ? T("Activé à ", "On at ") + (c.heureRappel || "20:00") : T("Désactivé", "Off"))],
+  ];
+}
+
+function htmlProfil() {
+  const edit = P.mode === "edit";
+  const secs = edit ? formSections() : vueSections();
   return `
-  <div class="card settings-card" id="profilCard">
     <p class="eyebrow">${T("Mon profil", "My profile")}</p>
     <p class="settings-hint">${T("Ces informations sont visibles seulement par toi, par les coordinateurs chargés du suivi et par ton correcteur. Elles servent à te retrouver et à t'aider si tu as des difficultés à suivre le Parcours.", "This information is visible only to you, to the coordinators in charge of follow-up and to your corrector. It is used to find you and help you if you have difficulty following the Course.")}</p>
-
-    <p class="pf-sub">${T("Identité", "Identity")}</p>
-    <label class="field"><span>${T("Prénom", "First name")}</span><input type="text" id="pf-prenom" value="${esc(prenom)}" autocomplete="given-name"></label>
-    <label class="field"><span>${T("Nom de famille", "Last name")}</span><input type="text" id="pf-nom" value="${esc(nomFam)}" autocomplete="family-name"></label>
-    <label class="field"><span>${T("Téléphone", "Phone")}</span><input type="tel" id="pf-tel" value="${esc(pr.telephone || "")}" autocomplete="tel" placeholder="+229 01 …"></label>
-    <label class="field"><span>${T("Numéro WhatsApp (s'il est différent)", "WhatsApp number (if different)")}</span><input type="tel" id="pf-whatsapp" value="${esc(c.whatsapp || "")}" placeholder="+229 01 …"></label>
-    <label class="field"><span>${T("Date de naissance", "Date of birth")}</span><input type="date" id="pf-naissance" value="${esc(c.naissance || "")}" max="${todayISO()}"></label>
-    <label class="field"><span>${T("Sexe", "Sex")}</span><select id="pf-sexe" class="text-input">${sexes.map(([v, l]) => opt(v, l, (c.sexe || "") === v)).join("")}</select></label>
-
-    <p class="pf-sub">${T("Où habites-tu ?", "Where do you live?")}</p>
-    <label class="field"><span>${T("Pays", "Country")}</span><select id="pf-pays" class="text-input">${P.pays.map((x) => opt(x.code, x.nom, x.code === pays)).join("")}</select></label>
-    <div id="pf-geo-bj" style="display:${pays === "BJ" ? "" : "none"};">
-      <label class="field"><span>${T("Département", "Department")}</span><select id="pf-dep" class="text-input"></select></label>
-      <label class="field"><span>${T("Commune", "Commune")}</span><select id="pf-com" class="text-input"></select></label>
-      <label class="field"><span>${T("Arrondissement", "Arrondissement")}</span><select id="pf-arr" class="text-input"></select></label>
-      <label class="field" id="pf-arr-libre-box" style="display:none;"><span>${T("Écris ton arrondissement", "Write your arrondissement")}</span><input type="text" id="pf-arr-libre" value="${esc(c.arrondissement || "")}"></label>
-    </div>
-    <div id="pf-geo-autre" style="display:${pays === "BJ" ? "none" : ""};">
-      <label class="field"><span>${T("Région, province ou État", "Region, province or state")}</span><input type="text" id="pf-region" value="${esc(c.region || "")}"></label>
-      <label class="field"><span>${T("Ville", "City")}</span><input type="text" id="pf-ville" value="${esc(c.ville || "")}"></label>
-    </div>
-    <label class="field"><span>${T("Quartier ou village", "Neighborhood or village")}</span><input type="text" id="pf-quartier" value="${esc(c.quartier || "")}"></label>
-    <label class="field"><span>${T("Complément d'adresse (maison, numéro de carré, nom du propriétaire, repère connu…)", "Address details (house, plot number, owner's name, known landmark…)")}</span><textarea id="pf-complement" class="text-input" rows="3">${esc(c.complement || "")}</textarea></label>
-
-    <p class="pf-sub">${T("Comment te joindre", "How to reach you")}</p>
-    <label class="field"><span>${T("Canal préféré", "Preferred channel")}</span><select id="pf-canal" class="text-input">${canaux.map(([v, l]) => opt(v, l, (c.canal || "appel") === v)).join("")}</select></label>
-    <label class="field"><span>${T("Meilleur moment pour te joindre", "Best time to reach you")}</span><select id="pf-moment" class="text-input">${moments.map(([v, l]) => opt(v, l, (c.moment || "") === v)).join("")}</select></label>
-    <label class="field"><span>${T("Église ou assemblée que tu fréquentes", "Church or assembly you attend")}</span><input type="text" id="pf-eglise" value="${esc(c.eglise || "")}"></label>
-
-    <p class="pf-sub">${T("Contact d'urgence", "Emergency contact")}</p>
-    <p class="settings-hint">${T("Une personne proche à prévenir si on n'arrive plus à te joindre.", "A close person to contact if you can no longer be reached.")}</p>
-    <label class="field"><span>${T("Nom", "Name")}</span><input type="text" id="pf-urg-nom" value="${esc(c.urgenceNom || "")}"></label>
-    <label class="field"><span>${T("Lien avec toi (conjoint, parent, frère, ami…)", "Relationship (spouse, parent, brother, friend…)")}</span><input type="text" id="pf-urg-lien" value="${esc(c.urgenceLien || "")}"></label>
-    <label class="field"><span>${T("Téléphone", "Phone")}</span><input type="tel" id="pf-urg-tel" value="${esc(c.urgenceTel || "")}"></label>
-
-    <p class="pf-sub">${T("Rappel quotidien", "Daily reminder")}</p>
-    <label class="fm-check"><input type="checkbox" id="pf-rappel-on"${c.rappelActif ? " checked" : ""}><span>${T("Me rappeler de faire ma journée", "Remind me to do my day")}</span></label>
-    <label class="field"><span>${T("Heure du rappel", "Reminder time")}</span><input type="time" id="pf-rappel-heure" value="${esc(c.heureRappel || "20:00")}"></label>
-    <p class="settings-hint">${T("Le rappel s'affiche quand l'application est ouverte sur ton appareil.", "The reminder is shown when the app is open on your device.")}</p>
-
+    ${secs.map(([id, titre, inner], i) => accordeon(id, titre, inner, i === 0)).join("")}
     <p class="auth-error" id="pf-err"></p>
-    <p class="auth-ok" id="pf-ok"></p>
-    <button class="btn-primary" id="pf-save" type="button">${T("Enregistrer mon profil", "Save my profile")}</button>
-  </div>
+    <p class="auth-ok" id="pf-ok">${P.message || ""}</p>
+    ${edit
+      ? `<div class="pf-actions"><button class="btn-primary" id="pf-save" type="button">${T("Enregistrer mon profil", "Save my profile")}</button>${P.profilRempliAvant ? `<button class="btn-secondary" id="pf-cancel" type="button">${T("Annuler", "Cancel")}</button>` : ""}</div>`
+      : `<button class="btn-secondary" id="pf-edit" type="button">✏️ ${T("Modifier mon profil", "Edit my profile")}</button>`}`;
+}
 
-  <div class="card settings-card" id="pwCard">
-    <p class="eyebrow">${T("Mot de passe", "Password")}</p>
-    <label class="field"><span>${T("Mot de passe actuel", "Current password")}</span><input type="password" id="pw-actuel" autocomplete="current-password"></label>
-    <label class="field"><span>${T("Nouveau mot de passe (6 caractères minimum)", "New password (6 characters minimum)")}</span><input type="password" id="pw-nouveau" autocomplete="new-password"></label>
-    <p class="auth-error" id="pw-err"></p>
+function htmlMdp() {
+  return `
+    <button class="btn-secondary" id="pw-toggle" type="button">🔒 ${T("Modifier mon mot de passe", "Change my password")}</button>
     <p class="auth-ok" id="pw-ok"></p>
-    <button class="btn-secondary" id="pw-save" type="button">${T("Changer mon mot de passe", "Change my password")}</button>
-  </div>
+    <div id="pw-form" style="display:none;margin-top:12px;">
+      <label class="field"><span>${T("Mot de passe actuel", "Current password")}</span><input type="password" id="pw-actuel" autocomplete="current-password"></label>
+      <label class="field"><span>${T("Nouveau mot de passe (6 caractères minimum)", "New password (6 characters minimum)")}</span><input type="password" id="pw-nouveau" autocomplete="new-password"></label>
+      <p class="auth-error" id="pw-err"></p>
+      <div class="pf-actions"><button class="btn-primary" id="pw-save" type="button">${T("Changer mon mot de passe", "Change my password")}</button><button class="btn-secondary" id="pw-cancel" type="button">${T("Annuler", "Cancel")}</button></div>
+    </div>`;
+}
 
-  <div class="card settings-card" id="dataCard">
+function htmlDonnees() {
+  return `
     <p class="eyebrow">${T("Mes données", "My data")}</p>
     <p class="settings-hint">${T("Tu peux télécharger toutes les données que le Parcours garde sur toi. Tu peux aussi demander la suppression de ton compte : un coordinateur la traitera.", "You can download all the data the Course keeps about you. You can also ask for your account to be deleted: a coordinator will process it.")}</p>
     <button class="btn-secondary" id="data-export" type="button">${T("Télécharger mes données", "Download my data")}</button>
     <div id="data-suppr" style="margin-top:12px;"></div>
-    <p class="auth-error" id="data-err"></p>
-  </div>`;
+    <p class="auth-error" id="data-err"></p>`;
+}
+
+function rendreProfilCard() {
+  const box = $("profilCard"); if (!box) return;
+  const ouverts = new Set([...box.querySelectorAll("details[open]")].map((d) => d.dataset.acc));
+  box.innerHTML = htmlProfil();
+  if (ouverts.size) box.querySelectorAll("details").forEach((d) => { d.open = ouverts.has(d.dataset.acc); });
+  if (P.mode === "edit") {
+    remplirGeo();
+    $("pf-pays").addEventListener("change", surPays);
+    $("pf-save").addEventListener("click", enregistrer);
+    const ann = $("pf-cancel"); if (ann) ann.addEventListener("click", () => { P.mode = "vue"; P.message = ""; rendreProfilCard(); });
+  } else {
+    $("pf-edit").addEventListener("click", () => { P.mode = "edit"; P.message = ""; P.profilRempliAvant = true; rendreProfilCard(); });
+  }
+}
+
+function rendreMdpCard() {
+  const box = $("pwCard"); if (!box) return;
+  box.innerHTML = htmlMdp();
+  $("pw-toggle").addEventListener("click", () => { $("pw-form").style.display = ""; $("pw-toggle").style.display = "none"; $("pw-ok").textContent = ""; });
+  $("pw-cancel").addEventListener("click", () => { $("pw-form").style.display = "none"; $("pw-toggle").style.display = ""; $("pw-err").textContent = ""; $("pw-actuel").value = ""; $("pw-nouveau").value = ""; });
+  $("pw-save").addEventListener("click", changerMotDePasse);
+  if (window.AbbaUI && window.AbbaUI.addPasswordEyes) window.AbbaUI.addPasswordEyes($("pwCard"));
 }
 
 function remplirGeo() {
@@ -139,7 +190,7 @@ function surPays() {
 }
 
 async function enregistrer() {
-  const err = $("pf-err"), ok = $("pf-ok"); err.textContent = ""; ok.textContent = "";
+  const err = $("pf-err"), ok = $("pf-ok"); err.textContent = ""; ok.textContent = ""; P.message = "";
   const v = (id) => ($(id) ? $(id).value.trim() : "");
   const prenom = v("pf-prenom"), nom = v("pf-nom"), tel = v("pf-tel");
   if (prenom.length < 2 || nom.length < 2) { err.textContent = T("Écris ton prénom et ton nom.", "Write your first name and last name."); return; }
@@ -173,7 +224,8 @@ async function enregistrer() {
     const r = await S().saveProfil(P.user.uid, { prenom, nom, telephone: tel }, contact);
     P.contact = { ...P.contact, ...contact }; P.profil = { ...P.profil, nom: r.nom, prenomSaisi: prenom, nomFamille: nom, telephone: r.telephone, prenom: "" };
     window.dispatchEvent(new CustomEvent("abba:profil-modifie", { detail: { nom: r.nom, telephone: r.telephone } }));
-    ok.textContent = T("Profil enregistré. Merci !", "Profile saved. Thank you!");
+    P.mode = "vue"; P.message = T("Profil enregistré. Merci !", "Profile saved. Thank you!");
+    rendreProfilCard(); majBandeau();
   } catch (e) {
     console.error("profil:", e);
     err.textContent = T("Impossible d'enregistrer pour le moment. Vérifie ta connexion et réessaie.", "Unable to save right now. Check your connection and try again.");
@@ -181,15 +233,15 @@ async function enregistrer() {
 }
 
 async function changerMotDePasse() {
-  const err = $("pw-err"), ok = $("pw-ok"); err.textContent = ""; ok.textContent = "";
+  const err = $("pw-err"); err.textContent = ""; $("pw-ok").textContent = "";
   const a = $("pw-actuel").value, n = $("pw-nouveau").value;
   if (!a) { err.textContent = T("Écris ton mot de passe actuel.", "Write your current password."); return; }
   if (n.length < 6) { err.textContent = T("Le nouveau mot de passe doit faire au moins 6 caractères.", "The new password must be at least 6 characters long."); return; }
   const btn = $("pw-save"); btn.disabled = true;
   try {
     await S().changePassword(a, n);
-    $("pw-actuel").value = ""; $("pw-nouveau").value = "";
-    ok.textContent = T("Mot de passe modifié.", "Password changed.");
+    rendreMdpCard();
+    $("pw-ok").textContent = T("Mot de passe modifié.", "Password changed.");
   } catch (e) {
     const code = (e && e.code) || "";
     err.textContent = (code.includes("wrong-password") || code.includes("invalid-credential"))
@@ -231,7 +283,9 @@ function rendreSuppr() {
 
 async function rendre() {
   const host = $("profilHost"); if (!host || !P.user || !S()) return;
-  if (P.chargement) return; P.chargement = true;
+  if (P.chargement) return;
+  if (P.mode === "edit" && $("profilCard")) return;          // ne pas écraser une saisie en cours
+  P.chargement = true;
   try {
     const [pr, ct, dr] = await Promise.all([
       S().getUserProfile(P.user.uid).catch(() => ({})),
@@ -240,15 +294,26 @@ async function rendre() {
     ]);
     P.profil = pr || {}; P.contact = ct || {}; P.demandeSuppr = dr;
     P.pays = listePays(EN() ? "en" : "fr");
-    host.innerHTML = html();
-    remplirGeo();
-    $("pf-pays").addEventListener("change", surPays);
-    $("pf-save").addEventListener("click", enregistrer);
-    $("pw-save").addEventListener("click", changerMotDePasse);
+    P.mode = profilRempli(P.contact, P.profil) ? "vue" : "edit";
+    P.profilRempliAvant = P.mode === "vue";
+    P.message = "";
+    host.innerHTML = `<div class="card settings-card" id="profilCard"></div><div class="card settings-card" id="pwCard"></div><div class="card settings-card" id="dataCard">${htmlDonnees()}</div>`;
+    rendreProfilCard(); rendreMdpCard();
     $("data-export").addEventListener("click", exporter);
     rendreSuppr();
-    if (window.AbbaUI && window.AbbaUI.addPasswordEyes) window.AbbaUI.addPasswordEyes($("pwCard"));
+    majBandeau();
   } finally { P.chargement = false; }
+}
+
+/* ----- Bandeau « Complète ton profil » (élèves dont la fiche est vide ou incomplète) ----- */
+function majBandeau() {
+  const box = $("profilBandeau"); if (!box) return;
+  if (!P.user || P.contact?.__vide || profilRempli(P.contact, P.profil)) { box.innerHTML = ""; return; }
+  const cle = "abba-bandeau-profil-" + P.user.uid, ts = Number(localStorage.getItem(cle) || 0);
+  if (ts && Date.now() - ts < 24 * 3600 * 1000) { box.innerHTML = ""; return; }
+  box.innerHTML = `<div class="pf-bandeau"><span>📍 <strong>${T("Complète ton profil", "Complete your profile")}</strong> — ${T("ta date de naissance, ton adresse et ton téléphone permettent à ton correcteur de te retrouver et de t'aider.", "your date of birth, address and phone number allow your corrector to find you and help you.")}</span><div class="pf-bandeau-btns"><button type="button" class="btn-primary" id="pf-bandeau-go">${T("Compléter", "Complete")}</button><button type="button" class="btn-secondary" id="pf-bandeau-later">${T("Plus tard", "Later")}</button></div></div>`;
+  $("pf-bandeau-go").addEventListener("click", () => { const t = document.querySelector('.tab[data-tab="reglages"]') || document.querySelector('[data-tab="reglages"]'); if (t) t.click(); });
+  $("pf-bandeau-later").addEventListener("click", () => { localStorage.setItem(cle, String(Date.now())); box.innerHTML = ""; });
 }
 
 /* ----- Rappel quotidien : affiché quand l'application est ouverte ----- */
@@ -277,16 +342,17 @@ async function verifierRappel() {
 }
 
 const surConnexion = async (u) => {
-  P.user = u || null; P.contact = { __vide: true }; P.profil = {};
-  if (!P.user) return;
+  P.user = u || null; P.contact = { __vide: true }; P.profil = {}; P.mode = "vue";
+  if (!P.user) { majBandeau(); return; }
   try { P.contact = await S().getContact(P.user.uid) || {}; } catch (e) { P.contact = {}; }
-  verifierRappel();
+  try { P.profil = await S().getUserProfile(P.user.uid) || {}; } catch (e) { P.profil = {}; }
+  verifierRappel(); majBandeau();
 };
 if (S() && S().watchAuth) S().watchAuth(surConnexion);
 else window.addEventListener("load", () => { if (S() && S().watchAuth) S().watchAuth(surConnexion); });
 setInterval(verifierRappel, 60000);
 window.addEventListener("abba:reglages-ouvert", rendre);
-window.addEventListener("abba:profil-modifie", () => { P.contact = P.contact || {}; setTimeout(verifierRappel, 500); });
+window.addEventListener("abba:profil-modifie", () => { P.contact = P.contact || {}; setTimeout(verifierRappel, 500); majBandeau(); });
 
 
 /* ----- Fiche de contact (coordinateurs avec le droit « suivi » et correcteur lié à l'élève) ----- */
