@@ -106,6 +106,7 @@ const acquis = () => st.meta.acquis || [];
 const isComplete = (mid) => acquis().includes(mid) || (st.prog[mid] && st.prog[mid].ficheStatus === "validated" && st.prog[mid].qcm && st.prog[mid].qcm.ok);
 const can = (d) => !!(st.rights && st.rights[d]);
 const apercuActif = () => can("apercu") && st.apercuOn !== false;
+const payOk = (mid) => !window.AbbaPaiements || window.AbbaPaiements.autorise(mid);
 const isBlocked = () => !st.isAdmin && !!(st.meta.bloque && st.meta.bloque.actif);
 const autoevalDone = () => !!(st.meta.autoevalFaite || (st.prog.autoeval && st.prog.autoeval.done));
 function isUnlocked(i) {
@@ -458,7 +459,7 @@ function renderTermine() {
   if (!st.user || !parcoursTermine()) { box.hidden = true; box.innerHTML = ""; return; }
   const last = Math.max(0, ...MODULES.map((m) => toMs((st.prog[m.id] || {}).validatedAt) || 0));
   box.hidden = false;
-  box.innerHTML = `<p class="eyebrow">🎉 Parcours terminé</p><p>Tu as validé tous les modules${last ? " le " + new Date(last).toLocaleDateString(LOC(), { day: "numeric", month: "long", year: "numeric" }) : ""}. Félicitations !</p><p class="small">Tu n’es plus suivi par un correcteur. Tes modules restent ouverts : relis-les et refais les exercices quand tu veux, tes réponses restent privées.</p><a class="link-btn" href="https://batisseursbibliques.org/abba-life/" style="display:block;">Continuer avec ABBA Life (checklist, finance, agenda) →</a><a class="link-btn" href="https://batisseursbibliques.org/abba-mise-en-action/" style="display:block;margin-top:6px;">Commencer la Mise en Action (Phase 2) →</a>`;
+  box.innerHTML = `<p class="eyebrow">🎉 Parcours terminé</p><p>Tu as validé tous les modules${last ? " le " + new Date(last).toLocaleDateString(LOC(), { day: "numeric", month: "long", year: "numeric" }) : ""}. Félicitations !</p><p class="small">Tu n’es plus suivi par un correcteur. Tes modules restent ouverts : relis-les et refais les exercices quand tu veux, tes réponses restent privées.</p><a class="link-btn" href="https://batisseursbibliques.org/abba-life/" style="display:block;">Continuer avec ABBA Life (checklist, finance, agenda) →</a>${window.AbbaPaiements && !window.AbbaPaiements.complet() ? `<p class="small">${TT("Pour ouvrir la Mise en Action, termine d’abord ton paiement (voir « Mon paiement »).", "To open Taking Action, first complete your payment (see “My payment”).")}</p>` : `<a class="link-btn" href="https://batisseursbibliques.org/abba-mise-en-action/" style="display:block;margin-top:6px;">Commencer la Mise en Action (Phase 2) →</a>`}`;
 }
 function render() {
   renderTermine();
@@ -503,6 +504,10 @@ function renderModuleList() {
     <p class="settings-hint">${faits}/${MODULES.length} modules validés. Pour passer au module suivant : lis le manuel, réponds aux questions, fais les exercices, puis envoie ta fiche. Ton correcteur la valide.</p>`;
   if (st.lien && st.lien.correcteurNom) h += `<p class="settings-hint">Ton correcteur : <strong>${esc(st.lien.correcteurNom)}</strong></p>`;
   else if (!st.isAdmin) h += `<p class="settings-hint">Aucun correcteur ne t'est encore attribué. Tu peux lire et répondre, mais l'envoi de ta fiche attendra qu'un correcteur te soit lié.</p>`;
+  if (!payOk("charte")) {
+    const e = window.AbbaPaiements.etat();
+    return h + `<div class="fm-auto"><p class="eyebrow">🔒 ${TT("Premier versement", "First payment")}</p><p class="small">${TT(`Le Parcours s’ouvre après un premier versement de ${e.suiv.requis} F. Verse-le à ABBA, puis clique sur « J’ai payé » dans la carte « Mon paiement » de l’accueil.`, `The Course opens after a first payment of ${e.suiv.requis} F. Pay it to ABBA, then tap “I have paid” in the “My payment” card on the home screen.`)}</p><button type="button" class="btn-primary" data-act="pay-go">${TT("Aller au paiement →", "Go to payment →")}</button></div></div>`;
+  }
   h += renderCharteCard();
   h += renderAutoCard();
   h += '<div class="fm-mods">';
@@ -515,9 +520,11 @@ function renderModuleList() {
       cls = "open";
       badge = p.ficheStatus === "submitted" ? "⏳ En correction" : p.ficheStatus === "returned" ? "↩️ À reprendre" : (p.lu || p.qcm || p.exercices) ? "En cours" : "À commencer";
     }
+    const payBloque = !done && open && !payOk(m.id);
+    if (payBloque) { badge = TT("🔒 Paiement requis", "🔒 Payment required"); cls = "locked"; }
     const prev = apercuActif() && ((m.preview && !m.ready) || (m.ready && !done && !open)); // aperçu coordinateur : un coordinateur peut ouvrir tous les modules (même verrouillés) pour relire/vérifier les traductions
     if (prev) { cls = "open"; badge = "👁 Aperçu coordinateur"; }
-    const clickable = (open && m.ready) || done || prev;
+    const clickable = (open && m.ready && !payBloque) || done || prev;
     h += `<button class="fm-mod ${cls}" ${clickable ? `data-act="open" data-m="${m.id}"` : "disabled"}><span class="fm-mod-t">${esc(modTitle(m))}</span><span class="fm-mod-b">${badge}</span></button>`;
   });
   return h + "</div></div>";
@@ -704,6 +711,7 @@ async function onClick(e) {
     if (act === "open" && b.dataset.m === "autoeval" && !charteDone() && !autoevalDone()) { st.view = { mod: "charte", cs: 0 }; st.cache = {}; render(); window.scrollTo(0, 0); return; }
     if (act === "open-charte") { st.view = { mod: "charte", cs: 0 }; st.cache = {}; render(); window.scrollTo(0, 0); return; }
     if (act === "charte-go") { if (TTS.id && TTS.id.startsWith("charte:")) ttsStop(); st.view.cs = Number(b.dataset.i) || 0; render(); window.scrollTo(0, 0); return; }
+    if (act === "pay-go") { const t = document.querySelector('.tab[data-tab="accueil"]'); if (t) t.click(); const c = document.getElementById("dashPaiement"); if (c && c.scrollIntoView) c.scrollIntoView({ block: "start" }); return; }
     if (act === "charte-sign") return signCharte();
     if (act === "ind-vu") { await S().updateIndispo(b.dataset.uid, b.dataset.id, { vu: { par: st.user.email, at: new Date().toISOString() } }); return loadCorrections(); }
     if (act === "open" && b.dataset.m === "autoeval") { st.view = { mod: "autoeval", step: "fiche" }; st.cache = {}; render(); window.scrollTo(0, 0); return; }
@@ -1689,6 +1697,7 @@ function boot() {
     } catch (e) { /* la case se coche aussi à la main */ }
   });
   window.addEventListener("abba-lecture-maj", renderLectureJour);
+  window.addEventListener("abba-paiement-maj", () => { render(); });
   const dl = $("dashLecture");
   if (dl) {
     dl.addEventListener("toggle", (e) => { if (e.target.matches && e.target.matches("details.lec-acc")) st.lecOuvert = e.target.open; }, true);

@@ -27,13 +27,26 @@ service cloud.firestore {
       return request.auth != null && (
         isBootstrapAdmin() ||
         (exists(/databases/$(database)/documents/admins/$(request.auth.token.email.lower())) &&
-          (('droits' in adminDocData()) ? adminDocData().droits.get(d, false) == true : d != 'apercu'))
+          (('droits' in adminDocData()) ? adminDocData().droits.get(d, false) == true : (d != 'apercu' && d != 'paiements')))
       );
+    }
+
+    // Paiement : 5 000 F en cinq paliers. Un module n'accepte ni réponses ni fiche tant que le palier n'est pas payé.
+    // Sans compte de paiement (cohorte d'avant), aucun blocage.
+    function palier(mid) {
+      return {'charte': 1, 'autoeval': 1, 'm1': 1, 'm2': 1, 'm3': 1, 'm4': 2, 'm5': 2, 'm6': 2, 'm7': 3, 'm8': 3, 'm9': 3,
+              'm10': 4, 'm11': 4, 'm12': 4, 'm13': 5, 'm14': 5, 'm14b': 5}.get(mid, 1);
+    }
+    function payeOk(uid, mid) {
+      return !exists(/databases/$(database)/documents/formation/$(uid)/compte/paiement)
+        || get(/databases/$(database)/documents/formation/$(uid)/compte/paiement).data.get('actif', true) == false
+        || get(/databases/$(database)/documents/formation/$(uid)/compte/paiement).data.get('paye', 0) * 5
+           >= get(/databases/$(database)/documents/formation/$(uid)/compte/paiement).data.get('total', 5000) * palier(mid);
     }
 
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
-      allow read: if hasDroit('suivi') || hasDroit('corrections') || hasDroit('presences') || hasDroit('binomes');
+      allow read: if hasDroit('suivi') || hasDroit('corrections') || hasDroit('presences') || hasDroit('binomes') || hasDroit('paiements');
 
       match /priv/{doc} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
@@ -55,7 +68,12 @@ service cloud.firestore {
 
     match /config/{doc} {
       allow read: if request.auth != null;
-      allow write: if isAdmin();
+      allow write: if isAdmin() && doc != 'paiement';
+    }
+    // Texte « Comment payer » : seuls le coordinateur principal et la trésorière (droit « paiements »)
+    match /config/paiement {
+      allow read: if request.auth != null;
+      allow write: if hasDroit('paiements');
     }
     // Note : la liste des modules partagée vit aussi dans /config/{doc} (doc "modules"), déjà couverte ci-dessus.
 
@@ -80,7 +98,7 @@ service cloud.firestore {
     }
 
     match /enrollments/{enrollId} {
-      allow read: if hasDroit('presences')
+      allow read: if hasDroit('presences') || hasDroit('paiements')
         || (request.auth != null && enrollId.matches(request.auth.uid + '_.*'));
       allow create: if request.auth != null
         && enrollId.matches(request.auth.uid + '_.*')
@@ -128,11 +146,11 @@ service cloud.firestore {
         allow read: if hasDroit('suivi') || hasDroit('corrections') || (request.auth != null && request.auth.uid == uid) || isCorrecteurOf(uid);
 
         // L'étudiant écrit ses réponses, jamais la validation
-        allow create: if request.auth != null && request.auth.uid == uid && !isBlocked(uid)
+        allow create: if request.auth != null && request.auth.uid == uid && !isBlocked(uid) && payeOk(uid, mid)
           && request.resource.data.keys().hasOnly(['qcm','exercices','ficheData','ficheStatus','submittedAt','updatedAt','lu','done','doneAt'])
           && request.resource.data.get('ficheStatus', 'draft') in ['draft', 'submitted'];
 
-        allow update: if (request.auth != null && request.auth.uid == uid && !isBlocked(uid)
+        allow update: if (request.auth != null && request.auth.uid == uid && !isBlocked(uid) && payeOk(uid, mid)
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qcm','exercices','ficheData','ficheStatus','submittedAt','updatedAt','lu','done','doneAt'])
             && resource.data.get('ficheStatus', 'draft') in ['draft', 'returned']
             && (request.resource.data.get('ficheStatus', 'draft') in ['draft', 'submitted']
@@ -164,6 +182,36 @@ service cloud.firestore {
         allow read: if request.auth != null && request.auth.uid == uid;
         allow create, update: if request.auth != null && request.auth.uid == uid
           && request.resource.data.keys().hasOnly(['lu','qcm','exercices','updatedAt']);
+      }
+
+      // Paiement : compte (total, payé), versements et déclarations de l'étudiant
+      match /compte/{cid} {
+        allow read: if (request.auth != null && request.auth.uid == uid) || hasDroit('paiements') || hasDroit('suivi');
+        // À l'approbation d'une inscription, un compte standard (5 000 F, rien de payé) peut être créé par le suivi ;
+        // tout le reste (versements, réductions, dispenses) est réservé au droit « paiements ».
+        allow create: if cid == 'paiement' && (hasDroit('paiements')
+          || ((hasDroit('suivi') || hasDroit('presences'))
+              && request.resource.data.keys().hasOnly(['actif','total','paye','creeLe','updatedAt'])
+              && request.resource.data.total == 5000 && request.resource.data.paye == 0 && request.resource.data.actif == true));
+        allow update: if hasDroit('paiements');
+      }
+      match /paiements/{pid} {
+        allow read: if (request.auth != null && request.auth.uid == uid) || hasDroit('paiements') || hasDroit('suivi');
+        allow create: if hasDroit('paiements')
+          && request.resource.data.keys().hasOnly(['montant','mode','reference','date','note','recuNum','parEmail','creeLe','declId','updatedAt'])
+          && request.resource.data.montant is number && request.resource.data.montant > 0 && request.resource.data.montant <= 100000;
+        allow update: if hasDroit('paiements')
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['annule','annulePar','annuleLe','note','updatedAt']);
+      }
+      match /declarations/{did} {
+        allow read: if (request.auth != null && request.auth.uid == uid) || hasDroit('paiements');
+        allow create: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['montant','mode','reference','statut','creeLe','updatedAt'])
+          && request.resource.data.statut == 'attente'
+          && request.resource.data.montant is number && request.resource.data.montant >= 100 && request.resource.data.montant <= 100000
+          && request.resource.data.mode in ['mobile-money','especes','autre'];
+        allow update: if hasDroit('paiements')
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statut','traitePar','traiteLe','updatedAt']);
       }
 
       // Calendrier de lecture : jours lus (écrits par l'élève) + résumé lisible par le suivi

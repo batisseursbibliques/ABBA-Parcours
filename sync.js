@@ -11,7 +11,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp,
-  enableIndexedDbPersistence, collection, getDocs, query, where, updateDoc,
+  enableIndexedDbPersistence, collection, getDocs, query, where, updateDoc, writeBatch, increment,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig, ADMIN_EMAILS } from "./firebase-config.js";
 
@@ -101,7 +101,7 @@ function watchAdmins(callback) {
 }
 
 /* ---------- COORDINATEURS & BLOCAGE DU PARCOURS ---------- */
-const DROITS = ["apercu", "suivi", "corrections", "presences", "binomes"];
+const DROITS = ["apercu", "suivi", "corrections", "presences", "binomes", "paiements"];
 // Liste complète des coordinateurs avec leurs droits : { email: données }
 function watchAdminsData(callback) {
   return onSnapshot(collection(db, "admins"), (snap) => {
@@ -115,7 +115,7 @@ function watchAdminsData(callback) {
 function droitsDe(email, map) {
   const e = String(email || "").toLowerCase(), principal = isAdminEmail(e), d = (map || {})[e];
   const out = { principal, admin: principal || !!d, coordinateurs: principal };
-  DROITS.forEach(k => { out[k] = principal || (!!d && (d.droits ? d.droits[k] === true : k !== "apercu")); });
+  DROITS.forEach(k => { out[k] = principal || (!!d && (d.droits ? d.droits[k] === true : (k !== "apercu" && k !== "paiements"))); });
   return out;
 }
 async function addAdmin(email, byEmail) {
@@ -333,9 +333,62 @@ function watchAllEnrollments(app, callback) {
   }, (err) => console.error("watchAllEnrollments:", err));
 }
 async function reviewEnrollment(uid, app, status, reviewerEmail) {
-  await setDoc(doc(db, "enrollments", uid + "_" + app),
-    { status, reviewedBy: reviewerEmail, reviewedAt: serverTimestamp() },
-    { merge: true });
+  const ref = doc(db, "enrollments", uid + "_" + app);
+  let avant = "";
+  try { const s = await getDoc(ref); avant = s.exists() ? s.data().status : ""; } catch (e) {}
+  await setDoc(ref, { status, reviewedBy: reviewerEmail, reviewedAt: serverTimestamp() }, { merge: true });
+  // Un nouvel étudiant (demande en attente) reçoit un compte de paiement de 5 000 F ; la cohorte d'avant n'est pas touchée.
+  if (app === "parcours" && status === "active" && (avant === "pending" || avant === "")) {
+    try {
+      const c = doc(db, "formation", uid, "compte", "paiement");
+      if (!(await getDoc(c)).exists()) await setDoc(c, { actif: true, total: 5000, paye: 0, creeLe: new Date().toISOString(), updatedAt: serverTimestamp() });
+    } catch (e) { console.warn("compte de paiement non créé :", e); }
+  }
+}
+
+/* ── Paiements : compte (total, payé), versements, déclarations ── */
+const compteRef = (uid) => doc(db, "formation", uid, "compte", "paiement");
+const listeDe = (snap) => snap.docs.map(d => ({ id: d.id, ...d.data() }));
+function watchCompte(uid, cb) { return onSnapshot(compteRef(uid), (s) => cb(s.exists() ? s.data() : null), (e) => console.error("watchCompte:", e)); }
+function watchPaiements(uid, cb) { return onSnapshot(collection(db, "formation", uid, "paiements"), (s) => cb(listeDe(s)), (e) => console.error("watchPaiements:", e)); }
+function watchDeclarations(uid, cb) { return onSnapshot(collection(db, "formation", uid, "declarations"), (s) => cb(listeDe(s)), (e) => console.error("watchDeclarations:", e)); }
+function watchConfigPaiement(cb) { return onSnapshot(doc(db, "config", "paiement"), (s) => cb(s.exists() ? s.data() : null), () => cb(null)); }
+async function loadCompte(uid) { const s = await getDoc(compteRef(uid)); return s.exists() ? s.data() : null; }
+async function loadPaiements(uid) { return listeDe(await getDocs(collection(db, "formation", uid, "paiements"))); }
+async function loadDeclarations(uid) { return listeDe(await getDocs(collection(db, "formation", uid, "declarations"))); }
+async function addDeclaration(uid, data) {
+  await setDoc(doc(collection(db, "formation", uid, "declarations")), { montant: data.montant, mode: data.mode, reference: data.reference || "", statut: "attente", creeLe: data.creeLe, updatedAt: serverTimestamp() });
+}
+async function enregistrerPaiement(uid, p, declId) {
+  const ref = doc(collection(db, "formation", uid, "paiements")), batch = writeBatch(db), cref = compteRef(uid);
+  const iso = new Date().toISOString(), montant = Number(p.montant);
+  const recuNum = "ABBA-" + String(p.date || iso.slice(0, 10)).replace(/-/g, "") + "-" + ref.id.slice(0, 4).toUpperCase();
+  if (!(await getDoc(cref)).exists()) batch.set(cref, { actif: true, total: 5000, paye: montant, creeLe: iso, updatedAt: serverTimestamp() });
+  else batch.update(cref, { paye: increment(montant), updatedAt: serverTimestamp() });
+  batch.set(ref, { montant, mode: p.mode, reference: p.reference || "", date: p.date || iso.slice(0, 10), note: p.note || "", recuNum, parEmail: lc(p.parEmail), creeLe: iso, ...(declId ? { declId } : {}), updatedAt: serverTimestamp() });
+  if (declId) batch.update(doc(db, "formation", uid, "declarations", declId), { statut: "valide", traitePar: lc(p.parEmail), traiteLe: iso, updatedAt: serverTimestamp() });
+  await batch.commit();
+  return ref.id;
+}
+async function annulerPaiement(uid, pid, montant, par) {
+  const batch = writeBatch(db), iso = new Date().toISOString();
+  batch.update(doc(db, "formation", uid, "paiements", pid), { annule: true, annulePar: lc(par), annuleLe: iso, updatedAt: serverTimestamp() });
+  batch.update(compteRef(uid), { paye: increment(-Number(montant)), updatedAt: serverTimestamp() });
+  await batch.commit();
+}
+async function traiterDeclaration(uid, did, statut, par) {
+  await updateDoc(doc(db, "formation", uid, "declarations", did), { statut, traitePar: lc(par), traiteLe: new Date().toISOString(), updatedAt: serverTimestamp() });
+}
+async function activerCompte(uid) {
+  if (!(await getDoc(compteRef(uid))).exists()) await setDoc(compteRef(uid), { actif: true, total: 5000, paye: 0, creeLe: new Date().toISOString(), updatedAt: serverTimestamp() });
+}
+async function setTarif(uid, total, note, par) {
+  const cref = compteRef(uid);
+  if (!(await getDoc(cref)).exists()) await setDoc(cref, { actif: true, total, paye: 0, note: note || "", majPar: lc(par), creeLe: new Date().toISOString(), updatedAt: serverTimestamp() });
+  else await updateDoc(cref, { total, note: note || "", majPar: lc(par), updatedAt: serverTimestamp() });
+}
+async function setInstructions(texte, par) {
+  await setDoc(doc(db, "config", "paiement"), { instructions: texte, majPar: lc(par), updatedAt: serverTimestamp() }, { merge: true });
 }
 
 /* ============================================================
@@ -496,5 +549,7 @@ window.AbbaSync = {
   watchRevisions, saveRevision, setSuiviForce,
   watchAdminsData, droitsDe, setDroits,
   watchLecture, saveLecture, loadStudentLecture,
+  watchCompte, watchPaiements, watchDeclarations, watchConfigPaiement, loadCompte, loadPaiements, loadDeclarations,
+  addDeclaration, enregistrerPaiement, annulerPaiement, traiterDeclaration, activerCompte, setTarif, setInstructions,
   watchZonesPlan, saveZonesPlan, saveMyProgress,
 };

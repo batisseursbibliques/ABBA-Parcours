@@ -167,6 +167,7 @@
         </div>
       </div>
 
+      <div class="card" id="dashPaiement" hidden></div>
       <div class="card" id="dashTermine" hidden></div>
       <div class="card lec-carte" id="dashLecture" hidden></div>
       <div id="dashTasks" style="display:none;"></div>
@@ -417,6 +418,8 @@
       </div>
       <div class="card"><p class="eyebrow">Langue</p><div data-no-i18n style="margin-top:4px;"><label class="field"><span>Langue · Language</span><select data-lang-select class="text-input"><option value="fr">Français</option><option value="en">English</option></select></label></div></div>
 
+      <div class="card admin-only" id="paiementsCard" data-droit="paiements" style="display:none;"></div>
+
       <div class="card admin-only" id="adminsCard" data-droit="coordinateurs" style="display:none;">
         <p class="eyebrow">Coordinateurs</p>
         <p class="settings-hint">Un coordinateur voit toute la page Coordination. Les correcteurs n'y ont pas accès.</p>
@@ -519,5 +522,6 @@
 <script type="module" src="formation.js"></script>
 <script type="module" src="bible.js"></script>
 <script type="module" src="lecture.js"></script>
+<script type="module" src="paiements.js"></script>
 </body>
 </html>

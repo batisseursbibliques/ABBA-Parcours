@@ -33,7 +33,7 @@ let CURRENT_PROFILE = {};
 let IS_ADMIN = false;
 let RIGHTS = {};
 let ADMINS_DATA = {};
-const DROITS_LABELS = { apercu: "Aperçu des cours", suivi: "Suivi des étudiants", corrections: "Corrections et correcteurs", presences: "Séances et présences", binomes: "Binômes" };
+const DROITS_LABELS = { apercu: "Aperçu des cours", suivi: "Suivi des étudiants", corrections: "Corrections et correcteurs", presences: "Séances et présences", binomes: "Binômes", paiements: "Paiements" };
 let MODULES_CONFIG = [];
 let MODULES_TERMINES = [];
 let EDIT_MODULES = [];
@@ -532,7 +532,7 @@ function renderAdminsCard() {
   const all = Array.from(new Set(LAST_ADMIN_EMAILS.map(e => e.toLowerCase())));
   list.innerHTML = all.length ? all.map(e => {
     const principal = window.AbbaSync.isAdminEmail(e);
-    const dd = (ADMINS_DATA[e] || {}).droits, val = (k) => dd ? dd[k] === true : k !== "apercu";
+    const dd = (ADMINS_DATA[e] || {}).droits, val = (k) => dd ? dd[k] === true : (k !== "apercu" && k !== "paiements");
     const cases = principal ? "" : `<div class="fm-acq" style="margin:2px 0 10px;">${Object.keys(DROITS_LABELS).map(k => `<label><input type="checkbox" data-dk="${k}" data-dkemail="${escC(e)}" ${val(k) ? "checked" : ""}> ${DROITS_LABELS[k]}</label>`).join("")}</div>`;
     return `<div>` + `<p class="small" style="display:flex;justify-content:space-between;gap:8px;align-items:center;"><span>${escC(e)}${principal ? " (principal)" : ""}${e === me ? " — vous" : ""}</span>${principal || e === me ? "" : `<button class="btn-secondary" data-rmadmin="${escC(e)}">Retirer</button>`}</p>` + cases + `</div>`;
   }).join("") : `<p class="settings-hint">Aucun coordinateur dans la liste (le coordinateur principal reste actif).</p>`;
