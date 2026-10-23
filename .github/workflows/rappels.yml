@@ -1,0 +1,44 @@
+name: Envoyer les rappels quotidiens
+
+# Toutes les 10 minutes, envoie la notification « C'est l'heure de ta journée » aux personnes
+# dont l'heure de rappel est arrivée (réglée dans Réglages > Mon profil). Gratuit (dépôt public).
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+    inputs:
+      simulation:
+        description: "1 = ne rien envoyer, seulement afficher qui serait prévenu"
+        default: "0"
+
+concurrency:
+  group: rappels
+  cancel-in-progress: false
+
+jobs:
+  envoi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Écrire la clé de service (secret GitHub, jamais dans le code)
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+      - name: Installer firebase-admin
+        run: npm install --no-save --no-audit --no-fund firebase-admin@12
+      - name: Envoyer les rappels
+        env:
+          SIMULATION: ${{ github.event.inputs.simulation }}
+        run: |
+          set +e
+          node scripts/envoyer-rappels.mjs > out.txt 2>&1
+          code=$?
+          cat out.txt
+          if [ $code -ne 0 ]; then
+            echo "::error title=Erreur d'envoi des rappels::$(tail -n 12 out.txt | tr '\n' ' ' | cut -c1-900)"
+            exit $code
+          fi

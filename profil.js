@@ -73,7 +73,7 @@ function formSections() {
     ["rappel", T("Rappel quotidien", "Daily reminder"), `
       <label class="fm-check"><input type="checkbox" id="pf-rappel-on"${c.rappelActif ? " checked" : ""}><span>${T("Me rappeler de faire ma journée", "Remind me to do my day")}</span></label>
       <label class="field"><span>${T("Heure du rappel", "Reminder time")}</span><input type="time" id="pf-rappel-heure" value="${esc(c.heureRappel || "20:00")}"></label>
-      <p class="settings-hint">${T("Le rappel s'affiche quand l'application est ouverte sur ton appareil.", "The reminder is shown when the app is open on your device.")}</p>`],
+      <p class="settings-hint">${T("Tu recevras une notification à cette heure, même quand l'application est fermée (sur iPhone, ajoute d'abord l'application à l'écran d'accueil). Si les notifications ne sont pas possibles, le rappel s'affiche quand l'application est ouverte.", "You will receive a notification at this time, even when the app is closed (on iPhone, first add the app to your home screen). If notifications are not possible, the reminder is shown when the app is open.")}</p>`],
   ];
 }
 
@@ -218,13 +218,23 @@ async function enregistrer() {
     contact.region = v("pf-region"); contact.ville = v("pf-ville");
     contact.departement = ""; contact.commune = ""; contact.arrondissement = "";
   }
-  if (contact.rappelActif && "Notification" in window && Notification.permission === "default") { try { Notification.requestPermission(); } catch (e) {} }
   const btn = $("pf-save"); btn.disabled = true;
   try {
     const r = await S().saveProfil(P.user.uid, { prenom, nom, telephone: tel }, contact);
     P.contact = { ...P.contact, ...contact }; P.profil = { ...P.profil, nom: r.nom, prenomSaisi: prenom, nomFamille: nom, telephone: r.telephone, prenom: "" };
     window.dispatchEvent(new CustomEvent("abba:profil-modifie", { detail: { nom: r.nom, telephone: r.telephone } }));
-    P.mode = "vue"; P.message = T("Profil enregistré. Merci !", "Profile saved. Thank you!");
+    let note = "";
+    try {
+      const rp = await S().registerPush(P.user.uid, { actif: contact.rappelActif, heure: contact.heureRappel, langue: EN() ? "en" : "fr", demander: true });
+      P.pushOk = rp.etat === "ok";
+      if (contact.rappelActif) {
+        if (rp.etat === "ok") note = " " + T("Les notifications sont activées sur cet appareil.", "Notifications are enabled on this device.");
+        else if (rp.etat === "bloque") note = " " + T("Les notifications sont bloquées : autorise-les dans les réglages de ton navigateur pour recevoir le rappel.", "Notifications are blocked: allow them in your browser settings to receive the reminder.");
+        else if (rp.etat === "non-supporte") note = " " + T("Cet appareil ne permet pas les notifications en arrière-plan (sur iPhone, ajoute l'application à l'écran d'accueil). Le rappel s'affichera quand l'application est ouverte.", "This device does not allow background notifications (on iPhone, add the app to your home screen). The reminder will show when the app is open.");
+        else note = " " + T("Les notifications n'ont pas pu être activées pour le moment.", "Notifications could not be enabled right now.");
+      }
+    } catch (e) { console.error("push:", e); }
+    P.mode = "vue"; P.message = T("Profil enregistré. Merci !", "Profile saved. Thank you!") + note;
     rendreProfilCard(); majBandeau();
   } catch (e) {
     console.error("profil:", e);
@@ -318,7 +328,7 @@ function majBandeau() {
 
 /* ----- Rappel quotidien : affiché quand l'application est ouverte ----- */
 async function verifierRappel() {
-  if (!P.user) return;
+  if (!P.user || P.pushOk) return;
   let c = P.contact;
   if (!c || c.__vide) return;
   if (!c.rappelActif || !c.heureRappel) return;
@@ -346,6 +356,12 @@ const surConnexion = async (u) => {
   if (!P.user) { majBandeau(); return; }
   try { P.contact = await S().getContact(P.user.uid) || {}; } catch (e) { P.contact = {}; }
   try { P.profil = await S().getUserProfile(P.user.uid) || {}; } catch (e) { P.profil = {}; }
+  try {
+    if (P.contact && P.contact.rappelActif && S().registerPush) {
+      const rp = await S().registerPush(P.user.uid, { actif: true, heure: P.contact.heureRappel, langue: EN() ? "en" : "fr", demander: false });
+      P.pushOk = rp.etat === "ok";
+    }
+  } catch (e) { /* le rappel dans l'application reste actif */ }
   verifierRappel(); majBandeau();
 };
 if (S() && S().watchAuth) S().watchAuth(surConnexion);

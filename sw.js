@@ -38,3 +38,27 @@ self.addEventListener("fetch", (e) => {
       .catch(() => caches.match(req).then((hit) => hit || caches.match("./index.html")))
   );
 });
+
+
+/* ---- Notifications (rappel quotidien) : envoyées par Firebase Cloud Messaging ---- */
+self.addEventListener("push", (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (err) { try { d = { body: e.data.text() }; } catch (e2) { d = {}; } }
+  const data = d.data || d.notification || d;
+  const title = data.title || "ABBA Parcours";
+  const opts = {
+    body: data.body || "",
+    icon: "icon-192.png", badge: "icon-192.png",
+    tag: data.tag || "abba-rappel", renotify: false,
+    data: { url: data.url || "./" },
+  };
+  e.waitUntil(self.registration.showNotification(title, opts));
+});
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || "./";
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+    for (const c of list) { if ("focus" in c) return c.focus(); }
+    return self.clients.openWindow(url);
+  }));
+});

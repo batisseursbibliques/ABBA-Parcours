@@ -114,6 +114,11 @@ service cloud.firestore {
       allow write: if hasDroit('presences');
     }
 
+    // Appareils inscrits aux rappels (notifications push) : seule la personne les gère ; le serveur d'envoi les lit avec la clé de service
+    match /pushTokens/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
     // Demandes de suppression de compte : la personne la crée / l'annule, le suivi la lit et la traite
     match /deletionRequests/{uid} {
       allow create: if request.auth != null && request.auth.uid == uid && request.resource.data.status == "pending";

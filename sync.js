@@ -12,8 +12,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp,
-  enableIndexedDbPersistence, collection, getDocs, query, where, updateDoc, writeBatch, increment,
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  enableIndexedDbPersistence, collection, getDocs, query, where, updateDoc, writeBatch, increment, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig, ADMIN_EMAILS } from "./firebase-config.js";
 
 const app = initializeApp(firebaseConfig);
@@ -145,6 +144,46 @@ async function cancelDeletionRequest(uid) { await deleteDoc(doc(db, "deletionReq
 async function loadDeletionRequests() {
   const snap = await getDocs(collection(db, "deletionRequests"));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+
+/* ---------- NOTIFICATIONS PUSH (rappel quotidien en arrière-plan) ----------
+   L'appareil s'enregistre dans `pushTokens/{uid}` ; une tâche GitHub Actions planifiée
+   (scripts/envoyer-rappels.mjs) envoie le rappel à l'heure choisie via Firebase Cloud Messaging. */
+const MSG_URL = "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
+async function pushSupported() {
+  try {
+    if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) return false;
+    const m = await import(MSG_URL);
+    return await m.isSupported();
+  } catch (e) { return false; }
+}
+// retourne { etat } : "ok" | "off" | "bloque" | "non-supporte" | "erreur"
+async function registerPush(uid, opts) {
+  const ref = doc(db, "pushTokens", uid);
+  try {
+    if (!opts.actif) {
+      await setDoc(ref, { uid, actif: false, updatedAt: serverTimestamp() }, { merge: true });
+      return { etat: "off" };
+    }
+    if (!(await pushSupported())) return { etat: "non-supporte" };
+    if (Notification.permission === "default" && opts.demander) { try { await Notification.requestPermission(); } catch (e) {} }
+    if (Notification.permission !== "granted") return { etat: "bloque" };
+    const m = await import(MSG_URL);
+    const reg = await navigator.serviceWorker.ready;
+    const token = await m.getToken(m.getMessaging(app), { serviceWorkerRegistration: reg });
+    if (!token) return { etat: "erreur" };
+    let fuseau = "Africa/Porto-Novo";
+    try { fuseau = Intl.DateTimeFormat().resolvedOptions().timeZone || fuseau; } catch (e) {}
+    await setDoc(ref, {
+      uid, actif: true, heure: opts.heure || "20:00", fuseau, langue: opts.langue || "fr",
+      tokens: arrayUnion(token), updatedAt: serverTimestamp(),
+    }, { merge: true });
+    return { etat: "ok" };
+  } catch (e) {
+    console.error("registerPush:", e);
+    return { etat: "erreur" };
+  }
 }
 
 async function getUserProfile(uid) {
@@ -616,7 +655,7 @@ async function loadStudentSuivis(uid) {
 window.AbbaSync = {
   isAdminEmail,
   logIn, logOut, signUp, resetPassword, watchAuth, getUserProfile,
-  getContact, saveProfil, changePassword, exportMyData, requestDeletion, getDeletionRequest, cancelDeletionRequest, loadDeletionRequests,
+  registerPush, pushSupported, getContact, saveProfil, changePassword, exportMyData, requestDeletion, getDeletionRequest, cancelDeletionRequest, loadDeletionRequests,
   watchAdmins, addAdmin, removeAdmin, setBloque,
   watchModulesConfig, saveModulesConfig,
   watchParcours, saveParcours,
