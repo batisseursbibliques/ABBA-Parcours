@@ -62,7 +62,7 @@ function ecouter(u) {
   if (!P.user || !S() || !S().watchCompte) { rendre(); emettre(); return; }
   const uid = P.user.uid;
   P.nom = P.user.displayName || P.user.email || "";
-  P.unsubs.push(S().watchCompte(uid, (c) => { P.compte = c; rendre(); emettre(); }));
+  P.unsubs.push(S().watchCompte(uid, (c) => { P.compte = c; P.compteCharge = true; rendre(); emettre(); programmerSoutien(); }));
   P.unsubs.push(S().watchPaiements(uid, (l) => { P.paiements = (l || []).filter((x) => !x.annule).sort((a, b) => String(b.date || b.creeLe).localeCompare(String(a.date || a.creeLe))); rendre(); }));
   P.unsubs.push(S().watchDeclarations(uid, (l) => { P.declarations = l || []; rendre(); }));
   P.unsubs.push(S().watchConfigPaiement((c) => { P.instructions = (c && c.instructions) || ""; rendre(); }));
@@ -87,6 +87,8 @@ function carteEtudiant() {
     else h += `<p class="pay-msg">${T(`Prochain versement : ${fmt(e.suiv.manque)} pour ouvrir les modules ${e.suiv.plage}.`, `Next payment: ${fmt(e.suiv.manque)} to open modules ${e.suiv.plage}.`)}</p>`;
     h += `<p class="small">${T("Tu peux payer d’avance, en une ou plusieurs fois : 1 000, 2 000, 3 000 F ou tout d’un coup.", "You can pay ahead, in one or several payments: 1,000, 2,000, 3,000 F or all at once.")}</p>`;
   }
+  const soutien = P.paiements.filter((p) => p.mode === "solidarite").reduce((n, p) => n + Number(p.montant || 0), 0);
+  if (soutien > 0) h += `<p class="small">💛 ${T(`Un frère ou une sœur t’a soutenu(e) de ${fmt(soutien)}. Que Dieu le lui rende.`, `A brother or sister has supported you with ${fmt(soutien)}. May God repay them.`)}</p>`;
   attente.forEach((d) => { h += `<p class="small pay-attente">⏳ ${T(`Ton versement de ${fmt(d.montant)} est en attente de confirmation.`, `Your payment of ${fmt(d.montant)} is waiting for confirmation.`)}</p>`; });
   if (!e.complet) {
     if (P.formOuvert) {
@@ -136,7 +138,7 @@ async function actionEtudiant(ev) {
 /* =========================================================================
    CÔTÉ COORDINATION : carte « Paiements » (coordinateur principal et trésorière)
    ========================================================================= */
-const A = { droit: false, liste: [], comptes: {}, decl: {}, sel: null, pays: [], q: "", filtre: "tous", recu: "", msg: "", unsubEnr: null, chargement: false, instr: null };
+const A = { fonds: null, dons: [], droit: false, liste: [], comptes: {}, decl: {}, sel: null, pays: [], q: "", filtre: "tous", recu: "", msg: "", unsubEnr: null, chargement: false, instr: null };
 
 function nomDe(r) { return `${r.prenom || ""} ${r.nom || ""}`.trim() || r.email || r.uid; }
 async function chargerTout() {
@@ -146,6 +148,7 @@ async function chargerTout() {
     try { A.comptes[r.uid] = await S().loadCompte(r.uid); } catch (e) { A.comptes[r.uid] = undefined; }
     try { A.decl[r.uid] = (await S().loadDeclarations(r.uid)).filter((d) => d.statut === "attente"); } catch (e) { A.decl[r.uid] = []; }
   }));
+  try { A.fonds = await S().loadFonds(); A.dons = (await S().loadDonsAttente()).sort((a, b) => String(a.creeLe).localeCompare(String(b.creeLe))); } catch (e) { A.fonds = null; A.dons = []; }
   A.chargement = false; rendreAdmin();
 }
 async function chargerEtudiant(uid) {
@@ -167,9 +170,15 @@ function rendreAdmin() {
   A.ouvert = ouvert;
   let h = `<details class="pay-admin"${ouvert ? " open" : ""}><summary><strong>💰 ${T("Paiements des étudiants", "Student payments")}</strong></summary>`;
   if (A.msg) h += `<p class="small">${esc(A.msg)}</p>`;
-  if (A.sel) h += detailEtudiant(); else h += listeEtudiants();
+  if (A.sel) h += detailEtudiant(); else h += blocFonds() + listeEtudiants();
   h += `<details class="lec-intro"><summary><strong>${T("Texte « Comment payer »", "“How to pay” text")}</strong></summary><p class="small">${T("Ce texte est montré aux étudiants (numéros Mobile Money, lieux de paiement…).", "This text is shown to students (Mobile Money numbers, payment places…).")}</p><textarea id="apInstr" class="text-input" rows="4" maxlength="1500">${esc(A.instr ?? P.instructions)}</textarea><button type="button" class="btn-secondary" data-ap="instr">${T("Enregistrer le texte", "Save the text")}</button></details>`;
   box.innerHTML = h + "</details>";
+}
+function blocFonds() {
+  const f = A.fonds || { solde: 0, totalRecu: 0, totalAffecte: 0 };
+  let h = `<div class="ind-item"><p class="eyebrow">💛 ${T("Fonds de solidarité", "Solidarity fund")}</p><p><strong>${fmt(f.solde || 0)}</strong> ${T("disponibles", "available")}<br><span class="small">${T("Reçu", "Received")} ${fmt(f.totalRecu || 0)} · ${T("affecté", "allocated")} ${fmt(f.totalAffecte || 0)}</span></p>`;
+  if (A.dons.length) h += `<p class="small"><strong>${T("Dons à confirmer", "Gifts to confirm")}</strong></p>` + A.dons.map((d) => `<div class="lec-ligne-j"><span>${esc(d.nom || "")} · <strong>${fmt(d.montant)}</strong> · ${esc(modeNom(d.mode))}${d.reference ? ` · ${esc(d.reference)}` : ""}<br><span class="small">${esc(dateFr(d.creeLe))}</span></span><button type="button" class="btn-primary" data-ap="don-ok" data-did="${esc(d.id)}" data-m="${d.montant}">${T("Confirmer", "Confirm")}</button><button type="button" class="btn-secondary" data-ap="don-non" data-did="${esc(d.id)}">${T("Non retrouvé", "Not found")}</button></div>`).join("");
+  return h + "</div>";
 }
 function listeEtudiants() {
   const q = A.q.trim().toLowerCase();
@@ -197,6 +206,7 @@ function detailEtudiant() {
     <label for="apNote">${T("Note (facultatif)", "Note (optional)")}</label><input id="apNote" class="text-input" type="text" maxlength="200">
     <p class="ind-err" id="apErr"></p><button type="button" class="btn-primary full" data-ap="enregistrer">${T("Enregistrer le versement", "Record the payment")}</button></div>`;
   if (A.pays.length) h += `<p class="eyebrow">${T("Versements", "Payments")}</p>` + A.pays.map((p) => `<div class="lec-ligne-j${p.annule ? " pay-annule" : ""}"><span>${esc(dateFr(p.date || p.creeLe))} · <strong>${fmt(p.montant)}</strong> · ${esc(modeNom(p.mode))}${p.reference ? ` · ${esc(p.reference)}` : ""}${p.annule ? ` · ${T("annulé", "cancelled")}` : ""}<br><span class="small">${esc(p.recuNum || "")}</span></span>${p.annule ? "" : `<button type="button" class="btn-secondary" data-ap="recu" data-pid="${esc(p.id)}">${T("Reçu", "Receipt")}</button><button type="button" class="btn-secondary" data-ap="annuler" data-pid="${esc(p.id)}">${T("Annuler", "Cancel")}</button>`}</div>`).join("");
+  if (c && A.fonds && Number(A.fonds.solde) > 0 && e.paye < e.total) h += `<div class="pay-form"><p class="eyebrow">💛 ${T("Affecter depuis le fonds de solidarité", "Allocate from the solidarity fund")}</p><p class="small">${T("Disponible", "Available")} : ${fmt(A.fonds.solde)}. ${T("L’étudiant verra seulement qu’un frère ou une sœur l’a soutenu.", "The student will only see that a brother or sister supported them.")}</p><label for="apSol">${T("Montant (F)", "Amount (F)")}</label><input id="apSol" class="text-input" type="number" min="100" step="100" max="${Math.min(A.fonds.solde, e.total - e.paye)}"><p class="ind-err" id="apSolErr"></p><button type="button" class="btn-secondary" data-ap="affecter">${T("Affecter", "Allocate")}</button></div>`;
   h += `<details class="lec-intro"><summary><strong>${T("Tarif de cet étudiant", "This student’s fee")}</strong></summary><p class="small">${T("Réduire le montant total ou dispenser (0 F) pour quelqu’un qui a peu de moyens. Une note garde la trace de la raison.", "Reduce the total or exempt (0 F) someone with few means. A note keeps a record of the reason.")}</p>
     <label for="apTotal">${T("Montant total (F)", "Total amount (F)")}</label><input id="apTotal" class="text-input" type="number" min="0" step="500" value="${e ? e.total : 5000}">
     <label for="apTarifNote">${T("Raison", "Reason")}</label><input id="apTarifNote" class="text-input" type="text" maxlength="200" value="${esc((c && c.note) || "")}">
@@ -214,6 +224,8 @@ async function actionAdmin(ev) {
     if (a === "copier") { await copier(A.recu); b.textContent = T("Copié ✓", "Copied ✓"); return; }
     if (a === "instr") { const t = (($("apInstr") || {}).value || "").trim(); await S().setInstructions(t, par); A.instr = t; say(T("Texte enregistré.", "Text saved.")); rendreAdmin(); return; }
     if (a === "csv") { await exporterCSV(); return; }
+    if (a === "don-ok") { await S().confirmerDon(b.dataset.did, Number(b.dataset.m), par); say(T("Don confirmé : le fonds augmente.", "Gift confirmed: the fund increases.")); await chargerTout(); return; }
+    if (a === "don-non") { await S().refuserDon(b.dataset.did, par); say(T("Don marqué « non retrouvé ».", "Gift marked “not found”.")); await chargerTout(); return; }
     const uid = A.sel;
     if (!uid) return;
     const nom = nomDe(A.liste.find((x) => x.uid === uid) || { uid });
@@ -234,6 +246,13 @@ async function actionAdmin(ev) {
       const c = A.comptes[uid];
       A.recu = recuTexte(rec, nom, c ? { actif: true, paye: Number(c.paye || 0), total: Number(c.total ?? 5000) } : null);
       say(T("Versement enregistré.", "Payment recorded.")); rendreAdmin(); return;
+    }
+    if (a === "affecter") {
+      const m = num(($("apSol") || {}).value), c = A.comptes[uid], reste = c ? Number(c.total ?? 5000) - Number(c.paye || 0) : 0, err = $("apSolErr"), fail = (t) => { if (err) err.textContent = t; };
+      if (!Number.isFinite(m) || m < 100) return fail(T("Montant invalide (100 F au moins).", "Invalid amount (at least 100 F)."));
+      if (m > Number(A.fonds.solde)) return fail(T("Le fonds ne contient pas assez.", "The fund does not hold enough."));
+      if (m > reste) return fail(T("Ce montant dépasse ce qu’il reste à payer à cet étudiant.", "This amount is more than what this student still has to pay."));
+      await S().affecterSolidarite(uid, m, par); A.fonds = await S().loadFonds(); await chargerEtudiant(uid); say(T("Soutien affecté.", "Support allocated.")); rendreAdmin(); return;
     }
     if (a === "refuser") { await S().traiterDeclaration(uid, b.dataset.did, "refuse", par); await chargerEtudiant(uid); say(T("Déclaration refusée.", "Declaration refused.")); rendreAdmin(); return; }
     if (a === "recu") { const p = A.pays.find((x) => x.id === b.dataset.pid); const c = A.comptes[uid]; if (p) { A.recu = recuTexte(p, nom, c ? { actif: true, paye: Number(c.paye || 0), total: Number(c.total ?? 5000) } : null); rendreAdmin(); } return; }
@@ -275,15 +294,97 @@ function droitsAdmin() {
   });
 }
 
+/* =========================================================================
+   FONDS DE SOLIDARITÉ — dons anonymes pour couvrir les frais d'un Bâtisseur qui n'en a pas les moyens
+   - Le donateur déclare son don (montant, mode, référence) ; la trésorière le confirme : le fonds augmente.
+   - Le coordinateur principal ou la trésorière affectent une somme du fonds à un étudiant (versement « Fonds de solidarité »).
+   - Le bénéficiaire voit « un frère ou une sœur t'a soutenu », jamais le nom du donateur.
+   ========================================================================= */
+const D = { mes: [], formOuvert: false, merci: false, montre: false, timer: null };
+const cleSoutien = () => "abba_soutien_" + (P.user ? P.user.uid : "");
+const lireVu = () => { try { return JSON.parse(localStorage.getItem(cleSoutien()) || "{}"); } catch (e) { return {}; } };
+const ecrireVu = (o) => { try { localStorage.setItem(cleSoutien(), JSON.stringify({ ...lireVu(), ...o })); } catch (e) {} };
+// Proposé à ceux qui ont fini de payer ou qui ne sont pas soumis au paiement ; jamais à ceux qui paient par versements,
+// ont un tarif réduit ou ont reçu un soutien (pour ne pas les mettre mal à l'aise).
+function soutienEligible() {
+  if (!P.user || !P.compteCharge) return false;
+  const e = etat();
+  if (e.actif && !(e.complet && e.total >= 5000)) return false;
+  if (P.paiements.some((p) => p.mode === "solidarite")) return false;
+  return true;
+}
+function soutienAProposer() {
+  const v = lireVu();
+  if (v.jamais || (v.plusTard && Date.now() - v.plusTard < 7 * 86400000)) return false;
+  return soutienEligible();
+}
+function formDon() {
+  return `<div class="pay-form"><div class="pay-puces">${[500, 1000, 2000, 5000].map((m) => `<button type="button" class="lec-chap" data-sou="montant" data-m="${m}">${fmt(m)}</button>`).join("")}</div>
+    <label for="souMontant">${T("Montant du don (F)", "Gift amount (F)")}</label><input id="souMontant" class="text-input" type="number" inputmode="numeric" min="100" step="100">
+    <label for="souMode">${T("Comment as-tu donné ?", "How did you give?")}</label><select id="souMode" class="text-input"><option value="mobile-money">${modeNom("mobile-money")}</option><option value="especes">${modeNom("especes")}</option><option value="autre">${modeNom("autre")}</option></select>
+    <label for="souRef">${T("Référence (numéro de transaction…)", "Reference (transaction number…)")}</label><input id="souRef" class="text-input" type="text" maxlength="120">
+    <p class="small">${esc(P.instructions || T("Pour donner, utilise les moyens indiqués par ABBA (Mobile Money ou espèces), puis déclare ton don ici.", "To give, use the means indicated by ABBA (Mobile Money or cash), then declare your gift here."))}</p>
+    <p class="ind-err" id="souMsg"></p><button type="button" class="btn-primary full" data-sou="envoyer">${T("Envoyer mon don", "Send my gift")}</button></div>`;
+}
+function modalSoutien() {
+  let m = $("soutienModal");
+  if (!m) { m = document.createElement("div"); m.id = "soutienModal"; m.className = "soutien-fond"; document.body.appendChild(m); }
+  m.hidden = false;
+  m.innerHTML = `<div class="soutien-boite" role="dialog" aria-modal="true" aria-labelledby="souTitre"><h2 id="souTitre">💛 ${T("Soutenir un autre Bâtisseur", "Support another Builder")}</h2>
+    ${D.merci ? `<p>${T("Merci pour ta générosité ! La trésorière va confirmer ton don.", "Thank you for your generosity! The treasurer will confirm your gift.")}</p><button type="button" class="btn-primary full" data-sou="fermer">${T("Fermer", "Close")}</button>`
+      : `<p>${T("Certains Bâtisseurs n’ont pas les moyens de payer leur parcours. Si tu le peux, ton don couvre les frais d’un frère ou d’une sœur.", "Some Builders cannot afford their course. If you can, your gift covers the costs of a brother or sister.")}</p>
+      <p class="small">${T("Ton don reste anonyme : il ne saura pas que c’est toi, et tu ne sauras pas qui.", "Your gift stays anonymous: they will not know it is you, and you will not know who.")}</p>
+      ${D.formOuvert ? formDon() : `<button type="button" class="btn-primary full" data-sou="ouvrir">${T("Je veux soutenir", "I want to support")}</button>`}
+      <div class="fm-nav"><button type="button" class="btn-secondary" data-sou="plus-tard">${T("Plus tard", "Later")}</button><button type="button" class="btn-secondary" data-sou="jamais">${T("Ne plus me le proposer", "Don’t suggest it again")}</button></div>`}</div>`;
+}
+function fermerSoutien() { const m = $("soutienModal"); if (m) { m.hidden = true; m.innerHTML = ""; } D.formOuvert = false; D.merci = false; }
+function programmerSoutien() {
+  if (D.montre || D.timer) return;
+  D.timer = setTimeout(() => { D.timer = null; if (!D.montre && soutienAProposer()) { D.montre = true; modalSoutien(); } }, 2500);
+}
+async function chargerMesDons() { if (P.user && S() && S().loadMesDons) { try { D.mes = (await S().loadMesDons(P.user.uid)).sort((a, b) => String(b.creeLe).localeCompare(String(a.creeLe))); } catch (e) { D.mes = []; } } rendreSoutienCard(); }
+function rendreSoutienCard() {
+  const box = $("soutienCard");
+  if (!box) return;
+  if (!P.user) { box.innerHTML = ""; return; }
+  let h = `<p class="eyebrow">💛 ${T("Soutenir un Bâtisseur", "Support a Builder")}</p><p class="settings-hint">${T("Ton don, anonyme, couvre les frais d’un Bâtisseur qui n’a pas les moyens de payer son parcours.", "Your anonymous gift covers the costs of a Builder who cannot afford the course.")}</p>`;
+  h += D.formOuvert && !$("soutienModal")?.innerHTML ? formDon() : `<button type="button" class="btn-secondary" data-sou="ouvrir-carte">${T("Faire un don", "Make a gift")}</button>`;
+  if (D.mes.length) h += `<details class="lec-intro"><summary><strong>${T("Mes dons", "My gifts")} (${D.mes.length})</strong></summary>${D.mes.map((d) => `<p class="small">${esc(dateFr(d.creeLe))} · <strong>${fmt(d.montant)}</strong> · ${d.statut === "valide" ? "✓ " + T("confirmé", "confirmed") + (d.recuNum ? " · " + esc(d.recuNum) : "") : d.statut === "refuse" ? T("non retrouvé", "not found") : "⏳ " + T("en attente", "pending")}</p>`).join("")}</details>`;
+  box.innerHTML = h;
+}
+async function actionSoutien(ev) {
+  const b = ev.target.closest("[data-sou]");
+  if (!b || !P.user) return;
+  const a = b.dataset.sou;
+  try {
+    if (a === "ouvrir") { D.formOuvert = true; modalSoutien(); return; }
+    if (a === "ouvrir-carte") { D.formOuvert = true; D.merci = false; modalSoutien(); return; }
+    if (a === "plus-tard") { ecrireVu({ plusTard: Date.now() }); fermerSoutien(); return; }
+    if (a === "jamais") { ecrireVu({ jamais: true }); fermerSoutien(); return; }
+    if (a === "fermer") { fermerSoutien(); rendreSoutienCard(); return; }
+    if (a === "montant") { const i = $("souMontant"); if (i) i.value = b.dataset.m; return; }
+    if (a === "envoyer") {
+      const say = (m) => { const e = $("souMsg"); if (e) e.textContent = m; };
+      const montant = num(($("souMontant") || {}).value), mode = ($("souMode") || {}).value || "autre", reference = (($("souRef") || {}).value || "").trim();
+      if (!Number.isFinite(montant) || montant < 100) return say(T("Indique le montant de ton don (100 F au moins).", "Enter the amount of your gift (at least 100 F)."));
+      if (montant > 1000000) return say(T("Ce montant semble trop grand : vérifie-le.", "This amount looks too large: please check it."));
+      if (mode !== "especes" && !reference) return say(T("Ajoute la référence de la transaction pour que la trésorière retrouve ton don.", "Add the transaction reference so the treasurer can find your gift."));
+      await S().addDon(P.user.uid, { nom: P.user.displayName || P.user.email || "", montant, mode, reference, creeLe: new Date().toISOString() });
+      D.merci = true; D.formOuvert = false; ecrireVu({ plusTard: Date.now() }); modalSoutien(); await chargerMesDons();
+    }
+  } catch (err) { const e = $("souMsg"); const t = T("Impossible d’enregistrer : ", "Unable to save: ") + (err.code || err.message); if (e) e.textContent = t; else alert(t); }
+}
+
 /* ---------- démarrage ---------- */
-const onAuth = (u) => { ecouter(u); if (u) droitsAdmin(); };
+const onAuth = (u) => { P.compteCharge = false; D.montre = false; fermerSoutien(); ecouter(u); if (u) { droitsAdmin(); chargerMesDons(); } else { D.mes = []; rendreSoutienCard(); } };
 if (S() && S().watchAuth) S().watchAuth(onAuth);
 else window.addEventListener("load", () => { if (S() && S().watchAuth) S().watchAuth(onAuth); });
 document.addEventListener("click", (ev) => {
   if (ev.target.closest("#dashPaiement")) actionEtudiant(ev);
   else if (ev.target.closest("#paiementsCard")) actionAdmin(ev);
+  else if (ev.target.closest("#soutienModal") || ev.target.closest("#soutienCard")) actionSoutien(ev);
 });
 document.addEventListener("input", (ev) => { if (ev.target.id === "apQ") { A.q = ev.target.value; const pos = ev.target.selectionStart; rendreAdmin(); const n = $("apQ"); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} } } });
 document.addEventListener("change", (ev) => { if (ev.target.id === "apFiltre") { A.filtre = ev.target.value; rendreAdmin(); } });
 
-window.AbbaPaiements = { etat, autorise, complet, palierDe, requis, ORDRE };
+window.AbbaPaiements = { etat, autorise, complet, palierDe, requis, ORDRE, soutienEligible, soutienAProposer };

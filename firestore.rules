@@ -69,8 +69,23 @@ service cloud.firestore {
     }
 
     match /config/{doc} {
-      allow read: if request.auth != null;
-      allow write: if isAdmin() && doc != 'paiement';
+      allow read: if request.auth != null && doc != 'solidarite';
+      allow write: if isAdmin() && doc != 'paiement' && doc != 'solidarite';
+    }
+    // Fonds de solidarité (solde) : réservé au coordinateur principal et à la trésorière
+    match /config/solidarite {
+      allow read, write: if hasDroit('paiements');
+    }
+    // Dons au fonds de solidarité : chacun voit les siens ; la trésorière confirme ; le bénéficiaire ne voit jamais le donateur
+    match /solidarite/{sid} {
+      allow read: if (request.auth != null && resource.data.uid == request.auth.uid) || hasDroit('paiements');
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid','nom','montant','mode','reference','statut','creeLe','updatedAt'])
+        && request.resource.data.statut == 'attente'
+        && request.resource.data.montant is number && request.resource.data.montant >= 100 && request.resource.data.montant <= 1000000
+        && request.resource.data.mode in ['mobile-money','especes','autre'];
+      allow update: if hasDroit('paiements')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statut','traitePar','traiteLe','recuNum','updatedAt']);
     }
     // Texte « Comment payer » : seuls le coordinateur principal et la trésorière (droit « paiements »)
     match /config/paiement {

@@ -446,6 +446,33 @@ async function setTarif(uid, total, note, par) {
   if (!(await getDoc(cref)).exists()) await setDoc(cref, { actif: true, total, paye: 0, note: note || "", majPar: lc(par), creeLe: new Date().toISOString(), updatedAt: serverTimestamp() });
   else await updateDoc(cref, { total, note: note || "", majPar: lc(par), updatedAt: serverTimestamp() });
 }
+/* ── Fonds de solidarité : dons anonymes qui couvrent les frais d'un Bâtisseur sans moyens ── */
+const fondsRef = () => doc(db, "config", "solidarite");
+async function addDon(uid, d) {
+  await setDoc(doc(collection(db, "solidarite")), { uid, nom: d.nom || "", montant: d.montant, mode: d.mode, reference: d.reference || "", statut: "attente", creeLe: d.creeLe, updatedAt: serverTimestamp() });
+}
+async function loadMesDons(uid) { return listeDe(await getDocs(query(collection(db, "solidarite"), where("uid", "==", uid)))); }
+async function loadDonsAttente() { return listeDe(await getDocs(query(collection(db, "solidarite"), where("statut", "==", "attente")))); }
+async function loadFonds() { const s = await getDoc(fondsRef()); return s.exists() ? s.data() : { solde: 0, totalRecu: 0, totalAffecte: 0 }; }
+async function confirmerDon(did, montant, par) {
+  const batch = writeBatch(db), iso = new Date().toISOString();
+  batch.update(doc(db, "solidarite", did), { statut: "valide", traitePar: lc(par), traiteLe: iso, recuNum: "DON-" + iso.slice(0, 10).replace(/-/g, "") + "-" + did.slice(0, 4).toUpperCase(), updatedAt: serverTimestamp() });
+  batch.set(fondsRef(), { solde: increment(Number(montant)), totalRecu: increment(Number(montant)), updatedAt: serverTimestamp() }, { merge: true });
+  await batch.commit();
+}
+async function refuserDon(did, par) { await updateDoc(doc(db, "solidarite", did), { statut: "refuse", traitePar: lc(par), traiteLe: new Date().toISOString(), updatedAt: serverTimestamp() }); }
+async function affecterSolidarite(uid, montant, par) {
+  const m = Number(montant);
+  if (!((await loadFonds()).solde >= m)) throw new Error("fonds-insuffisant");
+  const ref = doc(collection(db, "formation", uid, "paiements")), cref = compteRef(uid), batch = writeBatch(db), iso = new Date().toISOString();
+  const recuNum = "ABBA-" + iso.slice(0, 10).replace(/-/g, "") + "-" + ref.id.slice(0, 4).toUpperCase();
+  if (!(await getDoc(cref)).exists()) batch.set(cref, { actif: true, total: 5000, paye: m, creeLe: iso, updatedAt: serverTimestamp() });
+  else batch.update(cref, { paye: increment(m), updatedAt: serverTimestamp() });
+  batch.set(ref, { montant: m, mode: "solidarite", reference: "", date: iso.slice(0, 10), note: "Fonds de solidarité", recuNum, parEmail: lc(par), creeLe: iso, updatedAt: serverTimestamp() });
+  batch.set(fondsRef(), { solde: increment(-m), totalAffecte: increment(m), updatedAt: serverTimestamp() }, { merge: true });
+  await batch.commit();
+  return ref.id;
+}
 async function setInstructions(texte, par) {
   await setDoc(doc(db, "config", "paiement"), { instructions: texte, majPar: lc(par), updatedAt: serverTimestamp() }, { merge: true });
 }
@@ -611,5 +638,6 @@ window.AbbaSync = {
   watchLecture, saveLecture, loadStudentLecture,
   watchCompte, watchPaiements, watchDeclarations, watchConfigPaiement, loadCompte, loadPaiements, loadDeclarations,
   addDeclaration, enregistrerPaiement, annulerPaiement, traiterDeclaration, activerCompte, setTarif, setInstructions,
+  addDon, loadMesDons, loadDonsAttente, loadFonds, confirmerDon, refuserDon, affecterSolidarite,
   watchZonesPlan, saveZonesPlan, saveMyProgress,
 };
