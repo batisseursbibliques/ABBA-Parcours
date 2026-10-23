@@ -254,11 +254,16 @@ async function lireBibleNatif(depuis, liste, livre, chap, titre, details) {
     if (S.enchainer && aSuivre) { S.repriseAuto = true; suivant({ garderLecture: true }); } else arreter();
   };
   if (!liste.some((t) => t)) { finDuChapitre(); return; }
+  // Au début d'un chapitre, la voix annonce « Marc, chapitre 2 » (le premier morceau n'est pas un verset)
+  const annonce = depuis === 0 ? [T(`${nomLivre(livre)}, chapitre ${chap}.`, `${nomLivre(livre)}, chapter ${chap}.`)] : [];
+  const dec = annonce.length;
   try {
     await lireNatif({
-      textes: liste, depuis, vitesse: S.vitesse, titre, details, langue: langueV() === "en" ? "en" : "fr",
-      onIndex: (i) => {
+      textes: [...annonce, ...liste], depuis: depuis + dec, vitesse: S.vitesse, titre, details, langue: langueV() === "en" ? "en" : "fr",
+      onIndex: (k) => {
         if (moi !== S.jeton) return;
+        const i = k - dec;
+        if (i < 0) return;
         S.courant = i + 1; S.verset = i + 1;
         sauverPosition(); majMiniTitre(); majSurbrillance();
         $(`bv${i + 1}`)?.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -266,7 +271,7 @@ async function lireBibleNatif(depuis, liste, livre, chap, titre, details) {
       onFin: finDuChapitre,
       onPause: (i) => { // pause demandée depuis la notification Android
         if (moi !== S.jeton) return;
-        const reste = i >= 0 ? i + 1 : S.courant;
+        const reste = i >= 0 ? Math.max(i - dec, 0) + 1 : S.courant;
         S.jeton += 1; S.ecoute = false; S.courant = null;
         if (reste) { S.verset = reste; S.enPause = true; sauverPosition(); }
         rendreBarre(); majSurbrillance(); majMini();
