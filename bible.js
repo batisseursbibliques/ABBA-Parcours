@@ -1,4 +1,4 @@
-import { estNatif, lireNatif, pauseNatif, reglagesBatterie } from "./voixNative.js";
+import { estNatif, etatNatif, lireNatif, pauseNatif, reglagesBatterie } from "./voixNative.js";
 /* ============================================================
    BIBLE — onglet « Bible » de Parcours Bâtisseur
    Reprend ce qui existe dans ABBA Gestion : lecture, versions du domaine public
@@ -225,8 +225,10 @@ function attendreVoix() {
     setTimeout(fin, 1500);
   });
 }
+let ctxNatif = null; // lecture native en cours (sert à se remettre d'accord avec le service Android)
 function arreter() {
   S.jeton += 1;
+  ctxNatif = null;
   if (synthOk()) window.speechSynthesis.cancel();
   if (estNatif() && (S.ecoute || S.enPause)) pauseNatif().catch(() => {});
   const etait = S.ecoute;
@@ -248,15 +250,20 @@ async function lireBibleNatif(depuis, liste, livre, chap, titre, details) {
   const moi = S.jeton;
   S.ecoute = true; S.enPause = false; S.alerte = "";
   rendreBarre(); majMini();
+  const ctx = { moi, dec: 0, fin: null, finFait: false };
+  ctxNatif = ctx;
   const finDuChapitre = () => {
-    if (moi !== S.jeton) return;
+    if (moi !== S.jeton || ctx.finFait) return;
+    ctx.finFait = true;
     const aSuivre = chap < nbChapitres(livre) || livre < 66;
     if (S.enchainer && aSuivre) { S.repriseAuto = true; suivant({ garderLecture: true }); } else arreter();
   };
+  ctx.fin = finDuChapitre;
   if (!liste.some((t) => t)) { finDuChapitre(); return; }
   // Au début d'un chapitre, la voix annonce « Marc, chapitre 2 » (le premier morceau n'est pas un verset)
   const annonce = depuis === 0 ? [T(`${nomLivre(livre)}, chapitre ${chap}.`, `${nomLivre(livre)}, chapter ${chap}.`)] : [];
   const dec = annonce.length;
+  ctx.dec = dec;
   try {
     await lireNatif({
       textes: [...annonce, ...liste], depuis, vitesse: S.vitesse, titre, details, langue: langueV() === "en" ? "en" : "fr",
@@ -285,6 +292,37 @@ async function lireBibleNatif(depuis, liste, livre, chap, titre, details) {
     });
   } catch (e) { S.alerte = (e && e.message) || ""; S.ecoute = false; rendreBarre(); majMini(); }
 }
+// Application Android : à chaque retour au premier plan (et toutes les 1,5 s tant qu'elle est visible), on se remet
+// d'accord avec le service de lecture. Utile quand la lecture est mise en pause ou reprise depuis la notification
+// pendant que l'application est en arrière-plan : l'affichage suit ce que le téléphone lit vraiment.
+async function synchroNatif() {
+  if (!estNatif() || document.visibilityState !== "visible") return;
+  const c = ctxNatif;
+  if (!c) return;
+  const e = await etatNatif();
+  if (!e || ctxNatif !== c) return;
+  if (e.lecture) {
+    if (S.jeton === c.moi + 1) { S.jeton = c.moi; S.ecoute = true; S.enPause = false; rendreBarre(); majSurbrillance(); majMini(); }
+    if (S.jeton === c.moi && e.index >= c.dec) {
+      const v = e.index - c.dec + 1;
+      if (S.courant !== v) {
+        S.courant = v; S.verset = v; sauverPosition(); majMiniTitre(); majSurbrillance();
+        $(`bv${v}`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+      }
+    }
+  } else if (e.enPause) {
+    if (S.jeton === c.moi) {
+      S.jeton += 1; S.ecoute = false; S.courant = null;
+      if (e.reprise >= 0) { S.verset = Math.max(e.reprise - c.dec, 0) + 1; S.enPause = true; sauverPosition(); }
+      rendreBarre(); majSurbrillance(); majMini();
+    }
+  } else if (e.termine && S.jeton === c.moi) {
+    c.fin?.();
+  }
+}
+document.addEventListener("visibilitychange", synchroNatif);
+setInterval(synchroNatif, 1500);
+
 async function lire(depuis) {
   if (!audioOk() || !S.versets.length) return;
   window.dispatchEvent(new Event("abba:voix-bible")); // les leçons lues à voix haute s'arrêtent

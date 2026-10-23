@@ -54,3 +54,6 @@ export function pauseNatif() {
 
 // Ouvre les réglages Android pour ne pas limiter l'application (économie de batterie)
 export const reglagesBatterie = () => P().batterie();
+
+// État du service Android (lecture en cours, en pause, terminée) : sert à remettre l'affichage d'accord avec ce que le téléphone lit
+export async function etatNatif() { try { return await P().etat(); } catch { return null; } }
