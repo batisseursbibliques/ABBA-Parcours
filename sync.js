@@ -8,6 +8,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut,
   createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail,
+  reauthenticateWithCredential, EmailAuthProvider, updatePassword,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp,
@@ -36,7 +37,7 @@ async function logIn(email, password) {
 }
 async function logOut() { await signOut(auth); }
 function watchAuth(callback) {
-  onAuthStateChanged(auth, async (u) => {
+  return onAuthStateChanged(auth, async (u) => {
     // Pendant une inscription, on attend que la fiche et la demande d'accès soient écrites
     if (pendingSignUp) { try { await pendingSignUp; } catch (e) {} }
     callback(u);
@@ -88,6 +89,64 @@ async function signUp(d) {
   try { return await run; } finally { pendingSignUp = null; }
 }
 async function resetPassword(email) { await sendPasswordResetEmail(auth, (email || "").trim()); }
+
+/* ---------- PROFIL (Réglages > Mon profil) ----------
+   Identité et téléphone : `users/{uid}` (même fiche qu'ABBA Life).
+   Naissance, adresse, WhatsApp, contact d'urgence… : `users/{uid}/priv/contact`
+   (lisible par la personne, par les coordinateurs avec le droit « suivi » et par son correcteur). */
+async function getContact(uid) {
+  const snap = await getDoc(doc(db, "users", uid, "priv", "contact"));
+  return snap.exists() ? snap.data() : {};
+}
+async function saveProfil(uid, identite, contact) {
+  const prenom = (identite.prenom || "").trim(), nomFam = (identite.nom || "").trim();
+  const full = (prenom + " " + nomFam).trim();
+  const tel = (identite.telephone || "").trim();
+  await setDoc(doc(db, "users", uid), {
+    nom: full, prenom: "", prenomSaisi: prenom, nomFamille: nomFam, telephone: tel,
+  }, { merge: true });
+  try { if (auth.currentUser && auth.currentUser.uid === uid) await updateProfile(auth.currentUser, { displayName: full }); } catch (e) {}
+  await setDoc(doc(db, "users", uid, "priv", "contact"), { ...contact, telephone: tel, updatedAt: serverTimestamp() }, { merge: true });
+  return { nom: full, telephone: tel };
+}
+async function changePassword(currentPassword, newPassword) {
+  const u = auth.currentUser;
+  if (!u || !u.email) throw new Error("no-user");
+  await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, currentPassword));
+  await updatePassword(u, newPassword);
+}
+// Toutes les données de la personne qu'elle a le droit de lire, pour téléchargement
+async function exportMyData(uid) {
+  const out = { exporteLe: new Date().toISOString(), uid };
+  const lire = async (chemin, cle) => { try { const s = await getDoc(doc(db, ...chemin)); if (s.exists()) out[cle] = s.data(); } catch (e) {} };
+  const liste = async (chemin, cle) => { try { const s = await getDocs(collection(db, ...chemin)); if (!s.empty) { out[cle] = {}; s.forEach((d) => { out[cle][d.id] = d.data(); }); } } catch (e) {} };
+  await lire(["users", uid], "profil");
+  await liste(["users", uid, "priv"], "prive");
+  await liste(["users", uid, "months"], "mois");
+  await lire(["summaries", uid], "resume");
+  await lire(["enrollments", uid + "_parcours"], "demandeAcces");
+  await lire(["liens", uid], "lienCorrecteur");
+  await lire(["formation", uid], "formation");
+  await liste(["formation", uid, "modules"], "modules");
+  await liste(["formation", uid, "suivis"], "suivis");
+  await liste(["formation", uid, "lecture"], "lectureBible");
+  await liste(["formation", uid, "indispos"], "indisponibilites");
+  await liste(["formation", uid, "revisions"], "revisions");
+  return out;
+}
+// Demande de suppression : un coordinateur la traite (les données de suivi appartiennent aussi à l'association)
+async function requestDeletion(uid, nom, email) {
+  await setDoc(doc(db, "deletionRequests", uid), { uid, nom: nom || "", email: email || "", status: "pending", requestedAt: serverTimestamp() });
+}
+async function getDeletionRequest(uid) {
+  const s = await getDoc(doc(db, "deletionRequests", uid)); return s.exists() ? s.data() : null;
+}
+async function cancelDeletionRequest(uid) { await deleteDoc(doc(db, "deletionRequests", uid)); }
+async function loadDeletionRequests() {
+  const snap = await getDocs(collection(db, "deletionRequests"));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
 async function getUserProfile(uid) {
   const snap = await getDoc(doc(db, "users", uid));
   return snap.exists() ? snap.data() : null;
@@ -530,6 +589,7 @@ async function loadStudentSuivis(uid) {
 window.AbbaSync = {
   isAdminEmail,
   logIn, logOut, signUp, resetPassword, watchAuth, getUserProfile,
+  getContact, saveProfil, changePassword, exportMyData, requestDeletion, getDeletionRequest, cancelDeletionRequest, loadDeletionRequests,
   watchAdmins, addAdmin, removeAdmin, setBloque,
   watchModulesConfig, saveModulesConfig,
   watchParcours, saveParcours,

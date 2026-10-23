@@ -816,5 +816,11 @@
 "Né(e) le {0} · {1} ans": "Born on {0} · {1} years old",
 "Né(e) le {0}": "Born on {0}",
 "Mineur(e) : autorisation parentale déclarée — {0}, {1}": "Minor: parental authorization declared — {0}, {1}",
-"lecture en retard de {0} jours": "reading {0} days behind"
+"lecture en retard de {0} jours": "reading {0} days behind",
+"Demandes de suppression de compte": "Account deletion requests",
+"Ces personnes ont demandé la suppression de leur compte et de leurs données. Supprime-les dans la console Firebase, puis clique sur « Traité ».": "These people asked for their account and data to be deleted. Delete them in the Firebase console, then click “Done”.",
+"Traité": "Done",
+"📍 Fiche de contact": "📍 Contact sheet",
+"📍 Fiche": "📍 Sheet",
+"Impossible de mettre à jour : {0}": "Unable to update: {0}"
 }

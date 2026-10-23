@@ -993,3 +993,15 @@ html.i18n-wait body{visibility:hidden;}
 .pay-annule{opacity:.5;text-decoration:line-through;}
 .pay-recu{white-space:pre-wrap;font-family:inherit;font-size:14px;background:var(--paper);padding:10px;border-radius:8px;}
 .pay-admin>summary{cursor:pointer;}
+/* Mon profil */
+.pf-sub{font-family:var(--serif,inherit);font-weight:600;font-size:14px;margin:18px 0 8px;color:var(--ink);border-bottom:1px solid var(--line);padding-bottom:4px;}
+.pf-sub:first-of-type{margin-top:6px;}
+#profilCard textarea.text-input{width:100%;box-sizing:border-box;resize:vertical;}
+#profilCard select.text-input,#pwCard input{width:100%;box-sizing:border-box;}
+.fiche-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10000;display:flex;align-items:flex-end;justify-content:center;}
+.fiche-box{background:var(--paper,#fff);width:100%;max-width:560px;max-height:88vh;overflow:auto;border-radius:14px 14px 0 0;padding:18px 18px 26px;box-shadow:0 -4px 24px rgba(0,0,0,.25);}
+.fiche-box h3{margin:0 0 4px;font-size:17px;}
+.fiche-row{display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px;}
+.fiche-row b{flex:0 0 120px;color:var(--ink-soft);font-weight:600;}
+.fiche-row span,.fiche-row a{flex:1;word-break:break-word;}
+@media (min-width:700px){.fiche-overlay{align-items:center;}.fiche-box{border-radius:14px;}}

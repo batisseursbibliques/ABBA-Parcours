@@ -145,6 +145,7 @@ function addPasswordEyes(root) {
     wrap.appendChild(btn);
   });
 }
+window.AbbaUI = { addPasswordEyes };
 function ageFromBirth(iso) {
   if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
   const b = new Date(iso + "T00:00:00"), t = new Date();
@@ -247,6 +248,17 @@ function traduireErreurAuth(err) {
   return "Une erreur est survenue. Réessaie.";
 }
 
+window.addEventListener("abba:profil-modifie", async (e) => {
+  try {
+    if (!CURRENT_USER) return;
+    CURRENT_PROFILE = (await window.AbbaSync.getUserProfile(CURRENT_USER.uid)) || {};
+    const nom = (e.detail && e.detail.nom) || CURRENT_USER.displayName || CURRENT_USER.email;
+    const t = `Connecté(e) en tant que ${nom} (${CURRENT_USER.email})`;
+    const h1 = document.getElementById("accountEmailHint"); if (h1) h1.textContent = t;
+    const h2 = document.getElementById("accountEmailHintAccueil"); if (h2) h2.textContent = t;
+    pushModulesSummary();
+  } catch (err) { console.error("profil-modifie:", err); }
+});
 async function onAuthChanged(user) {
   if (unsubAdmins) { unsubAdmins(); unsubAdmins = null; }
   if (unsubModulesConfig) { unsubModulesConfig(); unsubModulesConfig = null; }
@@ -416,6 +428,7 @@ function goToTab(name) {
   document.querySelectorAll(".tab, .bnav-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
   if (name === "coordination") renderCoordModules();
   if (name === "bible") window.dispatchEvent(new Event("abba:bible-ouvert"));
+  if (name === "reglages") window.dispatchEvent(new Event("abba:reglages-ouvert"));
   window.scrollTo({ top: 0 });
 }
 
@@ -606,7 +619,7 @@ function alertesDe(r) {
 function detailEleve(r) {
   const a = r.a;
   if (!a) return "<p class=\"settings-hint\">Données indisponibles.</p>";
-  let h = "";
+  let h = `<p style="margin:0 0 8px;"><button type="button" class="btn-secondary" data-fiche="${escC(r.uid)}" data-nom="${escC(r.nom || r.email || "")}">📍 Fiche de contact</button></p>`;
   const fait = a.modules.filter(m => m.started || m.complete);
   if (!fait.length) h += `<p class="small">Aucun module commencé.</p>`;
   fait.forEach(m => {
@@ -1436,7 +1449,21 @@ function setupEnrollmentsAdmin() {
   });
 }
 
+async function renderDeletionRequests() {
+  const box = document.getElementById("deletionRequestsBox"); if (!box) return;
+  let list = [];
+  try { list = await window.AbbaSync.loadDeletionRequests(); } catch (e) { box.innerHTML = ""; return; }
+  if (!list.length) { box.innerHTML = ""; return; }
+  box.innerHTML = `<p class="eyebrow" style="margin-top:14px;">Demandes de suppression de compte</p>
+    <p class="settings-hint">Ces personnes ont demandé la suppression de leur compte et de leurs données. Supprime-les dans la console Firebase, puis clique sur « Traité ».</p>` +
+    list.map(d => `<div class="enrollment-row"><div><strong>${escC(d.nom || "—")}</strong><span class="enrollment-email">${escC(d.email || "")}</span></div><button class="btn-secondary" data-delreq="${escC(d.id)}">Traité</button></div>`).join("");
+  box.querySelectorAll("[data-delreq]").forEach(b => b.addEventListener("click", async () => {
+    try { await window.AbbaSync.cancelDeletionRequest(b.dataset.delreq); renderDeletionRequests(); }
+    catch (e) { alert("Impossible de mettre à jour : " + (e.code || e.message)); }
+  }));
+}
 function renderEnrollmentsAdmin() {
+  renderDeletionRequests();
   const container = document.getElementById("enrollmentsContainer");
   if (!container) return;
 

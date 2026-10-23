@@ -53,6 +53,8 @@ service cloud.firestore {
         // Le coordinateur a besoin d'écrire ce repère précis quand il relie deux Bâtisseurs —
         // il ne touche à rien d'autre dans l'espace privé de la personne.
         allow write: if hasDroit('binomes') && doc == "binome";
+        // Fiche de contact (adresse, naissance, urgence…) : lisible par le suivi et par le correcteur lié à l'élève
+        allow read: if doc == "contact" && (hasDroit('suivi') || isCorrecteurOf(uid));
       }
 
       // Données mensuelles (spirituel + bilans + finance), un document par mois AAAA-MM
@@ -95,6 +97,13 @@ service cloud.firestore {
     match /seances/{seanceId} {
       allow read: if request.auth != null;
       allow write: if hasDroit('presences');
+    }
+
+    // Demandes de suppression de compte : la personne la crée / l'annule, le suivi la lit et la traite
+    match /deletionRequests/{uid} {
+      allow create: if request.auth != null && request.auth.uid == uid && request.resource.data.status == "pending";
+      allow read, delete: if (request.auth != null && request.auth.uid == uid) || hasDroit('suivi');
+      allow update: if hasDroit('suivi');
     }
 
     match /enrollments/{enrollId} {

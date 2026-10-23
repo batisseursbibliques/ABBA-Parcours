@@ -79,6 +79,7 @@ async function start(user) {
     render();
   }));
   S().getUserProfile(user.uid).then((p) => { st.profile = p || {}; renderDash(); }).catch(() => {});
+  if (!window.__fmProfilListener) { window.__fmProfilListener = true; window.addEventListener("abba:profil-modifie", () => { if (!st.user) return; S().getUserProfile(st.user.uid).then((p) => { st.profile = p || {}; renderDash(); render(); }).catch(() => {}); }); }
   MODULES.filter((m) => m.ready).forEach((m) => loadContent(m.id).then(() => { render(); }));
   // Ces deux requêtes ne bloquent plus le démarrage : si le réseau est lent ou coupé, le reste de la page (modules, tâches, déclaration) se charge quand même
   S().amICorrecteur(user.email).then((v) => { st.isCorrecteur = !!v; render(); }).catch(() => {});
@@ -1533,7 +1534,7 @@ async function loadCorrections() {
 function renderCorrRow(r, i) {
   const c = st.content[r.mid];
   const m = MODULES.find((x) => x.id === r.mid);
-  let h = `<div class="fm-ex"><p class="eyebrow">${esc(r.nom)} — ${esc(modTitle(m))}</p>`;
+  let h = `<div class="fm-ex"><p class="eyebrow">${esc(r.nom)} — ${esc(modTitle(m))} <button type="button" class="btn-small" data-fiche="${esc(r.uid)}" data-nom="${esc(r.nom)}">📍 Fiche</button></p>`;
   if (r.doc.qcm) h += `<p class="small">Questions : <strong>${r.doc.qcm.pct} %</strong> (${r.doc.qcm.score}/${r.doc.qcm.total})</p>`;
   if (!c || c.error) h += '<p class="small">Chargement du contenu…</p>';
   else {
