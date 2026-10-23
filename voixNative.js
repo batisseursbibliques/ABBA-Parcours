@@ -27,7 +27,7 @@ async function nettoyer() {
 }
 
 // textes : liste des morceaux à lire ; depuis : indice du premier ; langue : "fr" ou "en"
-export function lireNatif({ textes, depuis = 0, vitesse = 1, titre = "ABBA Parcours", details = "", langue = "fr", onIndex, onFin, onPause, onErreur }) {
+export function lireNatif({ textes, depuis = 0, vitesse = 1, titre = "ABBA Parcours", details = "", langue = "fr", onIndex, onFin, onPause, onReprise, onErreur }) {
   return enFile(async () => {
     await nettoyer();
     const p = P();
@@ -37,6 +37,7 @@ export function lireNatif({ textes, depuis = 0, vitesse = 1, titre = "ABBA Parco
     await abonner("index", (e) => onIndex?.(e.index));
     await abonner("fin", () => onFin?.());
     await abonner("pause", (e) => onPause?.(e.index));
+    await abonner("reprise", (e) => onReprise?.(e.index));
     await abonner("erreur", (e) => onErreur?.(e.message));
     await p.lire({ textes, depuis, vitesse, titre, details, langue });
   });

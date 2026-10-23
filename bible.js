@@ -259,7 +259,7 @@ async function lireBibleNatif(depuis, liste, livre, chap, titre, details) {
   const dec = annonce.length;
   try {
     await lireNatif({
-      textes: [...annonce, ...liste], depuis: depuis + dec, vitesse: S.vitesse, titre, details, langue: langueV() === "en" ? "en" : "fr",
+      textes: [...annonce, ...liste], depuis, vitesse: S.vitesse, titre, details, langue: langueV() === "en" ? "en" : "fr",
       onIndex: (k) => {
         if (moi !== S.jeton) return;
         const i = k - dec;
@@ -269,6 +269,11 @@ async function lireBibleNatif(depuis, liste, livre, chap, titre, details) {
         $(`bv${i + 1}`)?.scrollIntoView({ block: "center", behavior: "smooth" });
       },
       onFin: finDuChapitre,
+      onReprise: () => { // bouton « Lecture » de la notification : la lecture reprend
+        if (S.jeton !== moi + 1) return;
+        S.jeton = moi; S.ecoute = true; S.enPause = false;
+        rendreBarre(); majSurbrillance(); majMini();
+      },
       onPause: (i) => { // pause demandée depuis la notification Android
         if (moi !== S.jeton) return;
         const reste = i >= 0 ? Math.max(i - dec, 0) + 1 : S.courant;
@@ -316,6 +321,13 @@ async function lire(depuis) {
   const aLire = [];
   for (let i = depuis; i < liste.length; i++) if (liste[i]) aLire.push(i);
   if (!aLire.length) { finDuChapitre(); return; }
+  if (depuis === 0) { // annonce du chapitre avant le premier verset
+    const ua = new SpeechSynthesisUtterance(T(`${nomLivre(livre)}, chapitre ${chap}.`, `${nomLivre(livre)}, chapter ${chap}.`));
+    ua.lang = langue === "fr" ? "fr-FR" : "en-GB";
+    if (voix) ua.voice = voix;
+    ua.rate = S.vitesse;
+    window.speechSynthesis.speak(ua);
+  }
   // Tous les versets restants sont mis en file d'attente d'un coup : la voix peut continuer même si l'écran s'éteint
   aLire.forEach((i, k) => {
     const u = new SpeechSynthesisUtterance(liste[i]);
