@@ -1,0 +1,51 @@
+name: Supprimer les comptes demandés
+
+# Lancé À LA MAIN : GitHub > Actions > « Supprimer les comptes demandés » > Run workflow.
+# Traite les personnes qui ont demandé la suppression de leur compte (liste « Demandes de suppression de compte »
+# de l'application). Par défaut : SIMULATION (rien n'est effacé) — écrire SUPPRIMER pour supprimer vraiment.
+on:
+  workflow_dispatch:
+    inputs:
+      confirmer:
+        description: "Écris SUPPRIMER (en majuscules) pour effacer vraiment. Tout autre texte = simulation, rien n'est effacé."
+        default: "simulation"
+      garder_finances:
+        description: "Garder une trace anonyme (sans nom) des versements et dons pour la comptabilité ? (oui / non)"
+        default: "oui"
+      uid:
+        description: "Facultatif : traiter une seule personne (son identifiant). Vide = toutes les demandes."
+        default: ""
+
+concurrency:
+  group: supprimer-comptes
+  cancel-in-progress: false
+
+jobs:
+  suppression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Écrire la clé de service (secret GitHub, jamais dans le code)
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+      - name: Installer firebase-admin
+        run: npm install --no-save --no-audit --no-fund firebase-admin@12
+      - name: Supprimer (ou simuler)
+        env:
+          SIMULATION: ${{ github.event.inputs.confirmer == 'SUPPRIMER' && '0' || '1' }}
+          GARDER_FINANCES: ${{ github.event.inputs.garder_finances == 'non' && '0' || '1' }}
+          UID_SEUL: ${{ github.event.inputs.uid }}
+        run: |
+          set +e
+          node scripts/supprimer-comptes.mjs > out.txt 2>&1
+          code=$?
+          cat out.txt
+          if [ $code -ne 0 ]; then
+            echo "::error title=Erreur de suppression::$(tail -n 12 out.txt | tr '\n' ' ' | cut -c1-900)"
+            exit $code
+          fi

@@ -1455,7 +1455,7 @@ async function renderDeletionRequests() {
   try { list = await window.AbbaSync.loadDeletionRequests(); } catch (e) { box.innerHTML = ""; return; }
   if (!list.length) { box.innerHTML = ""; return; }
   box.innerHTML = `<p class="eyebrow" style="margin-top:14px;">Demandes de suppression de compte</p>
-    <p class="settings-hint">Ces personnes ont demandé la suppression de leur compte et de leurs données. Supprime-les dans la console Firebase, puis clique sur « Traité ».</p>` +
+    <p class="settings-hint">Ces personnes ont demandé la suppression de leur compte et de leurs données. Pour les supprimer proprement : GitHub → Actions → « Supprimer les comptes demandés » → Run workflow (d'abord en simulation, puis en écrivant SUPPRIMER). Les demandes traitées disparaissent d'elles-mêmes d'ici ; « Traité » sert seulement à retirer une demande sans rien supprimer.</p>` +
     list.map(d => `<div class="enrollment-row"><div><strong>${escC(d.nom || "—")}</strong><span class="enrollment-email">${escC(d.email || "")}</span></div><button class="btn-secondary" data-delreq="${escC(d.id)}">Traité</button></div>`).join("");
   box.querySelectorAll("[data-delreq]").forEach(b => b.addEventListener("click", async () => {
     try { await window.AbbaSync.cancelDeletionRequest(b.dataset.delreq); renderDeletionRequests(); }
