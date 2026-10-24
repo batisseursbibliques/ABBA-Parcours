@@ -604,6 +604,8 @@ function renderExercices(c, p, readonly) {
   const done = exoComplete(c, p);
   const nOk = (c.exercices || []).filter((ex) => exerciseState(c, ex, p) === "ok").length;
   let h = `<p class="settings-hint">${nOk}/${(c.exercices || []).length} exercices faits. Ouvre un exercice pour le faire, puis touche « Enregistrer ». Tu peux revenir compléter les autres plus tard.</p>`;
+  const pratique = rythmeLibre() ? [] : rythmeExercices(c, st.view.mod, st.suivis);
+  if (pratique.length) h += `<p class="settings-hint"><strong>À prévoir :</strong> pour envoyer ta fiche, tes exercices de pratique doivent avoir avancé de moitié au moins. Commence-les dès maintenant pour ne pas perdre de temps :<br>${pratique.map((x) => esc(rythmeLigne(x))).join("<br>")}</p>`;
   (c.exercices || []).forEach((ex, exIdx) => {
     const saved = (p.exercices || {})[ex.id] || {};
     const state = exerciseState(c, ex, p);
@@ -621,6 +623,27 @@ function renderExercices(c, p, readonly) {
 function statusLabel(s) {
   return { draft: "Brouillon", submitted: "Envoyée — en attente de correction", returned: "Renvoyée par ton correcteur", validated: "Validée ✅" }[s || "draft"];
 }
+/* ---------- Rythme : les exercices de plusieurs jours doivent avoir avancé avant l'envoi de la fiche ---------- */
+// Règle : la moitié des jours (arrondie au-dessus) pour chaque exercice de pratique d'au moins 7 jours ; un jour compte dès qu'une case est cochée.
+// Un coordinateur peut accorder le « rythme libre » à un étudiant (équipe de départ, recyclage…).
+const RYTHME_PART = 0.5;
+function rythmeExercices(c, mid, suivis) {
+  const out = [];
+  ((c && c.exercices) || []).forEach((ex) => (ex.champs || []).forEach((f) => {
+    if (f.type !== "suivi" || f.permanent) return;
+    const jours = Number(f.jours) || 0, pas = Number(f.pas) || 1;
+    if (jours * pas < 7) return;
+    const sv = (suivis || {})[suiviKey(mid, ex.id, f.id)];
+    const faits = sv ? Object.values(sv.done || {}).filter((a) => (Array.isArray(a) ? a.length > 0 : !!a)).length : 0;
+    out.push({ label: f.label || ex.titre || "", jours, pas, faits, requis: Math.ceil(jours * RYTHME_PART) });
+  }));
+  return out;
+}
+const rythmeLibre = () => !!(st.meta && st.meta.rythmeLibre);
+const rythmeManque = (c, mid) => (rythmeLibre() ? [] : rythmeExercices(c, mid, st.suivis).filter((x) => x.faits < x.requis));
+const rythmeUnite = (x, n) => (x.pas > 1 ? "semaine" : "jour") + (n > 1 ? "s" : "");
+const rythmeLigne = (x) => `« ${x.label} » : ${rythmeUnite(x, 2)} faits ${x.faits} sur ${x.requis} requis` + (x.faits < x.requis ? ` (encore ${x.requis - x.faits} ${rythmeUnite(x, x.requis - x.faits)})` : " ✓");
+
 function renderFiche(c, p, ss) {
   const f = c.fiche, status = p.ficheStatus || "draft";
   const readonly = status === "submitted" || status === "validated";
@@ -631,9 +654,11 @@ function renderFiche(c, p, ss) {
   f.champs.forEach((fd) => { h += renderField(fd, "fiche", saved, readonly); });
   if (!readonly) {
     h += '<button class="btn-secondary" data-act="fiche-save">Enregistrer le brouillon</button>';
-    const prereq = ss.lecture && ss.qcm && ss.exercices;
+    const manque = rythmeManque(c, st.view.mod);
+    const prereq = ss.lecture && ss.qcm && ss.exercices && manque.length === 0;
     h += `<button class="btn-primary full" data-act="fiche-send" ${prereq ? "" : "disabled"}>Envoyer à mon correcteur</button>`;
-    if (!prereq) h += '<p class="settings-hint">Pour envoyer : termine la lecture, réussis les questions et complète les exercices.</p>';
+    if (!(ss.lecture && ss.qcm && ss.exercices)) h += '<p class="settings-hint">Pour envoyer : termine la lecture, réussis les questions et complète les exercices.</p>';
+    if (manque.length) h += `<div class="fm-return"><strong>Tes exercices de pratique doivent avancer avant l’envoi.</strong><ul>${manque.map((x) => `<li>${esc(rythmeLigne(x))}</li>`).join("")}</ul><p class="small">La transformation se construit dans la durée : fais-les chaque jour. Si ta situation est particulière, parle à ta coordination.</p></div>`;
   }
   return h;
 }
@@ -800,6 +825,8 @@ async function saveFiche(send) {
   const mid = st.view.mod, c = st.content[mid], p = st.prog[mid] || {};
   const vals = scopeValues("fiche", p.ficheData);
   if (send) {
+    const manque = rythmeManque(c, mid);
+    if (manque.length) { st.msg = "Tes exercices de pratique doivent encore avancer avant l’envoi : " + manque.map(rythmeLigne).join(" ; "); await S().saveModulePart(st.user.uid, mid, { ficheData: vals }); render(); return; }
     if (!fieldsComplete(c.fiche.champs, vals)) { st.msg = "Complète tous les champs de la fiche avant de l'envoyer."; await S().saveModulePart(st.user.uid, mid, { ficheData: vals }); render(); return; }
     if (!st.lien) { st.msg = "Aucun correcteur ne t'est encore attribué. Contacte la coordination."; await S().saveModulePart(st.user.uid, mid, { ficheData: vals }); render(); return; }
     await S().saveModulePart(st.user.uid, mid, { ficheData: vals, ficheStatus: "submitted", submittedAt: new Date().toISOString() });
@@ -1550,6 +1577,8 @@ function renderCorrRow(r, i) {
       const v = (r.doc.exercices || {})[ex.id] || {};
       h += `<p><strong>${esc(ex.titre)}</strong></p>` + (ex.champs || []).filter((f) => !f.si || v[f.si.champ] === f.si.val).map((f) => readValue(f, v[f.id])).join("");
     });
+    const prat = rythmeExercices(c, r.mid, r.suivis);
+    if (prat.length) h += `<p class="small"><strong>Pratique (minimum demandé : la moitié) :</strong><br>${prat.map((x) => esc(rythmeLigne(x))).join("<br>")}</p>`;
     Object.values(r.suivis || {}).filter((s) => s.mid === r.mid).forEach((s) => {
       const tot = s.jours * (s.labels || [1]).length, nd = Object.values(s.done || {}).reduce((a, x) => a + x.length, 0);
       h += `<p class="small"><strong>Suivi « ${esc(s.titre)} » :</strong> ${nd}/${tot} faits (commencé le ${fmtDate(s.start, 1)})</p>`;
@@ -1656,6 +1685,7 @@ function renderAdminCard() {
       <label class="field"><span>Correcteur</span><select class="text-input" id="admLien-${s.uid}"><option value="">— aucun —</option>${st.adm.correcteurs.map((c) => `<option value="${esc(c.email)}" ${lien && lien.correcteurEmail === c.email ? "selected" : ""}>${esc(c.nom || c.email)}</option>`).join("")}</select></label>
       <button class="btn-secondary" data-act="adm-setlien" data-u="${s.uid}">Enregistrer le lien</button>
 ${can("suivi") ? `      <label class="fm-check"><input type="checkbox" id="admAuto-${s.uid}" ${((st.adm.metas || {})[s.uid] || {}).autoevalFaite ? "checked" : ""}><span>Auto-évaluation déjà faite (dispensée)</span></label>
+      <label class="fm-check"><input type="checkbox" id="admLibre-${s.uid}" ${((st.adm.metas || {})[s.uid] || {}).rythmeLibre ? "checked" : ""}><span>Rythme libre : aucun délai minimum pour envoyer les fiches</span></label>
       <div class="fm-acq">${MODULES.map((m) => `<label><input type="checkbox" id="admAcq-${s.uid}-${m.id}" ${acq.includes(m.id) ? "checked" : ""}> M${modNum(m)}</label>`).join("")}</div>
       <button class="btn-secondary" data-act="adm-setacquis" data-u="${s.uid}">Enregistrer les modules acquis</button>` : ""}</div>`;
   });
@@ -1681,8 +1711,9 @@ async function admSetLien(uid) {
 async function admSetAcquis(uid) {
   const list = MODULES.filter((m) => { const el = $(`admAcq-${uid}-${m.id}`); return el && el.checked; }).map((m) => m.id);
   const autoevalFaite = !!($(`admAuto-${uid}`) || {}).checked;
-  await S().setAcquis(uid, list, { autoevalFaite });
-  st.adm.metas[uid] = { acquis: list, autoevalFaite };
+  const rythmeLibreOn = !!($(`admLibre-${uid}`) || {}).checked;
+  await S().setAcquis(uid, list, { autoevalFaite, rythmeLibre: rythmeLibreOn });
+  st.adm.metas[uid] = { ...(st.adm.metas[uid] || {}), acquis: list, autoevalFaite, rythmeLibre: rythmeLibreOn };
   st.msg = "Modules acquis enregistrés.";
   render();
 }
