@@ -215,7 +215,7 @@ function setupAuthScreen() {
     };
     if (d.prenom.length < 2 || d.nom.length < 2) { errEl.textContent = "Écris ton prénom et ton nom."; return; }
     if (d.telephone.replace(/\D/g, "").length < 8) { errEl.textContent = "Numéro de téléphone invalide (au moins 8 chiffres, avec l'indicatif du pays si tu es à l'étranger)."; return; }
-    if (d.password.length < 6) { errEl.textContent = "Le mot de passe doit faire au moins 6 caractères."; return; }
+    if (d.password.length < 8) { errEl.textContent = "Le mot de passe doit faire au moins 8 caractères."; return; }
     const age = ageFromBirth(d.naissance);
     if (age === null) { errEl.textContent = "Date de naissance invalide."; return; }
     if (age < 15) { errEl.textContent = "Le Parcours est ouvert à partir de 15 ans."; return; }
@@ -240,7 +240,7 @@ function traduireErreurAuth(err) {
   const code = err && err.code ? err.code : "";
   if (code.includes("invalid-credential") || code.includes("wrong-password") || code.includes("user-not-found")) return "E-mail ou mot de passe incorrect.";
   if (code.includes("email-already-in-use")) return "Cette adresse e-mail a déjà un compte (par exemple sur ABBA Life). Utilise l'onglet « Se connecter ».";
-  if (code.includes("weak-password")) return "Mot de passe trop faible : au moins 6 caractères.";
+  if (code.includes("weak-password")) return "Mot de passe trop faible : au moins 8 caractères.";
   if (code.includes("invalid-email")) return "Adresse e-mail invalide.";
   if (code.includes("missing-email")) return "Écris ton adresse e-mail.";
   if (code.includes("too-many-requests")) return "Trop de tentatives. Patiente quelques minutes puis réessaie.";

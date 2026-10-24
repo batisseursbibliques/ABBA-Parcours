@@ -148,7 +148,7 @@ function htmlMdp() {
     <p class="auth-ok" id="pw-ok"></p>
     <div id="pw-form" style="display:none;margin-top:12px;">
       <label class="field"><span>${T("Mot de passe actuel", "Current password")}</span><input type="password" id="pw-actuel" autocomplete="current-password"></label>
-      <label class="field"><span>${T("Nouveau mot de passe (6 caractères minimum)", "New password (6 characters minimum)")}</span><input type="password" id="pw-nouveau" autocomplete="new-password"></label>
+      <label class="field"><span>${T("Nouveau mot de passe (8 caractères minimum)", "New password (8 characters minimum)")}</span><input type="password" id="pw-nouveau" autocomplete="new-password"></label>
       <p class="auth-error" id="pw-err"></p>
       <div class="pf-actions"><button class="btn-primary" id="pw-save" type="button">${T("Changer mon mot de passe", "Change my password")}</button><button class="btn-secondary" id="pw-cancel" type="button">${T("Annuler", "Cancel")}</button></div>
     </div>`;
@@ -287,7 +287,7 @@ async function changerMotDePasse() {
   const err = $("pw-err"); err.textContent = ""; $("pw-ok").textContent = "";
   const a = $("pw-actuel").value, n = $("pw-nouveau").value;
   if (!a) { err.textContent = T("Écris ton mot de passe actuel.", "Write your current password."); return; }
-  if (n.length < 6) { err.textContent = T("Le nouveau mot de passe doit faire au moins 6 caractères.", "The new password must be at least 6 characters long."); return; }
+  if (n.length < 8) { err.textContent = T("Le nouveau mot de passe doit faire au moins 8 caractères.", "The new password must be at least 8 characters long."); return; }
   const btn = $("pw-save"); btn.disabled = true;
   try {
     await S().changePassword(a, n);
