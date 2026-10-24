@@ -17,6 +17,40 @@ const esc = (s) => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const AUTRE = "__autre__";
 
+
+/* ----- Application Android (APK) : rappel par notification locale programmée -----
+   Le navigateur interne d'Android ne gère pas les notifications push du web ; l'APK utilise donc
+   l'alarme du téléphone (plugin Capacitor « LocalNotifications ») : aucune dépendance au serveur. */
+const estNatif = () => !!(typeof window !== "undefined" && window.Capacitor?.isNativePlatform?.());
+const ID_RAPPEL = 4201;
+let _ln = null;
+const lnPlugin = () => {
+  const C = window.Capacitor; if (!C) return null;
+  if (_ln) return _ln;
+  try { _ln = typeof C.registerPlugin === "function" ? C.registerPlugin("LocalNotifications") : C.Plugins?.LocalNotifications; } catch (e) { _ln = C.Plugins?.LocalNotifications || null; }
+  return _ln;
+};
+const lnDisponible = () => { try { const C = window.Capacitor; return !!(C && (C.isPluginAvailable ? C.isPluginAvailable("LocalNotifications") : true) && lnPlugin()); } catch (e) { return false; } };
+// retourne { etat } : "ok" | "off" | "bloque" | "mise-a-jour" | "erreur"
+async function programmerRappelNatif(actif, heure, demander) {
+  if (!lnDisponible()) return { etat: "mise-a-jour" };         // ancienne version de l'APK, sans le plugin
+  const ln = lnPlugin();
+  try {
+    await ln.cancel({ notifications: [{ id: ID_RAPPEL }] });
+    if (!actif) return { etat: "off" };
+    let perm = await ln.checkPermissions();
+    if (perm.display !== "granted" && demander) perm = await ln.requestPermissions();
+    if (perm.display !== "granted") return { etat: "bloque" };
+    const [h, m] = String(heure || "20:00").split(":").map(Number);
+    await ln.schedule({ notifications: [{
+      id: ID_RAPPEL, title: "ABBA Parcours",
+      body: T("C'est l'heure de ta journée : ta déclaration et tes habitudes t'attendent.", "It's time for your day: your declaration and your habits are waiting for you."),
+      schedule: { on: { hour: isNaN(h) ? 20 : h, minute: isNaN(m) ? 0 : m }, allowWhileIdle: true },
+    }] });
+    return { etat: "ok" };
+  } catch (e) { console.error("rappel natif:", e); return { etat: "erreur" }; }
+}
+
 const P = { user: null, profil: {}, contact: {}, pays: [], chargement: false, demandeSuppr: null };
 
 function ageDe(iso) {
@@ -225,10 +259,17 @@ async function enregistrer() {
     window.dispatchEvent(new CustomEvent("abba:profil-modifie", { detail: { nom: r.nom, telephone: r.telephone } }));
     let note = "";
     try {
-      const rp = await S().registerPush(P.user.uid, { actif: contact.rappelActif, heure: contact.heureRappel, langue: EN() ? "en" : "fr", demander: true });
+      const natif = estNatif();
+      const rp = natif
+        ? await programmerRappelNatif(contact.rappelActif, contact.heureRappel, true)
+        : await S().registerPush(P.user.uid, { actif: contact.rappelActif, heure: contact.heureRappel, langue: EN() ? "en" : "fr", demander: true });
+      if (natif) { try { await S().registerPush(P.user.uid, { actif: false }); } catch (e) {} }   // pas de push serveur en double
       P.pushOk = rp.etat === "ok";
       if (contact.rappelActif) {
-        if (rp.etat === "ok") note = " " + T("Les notifications sont activées sur cet appareil.", "Notifications are enabled on this device.");
+        if (rp.etat === "ok" && natif) note = " " + T("Rappel programmé sur ce téléphone à " + contact.heureRappel + ", même application fermée.", "Reminder scheduled on this phone at " + contact.heureRappel + ", even with the app closed.");
+        else if (rp.etat === "mise-a-jour") note = " " + T("Pour recevoir le rappel, installe la dernière version de l'application ABBA Parcours (la version actuelle ne gère pas encore les rappels).", "To receive the reminder, install the latest version of the ABBA Parcours app (the current version does not support reminders yet).");
+        else if (rp.etat === "bloque" && natif) note = " " + T("Les notifications sont refusées : autorise-les dans les réglages Android (Applications > ABBA Parcours > Notifications).", "Notifications are refused: allow them in Android settings (Apps > ABBA Parcours > Notifications).");
+        else if (rp.etat === "ok") note = " " + T("Les notifications sont activées sur cet appareil.", "Notifications are enabled on this device.");
         else if (rp.etat === "bloque") note = " " + T("Les notifications sont bloquées : autorise-les dans les réglages de ton navigateur pour recevoir le rappel.", "Notifications are blocked: allow them in your browser settings to receive the reminder.");
         else if (rp.etat === "non-supporte") note = " " + T("Cet appareil ne permet pas les notifications en arrière-plan (sur iPhone, ajoute l'application à l'écran d'accueil). Le rappel s'affichera quand l'application est ouverte.", "This device does not allow background notifications (on iPhone, add the app to your home screen). The reminder will show when the app is open.");
         else note = " " + T("Les notifications n'ont pas pu être activées pour le moment.", "Notifications could not be enabled right now.");
@@ -353,11 +394,14 @@ async function verifierRappel() {
 
 const surConnexion = async (u) => {
   P.user = u || null; P.contact = { __vide: true }; P.profil = {}; P.mode = "vue";
-  if (!P.user) { majBandeau(); return; }
+  if (!P.user) { P.pushOk = false; if (estNatif()) { try { programmerRappelNatif(false); } catch (e) {} } majBandeau(); return; }
   try { P.contact = await S().getContact(P.user.uid) || {}; } catch (e) { P.contact = {}; }
   try { P.profil = await S().getUserProfile(P.user.uid) || {}; } catch (e) { P.profil = {}; }
   try {
-    if (P.contact && P.contact.rappelActif && S().registerPush) {
+    if (estNatif()) {
+      const rp = await programmerRappelNatif(!!(P.contact && P.contact.rappelActif), P.contact && P.contact.heureRappel, false);
+      P.pushOk = rp.etat === "ok";
+    } else if (P.contact && P.contact.rappelActif && S().registerPush) {
       const rp = await S().registerPush(P.user.uid, { actif: true, heure: P.contact.heureRappel, langue: EN() ? "en" : "fr", demander: false });
       P.pushOk = rp.etat === "ok";
     }
