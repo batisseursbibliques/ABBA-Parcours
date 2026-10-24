@@ -1620,6 +1620,23 @@ async function loadAdmin() {
   st.adm.loaded = true;
   render();
 }
+// Recherche d'un étudiant : sans accents ni majuscules, tous les mots tapés doivent se retrouver dans le nom ou l'e-mail
+const admNorm = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+function admVisible(s, mots, filtre) {
+  const hay = admNorm(`${s.nom || ""} ${s.email || ""}`);
+  if (!mots.every((m) => hay.includes(m))) return false;
+  if (filtre === "sans") return !st.adm.liens.some((l) => (l.uid || l.id) === s.uid);
+  return true;
+}
+function admFiltrer() {
+  const mots = admNorm(st.adm.q || "").split(" ").filter(Boolean);
+  let n = 0;
+  document.querySelectorAll(".fm-adm-etu").forEach((el) => {
+    const s = st.adm.students.find((x) => x.uid === el.dataset.uid), ok = !!s && admVisible(s, mots, st.adm.f);
+    el.style.display = ok ? "" : "none"; if (ok) n++;
+  });
+  const c = $("admCount"); if (c) c.textContent = `${n} sur ${st.adm.students.length} étudiant${st.adm.students.length > 1 ? "s" : ""}`;
+}
 function renderAdminCard() {
   let h = `<div class="card"><button class="fm-acc" data-act="adm-toggle"><span class="eyebrow">Gestion des correcteurs et des étudiants</span><span>${st.adm.open ? "▾" : "▸"}</span></button>`;
   if (!st.adm.open) return h + "</div>";
@@ -1629,10 +1646,13 @@ function renderAdminCard() {
   st.adm.correcteurs.forEach((c) => { h += `<p class="small">${esc(c.nom || "")} — ${esc(c.email)} <button class="btn-small btn-refuse" data-act="adm-delcorr" data-e="${esc(c.email)}">Retirer</button></p>`; });
   h += `<div class="fm-add"><input class="text-input" id="admCorrNom" placeholder="Nom du correcteur"><input class="text-input" id="admCorrEmail" type="email" placeholder="E-mail du compte du correcteur"><button class="btn-secondary" data-act="adm-addcorr">Ajouter ce correcteur</button></div>`;
   h += '<p class="eyebrow" style="margin-top:16px;">Étudiants</p><p class="settings-hint">Lie chaque étudiant à un correcteur. « Modules acquis » : les modules déjà faits en séance, comptés comme validés.</p>';
+  const mots = admNorm(st.adm.q || "").split(" ").filter(Boolean);
+  const nbVisibles = st.adm.students.filter((s) => admVisible(s, mots, st.adm.f)).length;
+  h += `<div class="pay-barre"><input id="admQ" type="search" class="text-input" placeholder="Chercher un étudiant (nom, prénom, e-mail)" value="${esc(st.adm.q || "")}" autocomplete="off"><select id="admF" class="text-input"><option value="tous"${st.adm.f !== "sans" ? " selected" : ""}>Tous</option><option value="sans"${st.adm.f === "sans" ? " selected" : ""}>Sans correcteur</option></select></div><p class="small" id="admCount">${nbVisibles} sur ${st.adm.students.length} étudiant${st.adm.students.length > 1 ? "s" : ""}</p>`;
   st.adm.students.forEach((s) => {
     const lien = st.adm.liens.find((l) => (l.uid || l.id) === s.uid);
     const acq = ((st.adm.metas || {})[s.uid] || {}).acquis || [];
-    h += `<div class="fm-ex"><p class="eyebrow">${esc(s.nom || s.email)}</p><p class="small">${esc(s.email)}</p>
+    h += `<div class="fm-ex fm-adm-etu" data-uid="${esc(s.uid)}"${admVisible(s, mots, st.adm.f) ? "" : ' style="display:none"'}><p class="eyebrow">${esc(s.nom || s.email)}</p><p class="small">${esc(s.email)}</p>
       <label class="field"><span>Correcteur</span><select class="text-input" id="admLien-${s.uid}"><option value="">— aucun —</option>${st.adm.correcteurs.map((c) => `<option value="${esc(c.email)}" ${lien && lien.correcteurEmail === c.email ? "selected" : ""}>${esc(c.nom || c.email)}</option>`).join("")}</select></label>
       <button class="btn-secondary" data-act="adm-setlien" data-u="${s.uid}">Enregistrer le lien</button>
 ${can("suivi") ? `      <label class="fm-check"><input type="checkbox" id="admAuto-${s.uid}" ${((st.adm.metas || {})[s.uid] || {}).autoevalFaite ? "checked" : ""}><span>Auto-évaluation déjà faite (dispensée)</span></label>
@@ -1715,6 +1735,8 @@ function boot() {
       } catch (err) { /* la lecture se coche aussi dans le calendrier */ }
     });
   }
+  document.addEventListener("input", (e) => { if (e.target && e.target.id === "admQ") { st.adm.q = e.target.value; admFiltrer(); } });
+  document.addEventListener("change", (e) => { if (e.target && e.target.id === "admF") { st.adm.f = e.target.value; admFiltrer(); } });
   const atg = $("apercuToggle");
   if (atg) atg.addEventListener("change", () => { st.apercuOn = atg.checked; try { localStorage.setItem("abba_apercu", atg.checked ? "1" : "0"); } catch (e) {} render(); });
   const gc = document.querySelector(".abba-invite-card");
