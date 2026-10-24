@@ -1682,12 +1682,12 @@ function renderAdminCard() {
     const lien = st.adm.liens.find((l) => (l.uid || l.id) === s.uid);
     const acq = ((st.adm.metas || {})[s.uid] || {}).acquis || [];
     h += `<div class="fm-ex fm-adm-etu" data-uid="${esc(s.uid)}"${admVisible(s, mots, st.adm.f) ? "" : ' style="display:none"'}><p class="eyebrow">${esc(s.nom || s.email)}</p><p class="small">${esc(s.email)}</p>
-      <label class="field"><span>Correcteur</span><select class="text-input" id="admLien-${s.uid}"><option value="">— aucun —</option>${st.adm.correcteurs.map((c) => `<option value="${esc(c.email)}" ${lien && lien.correcteurEmail === c.email ? "selected" : ""}>${esc(c.nom || c.email)}</option>`).join("")}</select></label>
-      <button class="btn-secondary" data-act="adm-setlien" data-u="${s.uid}">Enregistrer le lien</button>
-${can("suivi") ? `      <label class="fm-check"><input type="checkbox" id="admAuto-${s.uid}" ${((st.adm.metas || {})[s.uid] || {}).autoevalFaite ? "checked" : ""}><span>Auto-évaluation déjà faite (dispensée)</span></label>
-      <label class="fm-check"><input type="checkbox" id="admLibre-${s.uid}" ${((st.adm.metas || {})[s.uid] || {}).rythmeLibre ? "checked" : ""}><span>Rythme libre : aucun délai minimum pour envoyer les fiches</span></label>
-      <div class="fm-acq">${MODULES.map((m) => `<label><input type="checkbox" id="admAcq-${s.uid}-${m.id}" ${acq.includes(m.id) ? "checked" : ""}> M${modNum(m)}</label>`).join("")}</div>
-      <button class="btn-secondary" data-act="adm-setacquis" data-u="${s.uid}">Enregistrer les modules acquis</button>` : ""}</div>`;
+      <label class="field"><span>Correcteur</span><select class="text-input" id="admLien-${esc(s.uid)}"><option value="">— aucun —</option>${st.adm.correcteurs.map((c) => `<option value="${esc(c.email)}" ${lien && lien.correcteurEmail === c.email ? "selected" : ""}>${esc(c.nom || c.email)}</option>`).join("")}</select></label>
+      <button class="btn-secondary" data-act="adm-setlien" data-u="${esc(s.uid)}">Enregistrer le lien</button>
+${can("suivi") ? `      <label class="fm-check"><input type="checkbox" id="admAuto-${esc(s.uid)}" ${((st.adm.metas || {})[s.uid] || {}).autoevalFaite ? "checked" : ""}><span>Auto-évaluation déjà faite (dispensée)</span></label>
+      <label class="fm-check"><input type="checkbox" id="admLibre-${esc(s.uid)}" ${((st.adm.metas || {})[s.uid] || {}).rythmeLibre ? "checked" : ""}><span>Rythme libre : aucun délai minimum pour envoyer les fiches</span></label>
+      <div class="fm-acq">${MODULES.map((m) => `<label><input type="checkbox" id="admAcq-${esc(s.uid)}-${esc(m.id)}" ${acq.includes(m.id) ? "checked" : ""}> M${modNum(m)}</label>`).join("")}</div>
+      <button class="btn-secondary" data-act="adm-setacquis" data-u="${esc(s.uid)}">Enregistrer les modules acquis</button>` : ""}</div>`;
   });
   return h + "</div>";
 }

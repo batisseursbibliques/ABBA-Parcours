@@ -129,9 +129,24 @@ service cloud.firestore {
     match /enrollments/{enrollId} {
       allow read: if hasDroit('presences') || hasDroit('paiements')
         || (request.auth != null && enrollId.matches(request.auth.uid + '_.*'));
+      // Demande d'accès : seuls les champs prévus, de longueur raisonnable, au nom de la personne connectée
       allow create: if request.auth != null
         && enrollId.matches(request.auth.uid + '_.*')
-        && request.resource.data.status == "pending";
+        && request.resource.data.status == "pending"
+        && request.resource.data.keys().hasOnly(['uid','app','nom','prenom','email','telephone','naissance','mineur',
+             'tuteurNom','tuteurTel','autorisationParentale','via','status','requestedAt','reviewedBy','reviewedAt'])
+        && request.resource.data.keys().hasAll(['uid','app','status'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.app is string && request.resource.data.app.size() <= 30
+        && request.resource.data.get('reviewedBy', null) == null
+        && request.resource.data.get('nom', '') is string && request.resource.data.get('nom', '').size() <= 150
+        && request.resource.data.get('prenom', '') is string && request.resource.data.get('prenom', '').size() <= 150
+        && request.resource.data.get('email', '') is string && request.resource.data.get('email', '').size() <= 200
+        && request.resource.data.get('telephone', '') is string && request.resource.data.get('telephone', '').size() <= 40
+        && request.resource.data.get('naissance', '') is string && request.resource.data.get('naissance', '').size() <= 20
+        && request.resource.data.get('tuteurNom', '') is string && request.resource.data.get('tuteurNom', '').size() <= 150
+        && request.resource.data.get('tuteurTel', '') is string && request.resource.data.get('tuteurTel', '').size() <= 40
+        && request.resource.data.get('via', '') is string && request.resource.data.get('via', '').size() <= 60;
       allow update: if hasDroit('presences');
       allow delete: if hasDroit('presences');
     }

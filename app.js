@@ -1271,20 +1271,20 @@ async function renderSeancesAdmin() {
       <div class="accord-head" style="display:flex;align-items:center;gap:8px;">
         <button type="button" style="flex:1;background:none;border:none;text-align:left;cursor:pointer;padding:0;font-family:inherit;"
           onclick="toggleAccord('${bodyId}','${arrowId}')">
-          <span style="font-weight:600;font-size:13.5px;">${escapeAttr(s.titre)} — ${s.date || ""}</span>
+          <span style="font-weight:600;font-size:13.5px;">${escapeAttr(s.titre)} — ${escC(s.date || "")}</span>
         </button>
         <span id="${arrowId}" class="accord-arrow" onclick="toggleAccord('${bodyId}','${arrowId}')" style="cursor:pointer;">▸</span>
-        <button type="button" class="editor-del-cat" title="Supprimer la séance" data-seance-id="${s.id}">🗑</button>
+        <button type="button" class="editor-del-cat" title="Supprimer la séance" data-seance-id="${escC(s.id)}">🗑</button>
       </div>
       <div id="${bodyId}" style="display:none;" class="seance-membres-wrap">
         ${lignesMembres.map(m => `
-          <div class="editor-item-row" id="seance-row-${s.id}-${m.uid}">
+          <div class="editor-item-row" id="seance-row-${escC(s.id)}-${escC(m.uid)}">
             <span class="text-input" style="border:none;padding:6px 0;flex:1;">${escapeAttr(m.nom)}</span>
             <button type="button" class="btn-secondary presence-btn" data-present="true"
-              data-sid="${s.id}" data-uid="${m.uid}" data-nom="${escapeAttr(m.nom)}"
+              data-sid="${escC(s.id)}" data-uid="${escC(m.uid)}" data-nom="${escapeAttr(m.nom)}"
               style="${m.present === true ? 'background:var(--sage);color:#fff;' : ''}">Présent</button>
             <button type="button" class="btn-secondary presence-btn" data-present="false"
-              data-sid="${s.id}" data-uid="${m.uid}" data-nom="${escapeAttr(m.nom)}"
+              data-sid="${escC(s.id)}" data-uid="${escC(m.uid)}" data-nom="${escapeAttr(m.nom)}"
               style="${m.present === false ? 'background:var(--brick);color:#fff;' : ''}">Absent</button>
           </div>`).join("")}
       </div>`;
@@ -1472,31 +1472,32 @@ function renderEnrollmentsAdmin() {
   const refused = ALL_ENROLLMENTS.filter(e => e.status === "refused");
 
   const row = (e, mode) => {
-    const nom  = `${e.prenom || ""} ${e.nom || ""}`.trim() || e.email;
+    const uidS = String(e.uid || "").replace(/[^A-Za-z0-9_-]/g, "");   // identifiant nettoyé (sert dans les boutons)
+    const nom  = escC(`${e.prenom || ""} ${e.nom || ""}`.trim() || e.email || "—");
     const date = e.requestedAt?.toDate ? e.requestedAt.toDate().toLocaleDateString(window.I18N && window.I18N.lang === "en" ? "en-US" : "fr-FR") : "—";
     const actions = mode === "pending"
       ? `<div class="enrollment-actions">
-           <button class="btn-small btn-approve" onclick="approveEnrollment('${e.uid}')">✓ Approuver</button>
-           <button class="btn-small btn-refuse"  onclick="refuseEnrollment('${e.uid}')">✕ Refuser</button>
+           <button class="btn-small btn-approve" onclick="approveEnrollment('${uidS}')">✓ Approuver</button>
+           <button class="btn-small btn-refuse"  onclick="refuseEnrollment('${uidS}')">✕ Refuser</button>
          </div>`
       : mode === "refused"
       ? `<div class="enrollment-actions">
            <span class="enrollment-status-badge refused">✕ Refusé</span>
-           <button class="btn-small btn-approve" onclick="approveEnrollment('${e.uid}')" title="Réactiver">↩ Réactiver</button>
-           <button class="btn-small btn-refuse" onclick="radierEnrollment('${e.uid}')" title="Radier définitivement">⊗ Radier</button>
+           <button class="btn-small btn-approve" onclick="approveEnrollment('${uidS}')" title="Réactiver">↩ Réactiver</button>
+           <button class="btn-small btn-refuse" onclick="radierEnrollment('${uidS}')" title="Radier définitivement">⊗ Radier</button>
          </div>`
       : `<div class="enrollment-actions">
            <span class="enrollment-status-badge active">✓ Actif</span>
-           <button class="btn-small btn-refuse" onclick="radierEnrollment('${e.uid}')" title="Sortir du parcours">⊗ Sortir</button>
+           <button class="btn-small btn-refuse" onclick="radierEnrollment('${uidS}')" title="Sortir du parcours">⊗ Sortir</button>
          </div>`;
     return `<div class="enrollment-row">
       <div class="enrollment-info">
         <span class="enrollment-name">${nom}</span>
-        <span class="enrollment-email">${e.email}</span>
+        <span class="enrollment-email">${escC(e.email)}</span>
         <span class="enrollment-date">Demande : ${date}</span>
-        ${e.telephone ? `<span class="enrollment-email">Tél : ${e.telephone}</span>` : ""}
-        ${e.naissance ? `<span class="enrollment-email">Né(e) le ${e.naissance}${ageFromBirth(e.naissance) !== null ? " · " + ageFromBirth(e.naissance) + " ans" : ""}</span>` : ""}
-        ${e.mineur ? `<span class="enrollment-email" style="color:var(--brick);font-weight:600;">Mineur(e) : autorisation parentale déclarée — ${e.tuteurNom || "?"}, ${e.tuteurTel || "?"}</span>` : ""}
+        ${e.telephone ? `<span class="enrollment-email">Tél : ${escC(e.telephone)}</span>` : ""}
+        ${e.naissance ? `<span class="enrollment-email">Né(e) le ${escC(e.naissance)}${ageFromBirth(e.naissance) !== null ? " · " + ageFromBirth(e.naissance) + " ans" : ""}</span>` : ""}
+        ${e.mineur ? `<span class="enrollment-email" style="color:var(--brick);font-weight:600;">Mineur(e) : autorisation parentale déclarée — ${escC(e.tuteurNom || "?")}, ${escC(e.tuteurTel || "?")}</span>` : ""}
       </div>
       ${actions}
     </div>`;
