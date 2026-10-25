@@ -160,6 +160,7 @@ function htmlDonnees() {
     <p class="settings-hint">${T("Tu peux télécharger toutes les données que le Parcours garde sur toi. Tu peux aussi demander la suppression de ton compte : un coordinateur la traitera.", "You can download all the data the Course keeps about you. You can also ask for your account to be deleted: a coordinator will process it.")}</p>
     <button class="btn-secondary" id="data-export" type="button">${T("Télécharger mes données", "Download my data")}</button>
     <div id="data-suppr" style="margin-top:12px;"></div>
+    <p class="settings-hint"><a href="confidentialite.html" target="_blank" rel="noopener">${T("Lire la politique de confidentialité", "Read the privacy policy")}</a></p>
     <p class="auth-error" id="data-err"></p>`;
 }
 
