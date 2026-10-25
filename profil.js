@@ -156,6 +156,7 @@ function htmlMdp() {
 
 function htmlDonnees() {
   return `
+    <div id="cert-box"></div>
     <p class="eyebrow">${T("Mes données", "My data")}</p>
     <p class="settings-hint">${T("Tu peux télécharger toutes les données que le Parcours garde sur toi. Tu peux aussi demander la suppression de ton compte : un coordinateur la traitera.", "You can download all the data the Course keeps about you. You can also ask for your account to be deleted: a coordinator will process it.")}</p>
     <button class="btn-secondary" id="data-export" type="button">${T("Télécharger mes données", "Download my data")}</button>
@@ -304,6 +305,20 @@ async function changerMotDePasse() {
   } finally { btn.disabled = false; }
 }
 
+async function afficherCertificat() {
+  const box = $("cert-box"); if (!box) return;
+  try {
+    const rec = await S().getAttestation(P.user.uid, "parcours"); if (!rec) return;
+    box.innerHTML = `<p class="eyebrow">🎓 ${T("Mon certificat de fin de formation", "My training completion certificate")}</p>
+      <p class="settings-hint">${T("Félicitations ! Ton certificat est prêt.", "Congratulations! Your certificate is ready.")} N° ${esc(rec.numero)}</p>
+      <button class="btn-primary" id="cert-dl" type="button">${T("Télécharger mon certificat (PDF)", "Download my certificate (PDF)")}</button>`;
+    $("cert-dl").addEventListener("click", async () => {
+      try { const A = await import("./attestation.js"); await A.telecharger(rec, EN() ? "en" : "fr"); }
+      catch (e) { $("data-err").textContent = T("Impossible de préparer le certificat pour le moment.", "Unable to prepare the certificate right now."); }
+    });
+  } catch (e) {}
+}
+
 async function exporter() {
   const err = $("data-err"); err.textContent = "";
   try {
@@ -352,6 +367,7 @@ async function rendre() {
     host.innerHTML = `<div class="card settings-card" id="profilCard"></div><div class="card settings-card" id="pwCard"></div><div class="card settings-card" id="dataCard">${htmlDonnees()}</div>`;
     rendreProfilCard(); rendreMdpCard();
     $("data-export").addEventListener("click", exporter);
+    afficherCertificat();
     rendreSuppr();
     majBandeau();
   } finally { P.chargement = false; }

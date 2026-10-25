@@ -41,7 +41,7 @@ jobs:
           D=public/ABBA-Parcours
           rm -rf "$D" && mkdir -p "$D"
           cd ../src
-          cp -r index.html app.js sync.js formation.js bible.js lecture.js paiements.js profil.js geo.js voixNative.js installer.html confidentialite.html i18n.js firebase-config.js style.css sw.js manifest.json \
+          cp -r index.html app.js sync.js formation.js bible.js lecture.js paiements.js profil.js geo.js voixNative.js installer.html confidentialite.html verifier.html attestation.js signature.png vendor i18n.js firebase-config.js style.css sw.js manifest.json \
                 logo.png icon-192.png icon-512.png content lang firestore.rules ../gest/$D/
           cd ../gest
           git config user.name "Publication automatique"

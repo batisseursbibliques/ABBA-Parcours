@@ -14,6 +14,7 @@ import {
   getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp,
   enableIndexedDbPersistence, collection, getDocs, query, where, updateDoc, writeBatch, increment, arrayUnion, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig, ADMIN_EMAILS } from "./firebase-config.js";
+import { nouveauNumero } from "./attestation.js";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -132,8 +133,30 @@ async function exportMyData(uid) {
   await liste(["formation", uid, "indispos"], "indisponibilites");
   await liste(["formation", uid, "revisions"], "revisions");
   await liste(["formation", uid, "echanges"], "echangesAvecCorrecteur");
+  await liste(["formation", uid, "attestations"], "attestations");
   await liste(["formation", uid, "paiements"], "versements");
   return out;
+}
+/* ---------- ATTESTATIONS ET CERTIFICAT ---------- */
+async function getAttestation(uid, key) {
+  const s = await getDoc(doc(db, "formation", uid, "attestations", key));
+  return s.exists() ? s.data() : null;
+}
+// Renvoie l'attestation déjà délivrée, sinon la crée (document public de vérification + copie privée, en une seule opération)
+async function creerAttestation(uid, key, rec) {
+  const ex = await getAttestation(uid, key); if (ex) return ex;
+  const numero = nouveauNumero();
+  const base = { numero, type: rec.type, nom: String(rec.nom).trim(), titre: String(rec.titre), date: String(rec.date) };
+  if (rec.mid) base.mid = String(rec.mid);
+  const lot = writeBatch(db);
+  lot.set(doc(db, "attestations", numero), { ...base, creeLe: serverTimestamp() });
+  lot.set(doc(db, "formation", uid, "attestations", key), { ...base, creeLe: serverTimestamp() });
+  await lot.commit();
+  return base;
+}
+async function verifierAttestation(numero) {
+  const s = await getDoc(doc(db, "attestations", String(numero || "").trim().toUpperCase()));
+  return s.exists() ? s.data() : null;
 }
 /* ---------- ÉCHANGES étudiant ↔ correcteur (par module) ---------- */
 async function loadEchanges(uid) {
@@ -739,6 +762,7 @@ window.AbbaSync = {
   addDeclaration, enregistrerPaiement, annulerPaiement, traiterDeclaration, activerCompte, setTarif, setInstructions,
   addDon, loadMesDons, loadDonsAttente, loadFonds, confirmerDon, refuserDon, affecterSolidarite,
   watchZonesPlan, saveZonesPlan, saveMyProgress,
-  loadJournal, currentEmail, journaliser, loadEchanges, addEchange,
+  loadJournal, currentEmail, journaliser, loadEchanges, addEchange, getAttestation, creerAttestation, verifierAttestation,
+  delivrerCertificat: L((uid, rec) => creerAttestation(uid, "parcours", rec), "certificat_delivre", (uid, rec, r) => [uid, (r && r.numero) || ""]),
   ...ajoutes,
 };

@@ -161,6 +161,29 @@ service cloud.firestore {
         get(/databases/$(database)/documents/liens/$(uid)).data.correcteurEmail == myEmail();
     }
 
+    // Vérification publique d'une attestation ou d'un certificat : on peut LIRE un document dont on connaît le numéro,
+    // mais pas lister les documents. Création : l'étudiant pour son propre module validé, le coordinateur pour le certificat final.
+    match /attestations/{numero} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['numero','type','nom','titre','mid','date','creeLe'])
+        && request.resource.data.numero == numero
+        && request.resource.data.creeLe == request.time
+        && request.resource.data.nom is string && request.resource.data.nom.size() >= 1 && request.resource.data.nom.size() <= 150
+        && request.resource.data.titre is string && request.resource.data.titre.size() <= 200
+        && request.resource.data.date is string && request.resource.data.date.size() == 10
+        && ((request.resource.data.type == 'module'
+              && request.resource.data.mid is string
+              && request.resource.data.nom == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.nom
+              && ((get(/databases/$(database)/documents/formation/$(request.auth.uid)/modules/$(request.resource.data.mid)).data.ficheStatus == 'validated'
+                   && get(/databases/$(database)/documents/formation/$(request.auth.uid)/modules/$(request.resource.data.mid)).data.get('qcm', {}).get('ok', false) == true)
+                  || request.resource.data.mid in get(/databases/$(database)/documents/formation/$(request.auth.uid)).data.get('acquis', [])))
+            || (request.resource.data.type == 'parcours' && hasDroit('suivi')));
+      allow update: if false;
+      allow delete: if hasDroit('suivi');
+    }
+
     // Journal des actions sensibles : on peut seulement AJOUTER une ligne (au nom de soi-même, à l'heure du serveur),
     // jamais la modifier ni l'effacer. Lecture : coordinateur principal.
     match /journal/{jid} {
@@ -222,6 +245,18 @@ service cloud.firestore {
             && request.resource.data.ficheStatus in ['validated', 'returned'])
           || hasDroit('corrections') || hasDroit('suivi');
 
+        allow delete: if hasDroit('suivi');
+      }
+
+      // Attestations et certificat : copie privée de l'étudiant (le document public de vérification est dans /attestations)
+      match /attestations/{key} {
+        allow read: if (request.auth != null && request.auth.uid == uid) || hasDroit('suivi');
+        allow create: if request.auth != null
+          && request.resource.data.keys().hasOnly(['numero','type','nom','titre','mid','date','creeLe'])
+          && request.resource.data.creeLe == request.time
+          && ((request.auth.uid == uid && request.resource.data.type == 'module' && request.resource.data.mid == key)
+              || (request.resource.data.type == 'parcours' && key == 'parcours' && hasDroit('suivi')));
+        allow update: if false;
         allow delete: if hasDroit('suivi');
       }
 

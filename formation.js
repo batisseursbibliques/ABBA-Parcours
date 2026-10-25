@@ -660,8 +660,25 @@ function renderFiche(c, p, ss) {
     if (!(ss.lecture && ss.qcm && ss.exercices)) h += '<p class="settings-hint">Pour envoyer : termine la lecture, réussis les questions et complète les exercices.</p>';
     if (manque.length) h += `<div class="fm-return"><strong>Tes exercices de pratique doivent avancer avant l’envoi.</strong><ul>${manque.map((x) => `<li>${esc(rythmeLigne(x))}</li>`).join("")}</ul><p class="small">La transformation se construit dans la durée : fais-les chaque jour. Si ta situation est particulière, parle à ta coordination.</p></div>`;
   }
+  if (isComplete(st.view.mod)) h += `<p style="margin-top:14px;"><button class="btn-secondary" data-act="att-module" data-m="${esc(st.view.mod)}">🎓 Télécharger mon attestation de module (PDF)</button></p>`;
   h += renderEchangesEleve(st.view.mod);
   return h;
+}
+
+/* ---------- Attestation de module (PDF) ---------- */
+const dateIso = (ms) => { const d = new Date(ms); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; };
+async function telechargerAttestationModule(mid) {
+  const m = MODULES.find((x) => x.id === mid), p = st.prog[mid] || {}, nom = String((st.profile || {}).nom || "").trim();
+  if (!m) return;
+  if (!nom) { st.msg = "Complète ton prénom et ton nom dans « Mon profil » avant de télécharger ton attestation."; render(); return; }
+  try {
+    st.msg = "Préparation de ton attestation…"; render();
+    const rec = await S().creerAttestation(st.user.uid, mid, { type: "module", mid, nom, titre: modTitle(m), date: dateIso(toMs(p.validatedAt) || Date.now()) });
+    const A = await import("./attestation.js");
+    await A.telecharger(rec, window.I18N && window.I18N.lang === "en" ? "en" : "fr");
+    st.msg = "Ton attestation est téléchargée (dossier Téléchargements).";
+  } catch (e) { st.msg = "Attestation non disponible pour le moment : " + (e.code || e.message); }
+  render();
 }
 
 /* ---------- Échanges étudiant ↔ correcteur ---------- */
@@ -801,6 +818,7 @@ async function onClick(e) {
     if (act === "qcm-retry") { st.qcmDraft = { retry: true }; render(); return; }
     if (act === "qcm-submit") return submitQcm();
     if (act === "ex-save") return saveExercise(b.dataset.e);
+    if (act === "att-module") return telechargerAttestationModule(b.dataset.m);
     if (act === "ech-send") return envoyerEchange(b.dataset.m);
     if (act === "ech-reply") return repondreEchange(b.dataset.u, b.dataset.m);
     if (act === "fiche-save") return saveFiche(false);

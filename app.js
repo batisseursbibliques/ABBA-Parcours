@@ -714,10 +714,26 @@ async function renderCoordModules() {
     const boxA = document.getElementById("coordAnciens");
     if (boxA) {
       boxA.innerHTML = anciens.length
-        ? `<details><summary><strong>Anciens — parcours terminé (${anciens.length})</strong></summary>${anciens.map(r => `<p class="small"><strong>${escC(r.nom || r.email || "—")}</strong> — terminé${r.a.termineLe ? " le " + new Date(r.a.termineLe).toLocaleDateString(window.I18N && window.I18N.lang === "en" ? "en-GB" : "fr-FR") : ""} <button class="btn-secondary" data-suivi="on" data-uid="${r.uid}">Remettre dans le suivi</button></p>`).join("")}</details>`
+        ? `<details><summary><strong>Anciens — parcours terminé (${anciens.length})</strong></summary>${anciens.map(r => `<p class="small"><strong>${escC(r.nom || r.email || "—")}</strong> — terminé${r.a.termineLe ? " le " + new Date(r.a.termineLe).toLocaleDateString(window.I18N && window.I18N.lang === "en" ? "en-GB" : "fr-FR") : ""} <button class="btn-secondary" data-cert="${escC(r.uid)}">🎓 Certificat</button> <button class="btn-secondary" data-suivi="on" data-uid="${r.uid}">Remettre dans le suivi</button></p>`).join("")}</details>`
         : "";
       boxA.style.display = anciens.length ? "" : "none";
       boxA.onclick = async (ev) => {
+        const cb = ev.target.closest("[data-cert]");
+        if (cb) {
+          const uid = cb.dataset.cert, r = anciens.find(x => x.uid === uid); if (!r) return;
+          try {
+            const S = window.AbbaSync, ex = await S.getAttestation(uid, "parcours"); let rec = ex;
+            if (!rec) {
+              const profil = (await S.getUserProfile(uid)) || {}, nom = String(profil.nom || r.nom || "").trim();
+              if (!nom) { alert("Cette personne n'a pas de nom dans son profil."); return; }
+              if (!confirm("Délivrer le certificat de fin de formation à " + nom + " ?\n(14 modules validés. Pense à vérifier sa situation avant de confirmer.)")) return;
+              const d = new Date(), iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+              rec = await S.delivrerCertificat(uid, { type: "parcours", nom, titre: "Parcours Bâtisseur — phase de formation", date: iso });
+            }
+            const A = await import("./attestation.js"); await A.telecharger(rec, "fr");
+          } catch (e) { alert("Certificat non disponible : " + (e.code || e.message)); }
+          return;
+        }
         const b = ev.target.closest("[data-suivi]");
         if (!b) return;
         try { await window.AbbaSync.setSuiviForce(b.dataset.uid, b.dataset.suivi === "on"); renderCoordModules(); }
@@ -1472,7 +1488,7 @@ const JOURNAL_LIBELLES = {
   compte_paiement_active: "Compte de paiement activé", tarif_modifie: "Tarif modifié", instructions_paiement_modifiees: "Instructions de paiement modifiées",
   don_confirme: "Don confirmé", don_refuse: "Don refusé", solidarite_affectee: "Solidarité affectée", correcteur_ajoute: "Correcteur ajouté",
   correcteur_retire: "Correcteur retiré", lien_correcteur_pose: "Correcteur attribué", lien_correcteur_retire: "Correcteur retiré d'un élève",
-  acquis_modifies: "Acquis modifiés", suivi_force: "Suivi forcé", fiche_revue: "Fiche corrigée", compte_supprime: "Compte supprimé (programme de suppression)",
+  acquis_modifies: "Acquis modifiés", suivi_force: "Suivi forcé", fiche_revue: "Fiche corrigée", compte_supprime: "Compte supprimé (programme de suppression)", certificat_delivre: "Certificat de fin de formation délivré",
 };
 async function renderJournal() {
   const box = document.getElementById("journalBox"); if (!box) return;
