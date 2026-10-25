@@ -72,16 +72,17 @@ export async function dessiner(rec, lang, env) {
   const t = TXT[lang === "en" ? "en" : "fr"], estParcours = rec.type === "parcours", bloc = estParcours ? t.parcours : t.module;
   const c = env.canvas(W, H), ctx = c.getContext("2d");
   const centre = W / 2;
-  ctx.fillStyle = CREME; ctx.fillRect(0, 0, W, H);
-  // cadres
-  ctx.strokeStyle = MARINE; ctx.lineWidth = 16; ctx.strokeRect(90, 90, W - 180, H - 180);
-  ctx.strokeStyle = OR; ctx.lineWidth = 6; ctx.strokeRect(135, 135, W - 270, H - 270);
-  ctx.fillStyle = OR;
-  [[135, 135], [W - 135, 135], [135, H - 135], [W - 135, H - 135]].forEach(([x, y]) => { ctx.save(); ctx.translate(x, y); ctx.rotate(Math.PI / 4); ctx.fillRect(-22, -22, 44, 44); ctx.restore(); });
+  let fondOk = false;                                     // décor : fond illustré (cadre bleu et or, vagues, livre ouvert)
+  try { ctx.drawImage(await env.image("fond.jpg"), 0, 0, W, H); fondOk = true; } catch (e) {}
+  if (!fondOk) {                                          // repli si l'image du fond ne se charge pas : cadre simple
+    ctx.fillStyle = CREME; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = MARINE; ctx.lineWidth = 16; ctx.strokeRect(90, 90, W - 180, H - 180);
+    ctx.strokeStyle = OR; ctx.lineWidth = 6; ctx.strokeRect(135, 135, W - 270, H - 270);
+  }
   // logo
   try { const logo = await env.image("logo.png"); ctx.drawImage(logo, centre - 150, 190, 300, 300); } catch (e) {}
   ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = MARINE; ctx.font = `bold 138px ${SERIF}`; ctx.fillText(bloc.titre, centre, 660);
+  ctx.fillStyle = MARINE; ctx.font = `bold ${estParcours ? 124 : 138}px ${SERIF}`; ctx.fillText(bloc.titre, centre, 660);
   ctx.fillStyle = OR; ctx.font = `64px ${SERIF}`; ctx.fillText(bloc.sous, centre, 750);
   ctx.strokeStyle = OR; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(centre - 520, 805); ctx.lineTo(centre + 520, 805); ctx.stroke();
   ctx.fillStyle = DOUX; ctx.font = `italic 64px ${SERIF}`; ctx.fillText(bloc.intro, centre, 930);
@@ -104,7 +105,7 @@ export async function dessiner(rec, lang, env) {
   // pied : QR, date et numéro, signature
   const lienVerif = URL_VERIF + encodeURIComponent(rec.numero);
   const m = await env.qr(lienVerif), n = m.length, cell = Math.floor(330 / (n + 4)), taille2 = cell * (n + 4);
-  const qx = 330, qy = 1790;
+  const qx = 380, qy = 1790;
   ctx.fillStyle = "#ffffff"; ctx.fillRect(qx, qy, taille2, taille2);
   ctx.fillStyle = "#111111";
   for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (m[r][k]) ctx.fillRect(qx + (k + 2) * cell, qy + (r + 2) * cell, cell, cell);
@@ -116,7 +117,7 @@ export async function dessiner(rec, lang, env) {
   if (estParcours) { ctx.fillStyle = DOUX; ctx.font = `44px ${SERIF}`; ctx.fillText(t.org, centre, 2185); }
   // signature
   try {
-    const sig = await env.image("signature.png"), sw = 640, sh = sig.height * sw / sig.width, sx = W - 330 - sw, base = 2090;
+    const sig = await env.image("signature.png"), sw = 640, sh = sig.height * sw / sig.width, sx = W - 400 - sw, base = 2090;
     ctx.drawImage(sig, sx, base - sh, sw, sh);
     ctx.strokeStyle = ENCRE; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(sx - 20, base + 8); ctx.lineTo(sx + sw + 20, base + 8); ctx.stroke();
     ctx.fillStyle = ENCRE; ctx.font = `bold 52px ${SERIF}`; ctx.fillText("Paul HOUEKIN", sx + sw / 2, base + 70);
