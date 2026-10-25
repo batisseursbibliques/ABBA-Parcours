@@ -1612,13 +1612,18 @@ function renderCorrCard() {
   if (!st.corr.open) return h + "</div>";
   h += '<button class="btn-secondary" data-act="corr-refresh">Actualiser</button>';
   if (st.corr.rows == null) return h + '<p class="settings-hint">Chargement…</p></div>';
-  const pend = st.corr.rows.filter((r) => r.doc.ficheStatus === "submitted");
+  const pend = st.corr.rows.filter((r) => r.doc.ficheStatus === "submitted" && r.mine);
+  const autres = st.corr.rows.filter((r) => r.doc.ficheStatus === "submitted" && !r.mine);
   h += renderCorrTableau(pend);
   h += renderCorrMessages();
   if (!pend.length) h += '<p class="settings-hint">Aucune fiche en attente.</p>';
   const inds = st.corr.ind || [];
   if (inds.length) h += '<p class="eyebrow" style="margin-top:12px;">Indisponibilités signalées</p>' + inds.map((v) => `<div class="ind-item"><p><strong>${esc(v.nom)}</strong> — ${esc(indQuand(v))}</p><p class="small">${esc(v.motif || "")}</p>${v.vu ? '<p class="small">✓ Pris en compte</p>' : `<button class="btn-secondary" data-act="ind-vu" data-uid="${v.uid}" data-id="${v.id}">Pris en compte</button>`}</div>`).join("");
   pend.forEach((r, i) => { h += renderCorrRow(r, i); });
+  if (autres.length) {   // vue de suivi du coordinateur : on voit où en est la fiche, sans pouvoir l'ouvrir ni la corriger
+    h += `<p class="eyebrow" style="margin-top:14px;">Fiches chez d'autres correcteurs (${autres.length})</p><p class="settings-hint">Suivi seulement : la correction appartient au correcteur désigné.</p>`
+      + autres.map((r) => { const j = toMs(r.doc.submittedAt) ? Math.floor((Date.now() - toMs(r.doc.submittedAt)) / 86400000) : null; return `<p class="small">⏳ ${esc(r.nom)} — ${esc(modTitle(MODULES.find((m) => m.id === r.mid)))} · chez <strong>${esc(r.correcteurNom || "—")}</strong>${j !== null ? " · en attente depuis " + j + " jour(s)" : ""}</p>`; }).join("");
+  }
   const hist = st.corr.rows.filter((r) => r.doc.ficheStatus !== "submitted");
   if (hist.length) h += '<p class="eyebrow" style="margin-top:14px;">Déjà traitées</p>' + hist.map((r) => `<p class="small">${esc(r.nom)} — ${esc(modTitle(MODULES.find((m) => m.id === r.mid)))} : ${statusLabel(r.doc.ficheStatus)}</p>`).join("");
   return h + "</div>";
@@ -1627,6 +1632,7 @@ async function loadCorrections() {
   st.corr.loading = true;
   try {
     const liens = can("corrections") ? await S().loadAllLiens() : await S().loadMyStudents(st.user.email);
+    const monEmail = String(st.user.email || "").toLowerCase();
     const rows = [];
     st.corr.ind = [];
     st.corr.eleves = [];
@@ -1644,7 +1650,9 @@ async function loadCorrections() {
         Object.values(sv).forEach((x) => { last = Math.max(last, toMs(x.updatedAt)); });
         st.corr.eleves.push({ uid: l.uid || l.id, nom: l.nom || l.email || "", lastMs: last });
       } catch (e) {}
+      const mine = String(l.correcteurEmail || "").toLowerCase() === monEmail;   // seul le correcteur désigné corrige et répond
       try {   // conversations : on garde celles dont le dernier message vient de l'étudiant
+        if (!mine) throw 0;
         const msgs = await S().loadEchanges(l.uid || l.id), parMod = {};
         msgs.forEach((m) => { (parMod[m.mid] = parMod[m.mid] || []).push(m); });
         Object.entries(parMod).forEach(([mid, arr]) => { if (arr[arr.length - 1].de === "eleve") st.corr.threads.push({ uid: l.uid || l.id, nom: l.nom || l.email || "", mid, msgs: arr }); });
@@ -1655,7 +1663,7 @@ async function loadCorrections() {
       } catch (e) {}
       Object.keys(mods).forEach((mid) => {
         const d = mods[mid];
-        if (["submitted", "validated", "returned"].includes(d.ficheStatus)) rows.push({ uid: l.uid || l.id, nom: l.nom || l.email || "", mid, doc: d, suivis: sv });
+        if (["submitted", "validated", "returned"].includes(d.ficheStatus)) rows.push({ uid: l.uid || l.id, nom: l.nom || l.email || "", mid, doc: d, suivis: sv, mine, correcteurNom: l.correcteurNom || l.correcteurEmail || "" });
       });
     }
     rows.sort((a, b) => (toMs(a.doc.submittedAt) || Infinity) - (toMs(b.doc.submittedAt) || Infinity));   // les fiches qui attendent depuis le plus longtemps d'abord
@@ -1730,8 +1738,9 @@ function readValue(f, v) {
   return `<p class="small"><em>${esc(f.label)}</em><br>${esc(v == null || v === "" ? "—" : v)}</p>`;
 }
 async function reviewFromUi(b) {
-  const pend = st.corr.rows.filter((r) => r.doc.ficheStatus === "submitted");
+  const pend = st.corr.rows.filter((r) => r.doc.ficheStatus === "submitted" && r.mine);
   const r = pend[Number(b.dataset.i)];
+  if (!r) return;
   const status = b.dataset.s;
   const comment = ($("corrc-" + b.dataset.i) || {}).value || "";
   if (status === "returned" && !comment.trim()) { st.msg = "Écris une remarque pour expliquer ce qui est à reprendre."; render(); return; }

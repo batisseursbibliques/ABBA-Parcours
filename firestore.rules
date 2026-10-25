@@ -243,7 +243,10 @@ service cloud.firestore {
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ficheStatus','validatedBy','validatedAt','correctorComment'])
             && resource.data.get('ficheStatus', 'draft') == 'submitted'
             && request.resource.data.ficheStatus in ['validated', 'returned'])
-          || hasDroit('corrections') || hasDroit('suivi');
+          // Les coordinateurs gardent leurs autres écritures (réglages, reprise...), mais JAMAIS la correction :
+          // valider ou renvoyer une fiche appartient au seul correcteur désigné pour l'étudiant (isCorrecteurOf).
+          || ((hasDroit('corrections') || hasDroit('suivi'))
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['ficheStatus','validatedBy','validatedAt','correctorComment']));
 
         allow delete: if hasDroit('suivi');
       }
@@ -270,7 +273,7 @@ service cloud.firestore {
           && request.resource.data.mid is string && request.resource.data.mid.size() <= 12
           && request.resource.data.texte is string && request.resource.data.texte.size() >= 1 && request.resource.data.texte.size() <= 1000
           && ((request.resource.data.de == 'eleve' && request.auth.uid == uid && !isBlocked(uid))
-              || (request.resource.data.de == 'correcteur' && (isCorrecteurOf(uid) || hasDroit('corrections'))));
+              || (request.resource.data.de == 'correcteur' && isCorrecteurOf(uid)));
         allow update: if false;
         allow delete: if hasDroit('suivi');
       }
