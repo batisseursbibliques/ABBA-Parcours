@@ -1690,3 +1690,23 @@ function setupDiagnostic() {
     btn.disabled = false;
   });
 }
+
+/* ---------- Pages lues dans l'application (ex. confidentialité) : on reste sur l'écran en cours, bouton Retour ---------- */
+function ouvrirCadre(url) {
+  if (document.getElementById("cadreOverlay")) return;
+  const en = !!(window.I18N && window.I18N.lang === "en");
+  const ov = document.createElement("div"); ov.id = "cadreOverlay"; ov.className = "cadre-overlay";
+  ov.innerHTML = `<div class="cadre-barre"><button type="button" class="cadre-retour" id="cadreFermer">← ${en ? "Back" : "Retour"}</button></div>`;
+  const fr = document.createElement("iframe"); fr.className = "cadre-iframe"; fr.title = en ? "Privacy policy" : "Politique de confidentialité";
+  fr.src = url + (url.indexOf("?") >= 0 ? "&" : "?") + "cadre=1" + (en ? "#en" : "");
+  ov.appendChild(fr); document.body.appendChild(ov);
+  try { history.pushState({ cadre: 1 }, ""); } catch (e) {}
+  const fermer = () => { ov.remove(); window.removeEventListener("popstate", fermer); };
+  window.addEventListener("popstate", fermer);   // le bouton « retour » du téléphone referme la page au lieu de quitter l'application
+  document.getElementById("cadreFermer").addEventListener("click", () => { if (history.state && history.state.cadre) history.back(); else fermer(); });
+}
+document.addEventListener("click", (ev) => {
+  const a = ev.target && ev.target.closest ? ev.target.closest("a[data-cadre]") : null;
+  if (!a) return;
+  ev.preventDefault(); ouvrirCadre(a.getAttribute("href"));
+});
