@@ -185,7 +185,9 @@ function setupAuthScreen() {
     if (!email) { errEl.textContent = "Écris d'abord ton adresse e-mail ci-dessus, puis clique sur « Mot de passe oublié ? »."; return; }
     try {
       await window.AbbaSync.resetPassword(email);
-      infoEl.textContent = "Si un compte existe pour cette adresse, un e-mail de réinitialisation vient d'être envoyé. Pense à regarder dans les courriers indésirables.";
+      infoEl.textContent = "Si un compte existe pour cette adresse, un e-mail de réinitialisation vient d'être envoyé (cela peut prendre quelques minutes). Pense à regarder dans les courriers indésirables. Si rien n'arrive, écris à contact@batisseursbibliques.org.";
+      // une seule demande par minute : évite les clics répétés (et le blocage temporaire par Firebase)
+      const bouton = document.getElementById("forgotPasswordBtn"); bouton.disabled = true; setTimeout(() => { bouton.disabled = false; }, 60000);
     } catch (err) {
       errEl.textContent = traduireErreurAuth(err);
     }
