@@ -1516,12 +1516,35 @@ function renderDash() {
 }
 
 /* ---------- Correcteur : fiches à valider ---------- */
+const INACTIF_JOURS = 10;   // au-delà, l'étudiant apparaît dans « À encourager »
+function renderCorrTableau(pend) {
+  const now = Date.now(), jours = (ms) => Math.floor((now - ms) / 86400000);
+  const enAttente = pend.map((r) => toMs(r.doc.submittedAt)).filter(Boolean);
+  const plusAncienne = enAttente.length ? jours(Math.min(...enAttente)) : null;
+  const indispo = new Set((st.corr.ind || []).map((v) => v.uid));   // une indisponibilité signalée n'est pas une disparition
+  const sans = (st.corr.eleves || []).filter((e) => !indispo.has(e.uid) && (!e.lastMs || jours(e.lastMs) >= INACTIF_JOURS))
+    .sort((a, b) => (a.lastMs || 0) - (b.lastMs || 0));
+  let h = '<div class="fm-tab" style="margin:10px 0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;">';
+  h += `<p class="small" style="margin:0 0 4px;"><strong>${(st.corr.eleves || []).length}</strong> étudiant(s) suivi(s)</p>`;
+  h += pend.length
+    ? `<p class="small" style="margin:0 0 4px;">📋 <strong>${pend.length}</strong> fiche(s) à corriger${plusAncienne !== null && plusAncienne >= 1 ? ` — la plus ancienne attend depuis <strong>${plusAncienne} jour(s)</strong>` : ""}</p>`
+    : '<p class="small" style="margin:0 0 4px;">✅ Aucune fiche en attente</p>';
+  if (sans.length) {
+    h += `<p class="small" style="margin:6px 0 2px;">🤝 <strong>À encourager</strong> (sans activité depuis ${INACTIF_JOURS} jours ou plus) :</p>`
+      + sans.map((e) => `<p class="small" style="margin:0 0 2px;">• ${esc(e.nom)} — ${e.lastMs ? jours(e.lastMs) + " jour(s) sans activité" : "n'a encore rien commencé"} <button type="button" class="btn-small" data-fiche="${esc(e.uid)}" data-nom="${esc(e.nom)}">📍 Fiche</button></p>`).join("")
+      + '<p class="small" style="margin:4px 0 0;color:var(--ink-soft);">Un petit message de ta part peut l\'aider à reprendre.</p>';
+  } else if ((st.corr.eleves || []).length) {
+    h += '<p class="small" style="margin:6px 0 0;">👍 Tous tes étudiants ont été actifs ces derniers jours.</p>';
+  }
+  return h + "</div>";
+}
 function renderCorrCard() {
   let h = `<div class="card"><button class="fm-acc" data-act="corr-toggle"><span class="eyebrow">Corrections</span><span>${st.corr.open ? "▾" : "▸"}</span></button>`;
   if (!st.corr.open) return h + "</div>";
   h += '<button class="btn-secondary" data-act="corr-refresh">Actualiser</button>';
   if (st.corr.rows == null) return h + '<p class="settings-hint">Chargement…</p></div>';
   const pend = st.corr.rows.filter((r) => r.doc.ficheStatus === "submitted");
+  h += renderCorrTableau(pend);
   if (!pend.length) h += '<p class="settings-hint">Aucune fiche en attente.</p>';
   const inds = st.corr.ind || [];
   if (inds.length) h += '<p class="eyebrow" style="margin-top:12px;">Indisponibilités signalées</p>' + inds.map((v) => `<div class="ind-item"><p><strong>${esc(v.nom)}</strong> — ${esc(indQuand(v))}</p><p class="small">${esc(v.motif || "")}</p>${v.vu ? '<p class="small">✓ Pris en compte</p>' : `<button class="btn-secondary" data-act="ind-vu" data-uid="${v.uid}" data-id="${v.id}">Pris en compte</button>`}</div>`).join("");
@@ -1536,12 +1559,20 @@ async function loadCorrections() {
     const liens = can("corrections") ? await S().loadAllLiens() : await S().loadMyStudents(st.user.email);
     const rows = [];
     st.corr.ind = [];
+    st.corr.eleves = [];
     for (const l of liens) {
       let mods = {};
       let sv = {};
       try { mods = await S().loadStudentModules(l.uid || l.id); } catch (e) {}
       try { sv = await S().loadStudentSuivis(l.uid || l.id); } catch (e) {}
       try { if (termineDe(mods, await metaOnce(l.uid || l.id))) continue; } catch (e) {}
+      try {   // dernière activité : modules, suivis quotidiens, lecture (même calcul que la vue du coordinateur)
+        let lec = null; try { lec = await S().loadStudentLecture(l.uid || l.id); } catch (e) {}
+        let last = toMs(lec && lec.updatedAt);
+        Object.values(mods).forEach((p) => { last = Math.max(last, toMs(p.updatedAt), toMs(p.submittedAt), toMs(p.qcm && p.qcm.at)); });
+        Object.values(sv).forEach((x) => { last = Math.max(last, toMs(x.updatedAt)); });
+        st.corr.eleves.push({ uid: l.uid || l.id, nom: l.nom || l.email || "", lastMs: last });
+      } catch (e) {}
       try {
         const iv = await S().loadStudentIndispos(l.uid || l.id), t0 = todayStr();
         indList(iv).filter((v) => { const x = indLast(v); return x === null || x >= t0; }).forEach((v) => st.corr.ind.push({ ...v, uid: l.uid || l.id, nom: l.nom || l.email || "" }));
@@ -1551,6 +1582,7 @@ async function loadCorrections() {
         if (["submitted", "validated", "returned"].includes(d.ficheStatus)) rows.push({ uid: l.uid || l.id, nom: l.nom || l.email || "", mid, doc: d, suivis: sv });
       });
     }
+    rows.sort((a, b) => (toMs(a.doc.submittedAt) || Infinity) - (toMs(b.doc.submittedAt) || Infinity));   // les fiches qui attendent depuis le plus longtemps d'abord
     st.corr.rows = rows;
   } catch (e) { st.corr.rows = []; st.msg = "Impossible de charger les fiches : " + e.message; }
   st.corr.loading = false;
