@@ -12,7 +12,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp,
-  enableIndexedDbPersistence, collection, getDocs, query, where, updateDoc, writeBatch, increment, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  enableIndexedDbPersistence, collection, getDocs, query, where, updateDoc, writeBatch, increment, arrayUnion, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig, ADMIN_EMAILS } from "./firebase-config.js";
 
 const app = initializeApp(firebaseConfig);
@@ -652,6 +652,54 @@ async function loadStudentSuivis(uid) {
   return map;
 }
 
+/* ---------- JOURNAL DES ACTIONS SENSIBLES ----------
+   Chaque action importante d'un coordinateur ou d'un correcteur laisse une ligne (qui, quoi, sur qui, quand).
+   Une ligne ne peut plus être modifiée ni effacée ensuite (règles Firestore). Lecture : coordinateur principal. */
+async function journaliser(action, cible, detail) {
+  try {
+    const u = auth.currentUser; if (!u || !u.email) return;
+    await setDoc(doc(collection(db, "journal")), {
+      action: String(action).slice(0, 60), cible: String(cible == null ? "" : cible).slice(0, 160), detail: String(detail == null ? "" : detail).slice(0, 300),
+      par: String(u.email).toLowerCase(), parUid: u.uid, date: serverTimestamp(),
+    });
+  } catch (e) { console.warn("journal :", e && (e.code || e.message)); }
+}
+async function loadJournal(n) {
+  const snap = await getDocs(query(collection(db, "journal"), orderBy("date", "desc"), limit(n || 150)));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+const currentEmail = () => (auth.currentUser && auth.currentUser.email) || "";
+// Enveloppe : exécute l'action, puis la note au journal (le journal ne bloque jamais l'action).
+const L = (fn, action, f) => async (...a) => { const r = await fn(...a); let x = []; try { x = f(...a, r) || []; } catch (e) {} journaliser(action, x[0], x[1]); return r; };
+const droitsActifs = (d) => Object.keys(d || {}).filter(k => d[k] === true).join(", ") || "aucun";
+const ajoutes = {
+  addAdmin: L(addAdmin, "coordinateur_ajoute", (email) => [email]),
+  removeAdmin: L(removeAdmin, "coordinateur_retire", (email) => [email]),
+  setDroits: L(setDroits, "droits_modifies", (email, d) => [email, droitsActifs(d)]),
+  setBloque: L(setBloque, "acces_bloque_modifie", (uid, data) => [uid, JSON.stringify(data)]),
+  saveModulesConfig: L(saveModulesConfig, "modules_ouverts_modifies", () => ["config/modules"]),
+  createBinome: L(createBinome, "binome_cree", (m1, m2) => [m1 + " + " + m2]),
+  deleteBinome: L(deleteBinome, "binome_supprime", (pairId) => [pairId]),
+  deleteSeance: L(deleteSeance, "seance_supprimee", (id) => [id]),
+  reviewEnrollment: L(reviewEnrollment, "inscription_revue", (uid, app, status) => [uid, app + " : " + status]),
+  enregistrerPaiement: L(enregistrerPaiement, "paiement_enregistre", (uid, p) => [uid, p.montant + " F · " + p.mode]),
+  annulerPaiement: L(annulerPaiement, "paiement_annule", (uid, pid, montant) => [uid, montant + " F"]),
+  traiterDeclaration: L(traiterDeclaration, "declaration_traitee", (uid, did, statut) => [uid, statut]),
+  activerCompte: L(activerCompte, "compte_paiement_active", (uid) => [uid]),
+  setTarif: L(setTarif, "tarif_modifie", (uid, total) => [uid, total + " F"]),
+  setInstructions: L(setInstructions, "instructions_paiement_modifiees", () => ["config/paiement"]),
+  confirmerDon: L(confirmerDon, "don_confirme", (did, montant) => [did, montant + " F"]),
+  refuserDon: L(refuserDon, "don_refuse", (did) => [did]),
+  affecterSolidarite: L(affecterSolidarite, "solidarite_affectee", (uid, montant) => [uid, montant + " F"]),
+  addCorrecteur: L(addCorrecteur, "correcteur_ajoute", (email) => [email]),
+  removeCorrecteur: L(removeCorrecteur, "correcteur_retire", (email) => [email]),
+  setLien: L(setLien, "lien_correcteur_pose", (uid, data) => [uid, (data && data.correcteurEmail) || ""]),
+  deleteLien: L(deleteLien, "lien_correcteur_retire", (uid) => [uid]),
+  setAcquis: L(setAcquis, "acquis_modifies", (uid) => [uid]),
+  setSuiviForce: L(setSuiviForce, "suivi_force", (uid, actif) => [uid, String(actif)]),
+  reviewFiche: L(reviewFiche, "fiche_revue", (uid, mid, status) => [uid, mid + " : " + status]),
+};
+
 window.AbbaSync = {
   isAdminEmail,
   logIn, logOut, signUp, resetPassword, watchAuth, getUserProfile,
@@ -679,4 +727,6 @@ window.AbbaSync = {
   addDeclaration, enregistrerPaiement, annulerPaiement, traiterDeclaration, activerCompte, setTarif, setInstructions,
   addDon, loadMesDons, loadDonsAttente, loadFonds, confirmerDon, refuserDon, affecterSolidarite,
   watchZonesPlan, saveZonesPlan, saveMyProgress,
+  loadJournal, currentEmail, journaliser,
+  ...ajoutes,
 };

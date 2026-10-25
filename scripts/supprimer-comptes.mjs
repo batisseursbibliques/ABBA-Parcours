@@ -139,6 +139,8 @@ async function traiter(uid) {
 
   // --- 4. La demande elle-même, en dernier (si quelque chose a échoué avant, elle reste pour une nouvelle tentative)
   await db.doc(`deletionRequests/${uid}`).delete();
+  // Trace dans le journal des actions (identifiant seulement : ni nom ni e-mail, la personne a demandé l'effacement)
+  await db.collection("journal").add({ action: "compte_supprime", cible: uid, detail: GARDER_FINANCES ? "trace comptable anonyme gardée" : "versements et dons effacés", par: "programme de suppression (GitHub)", parUid: "", date: FieldValue.serverTimestamp() });
   rapport.ok = true;
   return rapport;
 }

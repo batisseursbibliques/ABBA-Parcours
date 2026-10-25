@@ -161,6 +161,22 @@ service cloud.firestore {
         get(/databases/$(database)/documents/liens/$(uid)).data.correcteurEmail == myEmail();
     }
 
+    // Journal des actions sensibles : on peut seulement AJOUTER une ligne (au nom de soi-même, à l'heure du serveur),
+    // jamais la modifier ni l'effacer. Lecture : coordinateur principal.
+    match /journal/{jid} {
+      allow read: if isBootstrapAdmin();
+      allow create: if request.auth != null
+        && (isAdmin() || exists(/databases/$(database)/documents/correcteurs/$(myEmail())))
+        && request.resource.data.keys().hasOnly(['action','cible','detail','par','parUid','date'])
+        && request.resource.data.par == myEmail()
+        && request.resource.data.parUid == request.auth.uid
+        && request.resource.data.date == request.time
+        && request.resource.data.action is string && request.resource.data.action.size() <= 60
+        && request.resource.data.cible is string && request.resource.data.cible.size() <= 160
+        && request.resource.data.detail is string && request.resource.data.detail.size() <= 300;
+      allow update, delete: if false;
+    }
+
     // Liste des correcteurs : gérée par le coordinateur
     match /correcteurs/{email} {
       allow read: if hasDroit('corrections') || hasDroit('suivi') || (request.auth != null && email == myEmail());

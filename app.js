@@ -1462,8 +1462,39 @@ async function renderDeletionRequests() {
     catch (e) { alert("Impossible de mettre à jour : " + (e.code || e.message)); }
   }));
 }
+const JOURNAL_LIBELLES = {
+  coordinateur_ajoute: "Coordinateur ajouté", coordinateur_retire: "Coordinateur retiré", droits_modifies: "Droits modifiés",
+  acces_bloque_modifie: "Accès bloqué / débloqué", modules_ouverts_modifies: "Modules ouverts modifiés", binome_cree: "Binôme créé",
+  binome_supprime: "Binôme supprimé", seance_supprimee: "Séance supprimée", inscription_revue: "Inscription traitée",
+  paiement_enregistre: "Versement enregistré", paiement_annule: "Versement annulé", declaration_traitee: "Déclaration de versement traitée",
+  compte_paiement_active: "Compte de paiement activé", tarif_modifie: "Tarif modifié", instructions_paiement_modifiees: "Instructions de paiement modifiées",
+  don_confirme: "Don confirmé", don_refuse: "Don refusé", solidarite_affectee: "Solidarité affectée", correcteur_ajoute: "Correcteur ajouté",
+  correcteur_retire: "Correcteur retiré", lien_correcteur_pose: "Correcteur attribué", lien_correcteur_retire: "Correcteur retiré d'un élève",
+  acquis_modifies: "Acquis modifiés", suivi_force: "Suivi forcé", fiche_revue: "Fiche corrigée", compte_supprime: "Compte supprimé (programme de suppression)",
+};
+async function renderJournal() {
+  const box = document.getElementById("journalBox"); if (!box) return;
+  const S = window.AbbaSync;
+  if (!S || !S.isAdminEmail(S.currentEmail())) { box.innerHTML = ""; return; }   // réservé au coordinateur principal
+  box.innerHTML = `<p class="eyebrow" style="margin-top:14px;">Journal des actions</p>
+    <p class="settings-hint">Qui a fait quoi, et quand (les 150 dernières actions). Une ligne ne peut plus être modifiée ni effacée.</p>
+    <button class="btn-secondary" id="journalVoir" type="button">Afficher le journal</button><div id="journalListe"></div>`;
+  document.getElementById("journalVoir").addEventListener("click", async () => {
+    const out = document.getElementById("journalListe"); out.innerHTML = '<p class="settings-hint">Chargement…</p>';
+    try {
+      const list = await S.loadJournal(150);
+      out.innerHTML = list.length ? list.map(j => {
+        const d = j.date && j.date.toDate ? j.date.toDate().toLocaleString("fr-FR") : "…";
+        return `<div class="enrollment-row" style="display:block;"><strong>${escC(JOURNAL_LIBELLES[j.action] || j.action)}</strong>
+          <span class="enrollment-email">${escC(d)} · par ${escC(j.par)}</span>
+          <span class="enrollment-email">${escC([j.cible, j.detail].filter(Boolean).join(" — "))}</span></div>`;
+      }).join("") : '<p class="settings-hint">Le journal est vide pour le moment.</p>';
+    } catch (e) { out.innerHTML = `<p class="auth-error">Impossible de lire le journal : ${escC(e.code || e.message)}</p>`; }
+  });
+}
 function renderEnrollmentsAdmin() {
   renderDeletionRequests();
+  renderJournal();
   const container = document.getElementById("enrollmentsContainer");
   if (!container) return;
 
