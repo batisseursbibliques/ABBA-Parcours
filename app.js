@@ -1483,11 +1483,13 @@ async function renderJournal() {
     const out = document.getElementById("journalListe"); out.innerHTML = '<p class="settings-hint">Chargement…</p>';
     try {
       const list = await S.loadJournal(150);
+      const noms = {}; try { (await S.loadAllSummaries()).forEach(s => { if (s.nom) noms[s.uid] = s.nom; }); } catch (e) {}
+      const qui = (c) => (c && noms[c]) ? noms[c] : c;
       out.innerHTML = list.length ? list.map(j => {
         const d = j.date && j.date.toDate ? j.date.toDate().toLocaleString("fr-FR") : "…";
         return `<div class="enrollment-row" style="display:block;"><strong>${escC(JOURNAL_LIBELLES[j.action] || j.action)}</strong>
           <span class="enrollment-email">${escC(d)} · par ${escC(j.par)}</span>
-          <span class="enrollment-email">${escC([j.cible, j.detail].filter(Boolean).join(" — "))}</span></div>`;
+          <span class="enrollment-email">${escC([qui(j.cible), j.detail].filter(Boolean).join(" — "))}</span></div>`;
       }).join("") : '<p class="settings-hint">Le journal est vide pour le moment.</p>';
     } catch (e) { out.innerHTML = `<p class="auth-error">Impossible de lire le journal : ${escC(e.code || e.message)}</p>`; }
   });
