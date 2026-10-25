@@ -23,8 +23,8 @@ const MODULES = [
   { id: "m11", titre: "Maîtriser sa Santé et son Argent", ready: true },
   { id: "m12", titre: "Citoyenneté Responsable", ready: true },
   { id: "m13", titre: "Les Gestes de Premiers Secours", ready: true },
-  { id: "m14", num: "14.1", titre: "Création de Richesse 1 : fondations et premier revenu", preview: true },
-  { id: "m14b", num: "14.2", titre: "Création de Richesse 2 : faire grandir et se relever", preview: true },
+  { id: "m14", num: "14.1", titre: "Création de Richesse 1 : fondations et premier revenu", ready: true },
+  { id: "m14b", num: "14.2", titre: "Création de Richesse 2 : faire grandir et se relever", ready: true },
 ];
 const pad2 = (n) => String(n).padStart(2, "0");
 const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; };
