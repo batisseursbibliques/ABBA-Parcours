@@ -225,6 +225,21 @@ service cloud.firestore {
         allow delete: if hasDroit('suivi');
       }
 
+      // Échanges (messages) entre l'étudiant et son correcteur : on ajoute, on ne modifie pas
+      match /echanges/{eid} {
+        allow read: if hasDroit('suivi') || hasDroit('corrections') || (request.auth != null && request.auth.uid == uid) || isCorrecteurOf(uid);
+        allow create: if request.auth != null
+          && request.resource.data.keys().hasOnly(['mid','de','texte','parUid','date'])
+          && request.resource.data.parUid == request.auth.uid
+          && request.resource.data.date == request.time
+          && request.resource.data.mid is string && request.resource.data.mid.size() <= 12
+          && request.resource.data.texte is string && request.resource.data.texte.size() >= 1 && request.resource.data.texte.size() <= 1000
+          && ((request.resource.data.de == 'eleve' && request.auth.uid == uid && !isBlocked(uid))
+              || (request.resource.data.de == 'correcteur' && (isCorrecteurOf(uid) || hasDroit('corrections'))));
+        allow update: if false;
+        allow delete: if hasDroit('suivi');
+      }
+
       // Exercices qui s'étalent sur plusieurs jours (7 jours, 21 jours...) : le simple fait de les
       // commencer compte ; les cases quotidiennes restent cochables même après l'envoi de la fiche.
       match /suivis/{sid} {

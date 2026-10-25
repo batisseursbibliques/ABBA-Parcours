@@ -660,8 +660,39 @@ function renderFiche(c, p, ss) {
     if (!(ss.lecture && ss.qcm && ss.exercices)) h += '<p class="settings-hint">Pour envoyer : termine la lecture, réussis les questions et complète les exercices.</p>';
     if (manque.length) h += `<div class="fm-return"><strong>Tes exercices de pratique doivent avancer avant l’envoi.</strong><ul>${manque.map((x) => `<li>${esc(rythmeLigne(x))}</li>`).join("")}</ul><p class="small">La transformation se construit dans la durée : fais-les chaque jour. Si ta situation est particulière, parle à ta coordination.</p></div>`;
   }
+  h += renderEchangesEleve(st.view.mod);
   return h;
 }
+
+/* ---------- Échanges étudiant ↔ correcteur ---------- */
+const ECH = { mine: [], draft: {}, loaded: false };
+const echDate = (x) => { const ms = toMs(x); return ms ? new Date(ms).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "…"; };
+function echBulles(list, moi) {
+  return list.map((m) => `<div class="fm-return" style="margin:6px 0;${m.de === moi ? "background:var(--bg);" : ""}"><strong>${m.de === "eleve" ? (moi === "eleve" ? "Toi" : "L'étudiant") : (moi === "eleve" ? "Ton correcteur" : "Toi")}</strong> <span class="small">· ${esc(echDate(m.date))}</span><br>${esc(m.texte).replace(/\n/g, "<br>")}</div>`).join("");
+}
+async function chargerMesEchanges() {
+  try { ECH.mine = await S().loadEchanges(st.user.uid); } catch (e) { ECH.mine = []; }
+  ECH.loaded = true; render();
+}
+function renderEchangesEleve(mid) {
+  const liste = ECH.mine.filter((m) => m.mid === mid);
+  let h = '<p class="eyebrow" style="margin-top:16px;">💬 Échanges avec ton correcteur</p>';
+  if (!st.lien) return h + '<p class="settings-hint">Quand un correcteur te sera attribué, tu pourras lui écrire ici.</p>';
+  h += liste.length ? echBulles(liste, "eleve") : '<p class="settings-hint">Pose une question sur ce module, ou réponds à ton correcteur.</p>';
+  h += `<label class="field"><span>Ton message</span><textarea class="text-input" rows="2" maxlength="1000" data-ech="${esc(mid)}">${esc(ECH.draft[mid] || "")}</textarea></label>
+    <button class="btn-secondary" data-act="ech-send" data-m="${esc(mid)}">Envoyer le message</button>`;
+  return h;
+}
+async function envoyerEchange(mid) {
+  const t = (ECH.draft[mid] || "").trim(); if (!t) return;
+  try { await S().addEchange(st.user.uid, mid, "eleve", t); ECH.draft[mid] = ""; await chargerMesEchanges(); }
+  catch (e) { st.msg = "Message non envoyé : " + (e.code || e.message); render(); }
+}
+document.addEventListener("input", (ev) => {
+  const t = ev.target;
+  if (t && t.dataset && t.dataset.ech !== undefined) ECH.draft[t.dataset.ech] = t.value;
+  if (t && t.dataset && t.dataset.echr !== undefined) ECH.draft["r:" + t.dataset.echr] = t.value;
+});
 
 /* ---------- Collecte des champs (saisie en cours) ---------- */
 function collect(scope) {
@@ -741,7 +772,7 @@ async function onClick(e) {
     if (act === "charte-sign") return signCharte();
     if (act === "ind-vu") { await S().updateIndispo(b.dataset.uid, b.dataset.id, { vu: { par: st.user.email, at: new Date().toISOString() } }); return loadCorrections(); }
     if (act === "open" && b.dataset.m === "autoeval") { st.view = { mod: "autoeval", step: "fiche" }; st.cache = {}; render(); window.scrollTo(0, 0); return; }
-    if (act === "open") { S().getMyLien(st.user.uid).then((l) => { st.lien = l; }); st.view = { mod: b.dataset.m, step: "lecture" }; st.cache = {}; st.qcmDraft = {}; render(); window.scrollTo(0, 0); return; }
+    if (act === "open") { chargerMesEchanges(); S().getMyLien(st.user.uid).then((l) => { st.lien = l; }); st.view = { mod: b.dataset.m, step: "lecture" }; st.cache = {}; st.qcmDraft = {}; render(); window.scrollTo(0, 0); return; }
     if (act === "goto-zones") { const t = document.querySelector('.tab[data-tab="caractere"]'); if (t) t.click(); return; }
     if (act === "tasks-toggle") { st.tasksOpen = !st.tasksOpen; renderTasks(); return; }
     if (act === "suivi-start") { if (st.view.mod && inReview(st.view.mod)) { st.msg = "Ce suivi se fait pendant le parcours."; render(); return; } return suiviStart(b.dataset.sk); }
@@ -770,6 +801,8 @@ async function onClick(e) {
     if (act === "qcm-retry") { st.qcmDraft = { retry: true }; render(); return; }
     if (act === "qcm-submit") return submitQcm();
     if (act === "ex-save") return saveExercise(b.dataset.e);
+    if (act === "ech-send") return envoyerEchange(b.dataset.m);
+    if (act === "ech-reply") return repondreEchange(b.dataset.u, b.dataset.m);
     if (act === "fiche-save") return saveFiche(false);
     if (act === "fiche-send") return saveFiche(true);
     if (act === "corr-toggle") { st.corr.open = !st.corr.open; if (st.corr.open) st.corr.rows = null; render(); return; }
@@ -1516,6 +1549,23 @@ function renderDash() {
 }
 
 /* ---------- Correcteur : fiches à valider ---------- */
+function renderCorrMessages() {
+  const th = st.corr.threads || [];
+  if (!th.length) return "";
+  let h = `<p class="eyebrow" style="margin-top:12px;">💬 Messages à répondre (${th.length})</p>`;
+  th.forEach((t) => {
+    const m = MODULES.find((x) => x.id === t.mid), key = t.uid + ":" + t.mid;
+    h += `<div class="fm-ex"><p class="eyebrow">${esc(t.nom)} — ${esc(modTitle(m))}</p>${echBulles(t.msgs, "correcteur")}
+      <label class="field"><span>Ta réponse</span><textarea class="text-input" rows="2" maxlength="1000" data-echr="${esc(key)}">${esc(ECH.draft["r:" + key] || "")}</textarea></label>
+      <button class="btn-primary" data-act="ech-reply" data-u="${esc(t.uid)}" data-m="${esc(t.mid)}">Répondre</button></div>`;
+  });
+  return h;
+}
+async function repondreEchange(uid, mid) {
+  const key = uid + ":" + mid, t = (ECH.draft["r:" + key] || "").trim(); if (!t) return;
+  try { await S().addEchange(uid, mid, "correcteur", t); ECH.draft["r:" + key] = ""; st.corr.rows = null; render(); }
+  catch (e) { st.msg = "Réponse non envoyée : " + (e.code || e.message); render(); }
+}
 const INACTIF_JOURS = 10;   // au-delà, l'étudiant apparaît dans « À encourager »
 function renderCorrTableau(pend) {
   const now = Date.now(), jours = (ms) => Math.floor((now - ms) / 86400000);
@@ -1526,6 +1576,7 @@ function renderCorrTableau(pend) {
     .sort((a, b) => (a.lastMs || 0) - (b.lastMs || 0));
   let h = '<div class="fm-tab" style="margin:10px 0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;">';
   h += `<p class="small" style="margin:0 0 4px;"><strong>${(st.corr.eleves || []).length}</strong> étudiant(s) suivi(s)</p>`;
+  if ((st.corr.threads || []).length) h += `<p class="small" style="margin:0 0 4px;">💬 <strong>${st.corr.threads.length}</strong> message(s) de tes étudiants attendent ta réponse</p>`;
   h += pend.length
     ? `<p class="small" style="margin:0 0 4px;">📋 <strong>${pend.length}</strong> fiche(s) à corriger${plusAncienne !== null && plusAncienne >= 1 ? ` — la plus ancienne attend depuis <strong>${plusAncienne} jour(s)</strong>` : ""}</p>`
     : '<p class="small" style="margin:0 0 4px;">✅ Aucune fiche en attente</p>';
@@ -1545,6 +1596,7 @@ function renderCorrCard() {
   if (st.corr.rows == null) return h + '<p class="settings-hint">Chargement…</p></div>';
   const pend = st.corr.rows.filter((r) => r.doc.ficheStatus === "submitted");
   h += renderCorrTableau(pend);
+  h += renderCorrMessages();
   if (!pend.length) h += '<p class="settings-hint">Aucune fiche en attente.</p>';
   const inds = st.corr.ind || [];
   if (inds.length) h += '<p class="eyebrow" style="margin-top:12px;">Indisponibilités signalées</p>' + inds.map((v) => `<div class="ind-item"><p><strong>${esc(v.nom)}</strong> — ${esc(indQuand(v))}</p><p class="small">${esc(v.motif || "")}</p>${v.vu ? '<p class="small">✓ Pris en compte</p>' : `<button class="btn-secondary" data-act="ind-vu" data-uid="${v.uid}" data-id="${v.id}">Pris en compte</button>`}</div>`).join("");
@@ -1560,6 +1612,7 @@ async function loadCorrections() {
     const rows = [];
     st.corr.ind = [];
     st.corr.eleves = [];
+    st.corr.threads = [];
     for (const l of liens) {
       let mods = {};
       let sv = {};
@@ -1572,6 +1625,11 @@ async function loadCorrections() {
         Object.values(mods).forEach((p) => { last = Math.max(last, toMs(p.updatedAt), toMs(p.submittedAt), toMs(p.qcm && p.qcm.at)); });
         Object.values(sv).forEach((x) => { last = Math.max(last, toMs(x.updatedAt)); });
         st.corr.eleves.push({ uid: l.uid || l.id, nom: l.nom || l.email || "", lastMs: last });
+      } catch (e) {}
+      try {   // conversations : on garde celles dont le dernier message vient de l'étudiant
+        const msgs = await S().loadEchanges(l.uid || l.id), parMod = {};
+        msgs.forEach((m) => { (parMod[m.mid] = parMod[m.mid] || []).push(m); });
+        Object.entries(parMod).forEach(([mid, arr]) => { if (arr[arr.length - 1].de === "eleve") st.corr.threads.push({ uid: l.uid || l.id, nom: l.nom || l.email || "", mid, msgs: arr }); });
       } catch (e) {}
       try {
         const iv = await S().loadStudentIndispos(l.uid || l.id), t0 = todayStr();

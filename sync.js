@@ -131,7 +131,19 @@ async function exportMyData(uid) {
   await liste(["formation", uid, "lecture"], "lectureBible");
   await liste(["formation", uid, "indispos"], "indisponibilites");
   await liste(["formation", uid, "revisions"], "revisions");
+  await liste(["formation", uid, "echanges"], "echangesAvecCorrecteur");
+  await liste(["formation", uid, "paiements"], "versements");
   return out;
+}
+/* ---------- ÉCHANGES étudiant ↔ correcteur (par module) ---------- */
+async function loadEchanges(uid) {
+  const snap = await getDocs(query(collection(db, "formation", uid, "echanges"), orderBy("date", "asc")));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+async function addEchange(uid, mid, de, texte) {
+  const u = auth.currentUser; if (!u) throw new Error("non connecté");
+  const t = String(texte || "").trim().slice(0, 1000); if (!t) return;
+  await setDoc(doc(collection(db, "formation", uid, "echanges")), { mid: String(mid), de, texte: t, parUid: u.uid, date: serverTimestamp() });
 }
 // Demande de suppression : un coordinateur la traite (les données de suivi appartiennent aussi à l'association)
 async function requestDeletion(uid, nom, email) {
@@ -727,6 +739,6 @@ window.AbbaSync = {
   addDeclaration, enregistrerPaiement, annulerPaiement, traiterDeclaration, activerCompte, setTarif, setInstructions,
   addDon, loadMesDons, loadDonsAttente, loadFonds, confirmerDon, refuserDon, affecterSolidarite,
   watchZonesPlan, saveZonesPlan, saveMyProgress,
-  loadJournal, currentEmail, journaliser,
+  loadJournal, currentEmail, journaliser, loadEchanges, addEchange,
   ...ajoutes,
 };
