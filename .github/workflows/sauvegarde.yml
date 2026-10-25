@@ -1,0 +1,59 @@
+name: Sauvegarde des données
+
+# Chaque dimanche (et à la demande) : copie de toute la base + liste des comptes, CHIFFRÉE, gardée 90 jours.
+# Le dépôt étant public, rien n'est jamais déposé en clair : si le secret BACKUP_PASSPHRASE manque, la sauvegarde est refusée.
+on:
+  schedule:
+    - cron: "17 3 * * 0"
+  workflow_dispatch:
+
+concurrency:
+  group: sauvegarde
+  cancel-in-progress: false
+
+jobs:
+  sauvegarde:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Vérifier que le mot de passe de chiffrement existe
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$BACKUP_PASSPHRASE" ] || [ ${#BACKUP_PASSPHRASE} -lt 20 ]; then
+            echo "::error title=Sauvegarde refusée::Le secret BACKUP_PASSPHRASE est absent ou trop court (20 caractères minimum). Rien n'a été sauvegardé."
+            exit 1
+          fi
+      - name: Écrire la clé de service (secret GitHub, jamais dans le code)
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+      - name: Installer firebase-admin
+        run: npm install --no-save --no-audit --no-fund firebase-admin@12
+      - name: Exporter les données
+        run: node scripts/sauvegarde.mjs
+      - name: Chiffrer, puis vérifier que le déchiffrement fonctionne
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -e
+          D=$(date -u +%Y-%m-%d)
+          tar -czf "sauvegarde-$D.tar.gz" donnees.ndjson comptes.json
+          sha256sum "sauvegarde-$D.tar.gz" | cut -d' ' -f1 > avant.sha
+          printf %s "$BACKUP_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 --symmetric --cipher-algo AES256 -o "sauvegarde-$D.tar.gz.gpg" "sauvegarde-$D.tar.gz"
+          printf %s "$BACKUP_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 --decrypt "sauvegarde-$D.tar.gz.gpg" | sha256sum | cut -d' ' -f1 > apres.sha
+          cmp avant.sha apres.sha && echo "Contrôle de déchiffrement : OK"
+          shred -u donnees.ndjson comptes.json "sauvegarde-$D.tar.gz" avant.sha apres.sha
+          echo "ARCHIVE=sauvegarde-$D.tar.gz.gpg" >> "$GITHUB_ENV"
+          ls -l "sauvegarde-$D.tar.gz.gpg" | awk '{print "Taille de l archive chiffrée : " $5 " octets"}'
+      - name: Déposer l'archive chiffrée (gardée 90 jours)
+        uses: actions/upload-artifact@v4
+        with:
+          name: sauvegarde-chiffree
+          path: ${{ env.ARCHIVE }}
+          retention-days: 90
+          if-no-files-found: error
