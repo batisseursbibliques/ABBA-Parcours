@@ -675,8 +675,8 @@ async function telechargerAttestationModule(mid) {
     st.msg = "Préparation de ton attestation…"; render();
     const rec = await S().creerAttestation(st.user.uid, mid, { type: "module", mid, nom, titre: modTitle(m), date: dateIso(toMs(p.validatedAt) || Date.now()) });
     const A = await import("./attestation.js");
-    await A.telecharger(rec, window.I18N && window.I18N.lang === "en" ? "en" : "fr");
-    st.msg = "Ton attestation est téléchargée (dossier Téléchargements).";
+    const res = await A.telecharger(rec, window.I18N && window.I18N.lang === "en" ? "en" : "fr");
+    st.msg = res === "externe" ? "Ton attestation s'ouvre dans ton navigateur : appuie sur « Télécharger le PDF »." : "Ton attestation est téléchargée (dossier Téléchargements).";
   } catch (e) { st.msg = "Attestation non disponible pour le moment : " + (e.code || e.message); }
   render();
 }

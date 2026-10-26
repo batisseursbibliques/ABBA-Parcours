@@ -73,7 +73,9 @@ export async function dessiner(rec, lang, env) {
   const c = env.canvas(W, H), ctx = c.getContext("2d");
   const centre = W / 2;
   let fondOk = false;                                     // décor : fond illustré (cadre bleu et or, vagues, livre ouvert)
-  try { ctx.drawImage(await env.image("fond.jpg"), 0, 0, W, H); fondOk = true; } catch (e) {}
+  for (const nomFond of (estParcours ? ["fond-certificat.jpg", "fond.jpg"] : ["fond.jpg"])) {   // le certificat final peut avoir son propre fond
+    try { ctx.drawImage(await env.image(nomFond), 0, 0, W, H); fondOk = true; break; } catch (e) {}
+  }
   if (!fondOk) {                                          // repli si l'image du fond ne se charge pas : cadre simple
     ctx.fillStyle = CREME; ctx.fillRect(0, 0, W, H);
     ctx.strokeStyle = MARINE; ctx.lineWidth = 16; ctx.strokeRect(90, 90, W - 180, H - 180);
@@ -174,10 +176,19 @@ export const envNavigateur = {
   },
 };
 
+const estAppAndroid = () => !!(globalThis.Capacitor && globalThis.Capacitor.isNativePlatform && globalThis.Capacitor.isNativePlatform());
+// L'application Android ne sait pas enregistrer un fichier : on ouvre la page du document dans le navigateur du téléphone.
+// (Adresse « web.app » volontairement hors de la liste des adresses gardées dans l'application : Android l'ouvre alors dans le navigateur.)
+export const urlPageDocument = (rec, lang) => `https://abba-g.web.app/ABBA-Parcours/certificat.html?n=${encodeURIComponent(rec.numero)}&lang=${lang === "en" ? "en" : "fr"}`;
 export async function telecharger(rec, lang) {
+  if (estAppAndroid()) { location.href = urlPageDocument(rec, lang); return "externe"; }
+  return telechargerFichier(rec, lang);
+}
+export async function telechargerFichier(rec, lang) {   // enregistre le PDF (navigateur)
   const pdf = await creerPdf(rec, lang, envNavigateur);
   const blob = new Blob([pdf], { type: "application/pdf" });
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = nomFichier(rec);
   document.body.appendChild(a); a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  return "telecharge";
 }
