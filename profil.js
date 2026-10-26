@@ -186,6 +186,11 @@ function rendreProfilCard() {
   box.innerHTML = htmlProfil();
   if (ouverts.size) box.querySelectorAll("details").forEach((d) => { d.open = ouverts.has(d.dataset.acc); });
   placerPerso(box, ouverts.has("perso"));
+  const dons = $("profilDons");
+  if (dons) {
+    dons.readOnly = P.mode !== "edit";
+    if (P.mode === "edit") dons.dataset.edit = "1"; else { delete dons.dataset.edit; dons.value = (window.__monProfil && window.__monProfil.donsSpirituels) || ""; }
+  }
   if (P.mode === "edit") {
     remplirGeo();
     $("pf-pays").addEventListener("change", surPays);
@@ -273,6 +278,13 @@ async function enregistrer() {
   const btn = $("pf-save"); btn.disabled = true;
   try {
     const r = await S().saveProfil(P.user.uid, { prenom, nom, telephone: tel }, contact);
+    const donsEl = $("profilDons");
+    if (donsEl) {
+      const donsSpirituels = donsEl.value.trim();
+      await S().saveMyProfilFormation(P.user.uid, { donsSpirituels });
+      S().saveModulesSummary(P.user.uid, { donsSpirituels }).catch(() => {});
+      window.__monProfil = Object.assign({}, window.__monProfil, { donsSpirituels });
+    }
     P.contact = { ...P.contact, ...contact }; P.profil = { ...P.profil, nom: r.nom, prenomSaisi: prenom, nomFamille: nom, telephone: r.telephone, prenom: "" };
     window.dispatchEvent(new CustomEvent("abba:profil-modifie", { detail: { nom: r.nom, telephone: r.telephone } }));
     let note = "";
