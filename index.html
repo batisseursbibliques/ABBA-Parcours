@@ -359,29 +359,32 @@
       </div>
       <p class="settings-hint">Avancement des Bâtisseurs : travail réel dans les modules, déclaration quotidienne et présence. Touche une ligne pour voir le détail.</p>
 
-      <!-- Demandes d'accès -->
-      <div class="card">
-        <p class="eyebrow">Demandes d'accès au Parcours</p>
-        <p class="settings-hint">Approuve ou refuse les demandes des Bâtisseurs qui veulent rejoindre le Parcours.</p>
-        <div id="enrollmentsContainer"><p class="settings-hint">Chargement…</p></div>
-        <div id="deletionRequestsBox"></div>
-        <div id="journalBox"></div>
+      <!-- Demandes d'accès (accordéon) -->
+      <div class="card card-accord">
+        <button class="accord-head" onclick="toggleAccord('coordDemandesBody','coordDemandesArrow')" style="width:100%;padding:0;">
+          <p class="eyebrow" style="margin:0;">Demandes d'accès au Parcours <span id="coordDemandesCount"></span></p>
+          <span id="coordDemandesArrow" class="accord-arrow">▸</span>
+        </button>
+        <div id="coordDemandesBody" style="display:none;margin-top:10px;">
+          <p class="settings-hint">Approuve ou refuse les demandes des Bâtisseurs qui veulent rejoindre le Parcours.</p>
+          <div id="enrollmentsContainer"><p class="settings-hint">Chargement…</p></div>
+          <div id="deletionRequestsBox"></div>
+        </div>
       </div>
 
-      <!-- Profils MBTI — accordéon global -->
-      <div class="card">
-        <button class="accord-head" onclick="toggleAccord('coordProfilsBody','coordProfilsArrow')" style="width:100%;padding:0;">
-          <p class="eyebrow" style="margin:0;">Profils (MBTI, dons spirituels)</p>
-          <span id="coordProfilsArrow" class="accord-arrow">▸</span>
+      <!-- Journal des actions (accordéon, coordinateur principal) -->
+      <div class="card card-accord" id="journalCard" style="display:none;">
+        <button class="accord-head" onclick="toggleAccord('coordJournalBody','coordJournalArrow')" style="width:100%;padding:0;">
+          <p class="eyebrow" style="margin:0;">Journal des actions</p>
+          <span id="coordJournalArrow" class="accord-arrow">▸</span>
         </button>
-        <div id="coordProfilsBody" style="display:none;margin-top:10px;">
-          <div id="coordProfilsList"></div>
-          <p class="empty-hint" id="coordProfilsEmpty">Aucun profil renseigné pour l'instant.</p>
+        <div id="coordJournalBody" style="display:none;margin-top:10px;">
+          <div id="journalBox"></div>
         </div>
       </div>
 
       <!-- Résumé semestriel — accordéon global -->
-      <div class="card">
+      <div class="card card-accord">
         <button class="accord-head" onclick="toggleAccord('coordResumeBody','coordResumeArrow')" style="width:100%;padding:0;">
           <p class="eyebrow" style="margin:0;">Résumé pour rapport semestriel</p>
           <span id="coordResumeArrow" class="accord-arrow">▸</span>
@@ -399,7 +402,7 @@
       </div>
 
       <!-- Certificats de fin de formation -->
-      <div class="card">
+      <div class="card card-accord">
         <button class="accord-head" onclick="toggleAccord('coordCertBody','coordCertArrow')" style="width:100%;padding:0;">
           <p class="eyebrow" style="margin:0;">Certificats de fin de formation</p>
           <span id="coordCertArrow" class="accord-arrow">▸</span>
@@ -417,7 +420,7 @@
       </div>
 
       <!-- Rapport de la promotion (formation) -->
-      <div class="card">
+      <div class="card card-accord">
         <button class="accord-head" onclick="toggleAccord('coordRapportBody','coordRapportArrow')" style="width:100%;padding:0;">
           <p class="eyebrow" style="margin:0;">Rapport de la promotion</p>
           <span id="coordRapportArrow" class="accord-arrow">▸</span>
@@ -439,10 +442,15 @@
         </div>
       </div>
 
-      <!-- À surveiller -->
-      <div class="card">
-        <p class="eyebrow">À surveiller</p>
-        <div id="coordAlerts"><p class="settings-hint">Chargement…</p></div>
+      <!-- À surveiller (accordéon) -->
+      <div class="card card-accord">
+        <button class="accord-head" onclick="toggleAccord('coordAlertsBody','coordAlertsArrow')" style="width:100%;padding:0;">
+          <p class="eyebrow" style="margin:0;">À surveiller <span id="coordAlertsCount"></span></p>
+          <span id="coordAlertsArrow" class="accord-arrow">▸</span>
+        </button>
+        <div id="coordAlertsBody" style="display:none;margin-top:10px;">
+          <div id="coordAlerts"><p class="settings-hint">Chargement…</p></div>
+        </div>
       </div>
 
       <!-- Tableau d'avancement -->

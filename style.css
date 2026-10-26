@@ -1032,3 +1032,7 @@ details.pf-acc[open]>summary{border-bottom:1px dashed var(--line);}
 .cadre-barre{flex:0 0 auto;padding:calc(8px + env(safe-area-inset-top,0px)) 12px 8px;border-bottom:1px solid var(--line);background:var(--card-bg);}
 .cadre-retour{background:var(--navy);color:#fff;border:none;border-radius:8px;padding:10px 16px;font-size:15px;font-weight:600;cursor:pointer;}
 .cadre-iframe{flex:1 1 auto;width:100%;border:0;background:var(--bg);}
+
+/* Coordination : cartes en accordéon resserrées */
+.card-accord{padding:12px 16px;margin-bottom:10px;}
+.card-accord .eyebrow{font-size:12px;}

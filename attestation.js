@@ -76,7 +76,7 @@ async function dessinerCertificatFinal(rec, lang, env, fond) {
   ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
   const MAR = "#0b2a6b", BRUN = "#8a6410";
   // bandeau doré : le mot-clé
-  ctx.fillStyle = MAR; ctx.font = `bold 128px ${SERIF}`; ctx.fillText(lang === "en" ? "CERTIFICATE" : "CERTIFICAT", cx, 625);
+  ctx.fillStyle = MAR; ctx.font = `bold 128px ${SERIF}`; ctx.fillText(lang === "en" ? "CERTIFICATE" : "CERTIFICAT", cx, 595);
   ctx.font = `bold 104px ${SERIF}`; ctx.fillText(lang === "en" ? "OF COMPLETION OF TRAINING" : "DE FIN DE FORMATION", cx, 905);
   ctx.fillStyle = BRUN; ctx.font = `italic 58px ${SERIF}`; ctx.fillText(lang === "en" ? "Builder Path (Parcours Bâtisseur) · Training phase" : "Parcours Bâtisseur · Phase de formation", cx, 985);
   ctx.strokeStyle = OR; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(cx - 420, 1030); ctx.lineTo(cx + 420, 1030); ctx.stroke();

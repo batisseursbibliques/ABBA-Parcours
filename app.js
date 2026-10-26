@@ -622,6 +622,7 @@ function detailEleve(r) {
   const a = r.a;
   if (!a) return "<p class=\"settings-hint\">Données indisponibles.</p>";
   let h = `<p style="margin:0 0 8px;"><button type="button" class="btn-secondary" data-fiche="${escC(r.uid)}" data-nom="${escC(r.nom || r.email || "")}">📍 Fiche de contact</button></p>`;
+  if (r.mbti || r.donsSpirituels) h += `<p class="small">${r.mbti ? "<strong>MBTI</strong> : " + escC(r.mbti) : ""}${r.mbti && r.donsSpirituels ? " · " : ""}${r.donsSpirituels ? "<strong>Dons spirituels</strong> : " + escC(r.donsSpirituels) : ""}</p>`;
   const fait = a.modules.filter(m => m.started || m.complete);
   if (!fait.length) h += `<p class="small">Aucun module commencé.</p>`;
   fait.forEach(m => {
@@ -741,6 +742,7 @@ async function renderCoordModules() {
       };
     }
     const avec = actifs.filter(r => r.alertes.length);
+    const cA = document.getElementById("coordAlertsCount"); if (cA) cA.textContent = avec.length ? "(" + avec.length + ")" : "";
     alertsBox.innerHTML = avec.length
       ? avec.map(r => `<p class="small"><strong>${escC(r.nom || r.email)}</strong> — ${r.alertes.map(escC).join(" · ")}</p>`).join("")
       : `<p class="settings-hint">Rien à signaler pour l'instant ✓</p>`;
@@ -1727,9 +1729,10 @@ const JOURNAL_LIBELLES = {
 async function renderJournal() {
   const box = document.getElementById("journalBox"); if (!box) return;
   const S = window.AbbaSync;
-  if (!S || !S.isAdminEmail(S.currentEmail())) { box.innerHTML = ""; return; }   // réservé au coordinateur principal
-  box.innerHTML = `<p class="eyebrow" style="margin-top:14px;">Journal des actions</p>
-    <p class="settings-hint">Qui a fait quoi, et quand (les 150 dernières actions). Une ligne ne peut plus être modifiée ni effacée.</p>
+  const jCard = document.getElementById("journalCard");
+  if (!S || !S.isAdminEmail(S.currentEmail())) { box.innerHTML = ""; if (jCard) jCard.style.display = "none"; return; }   // réservé au coordinateur principal
+  if (jCard) jCard.style.display = "";
+  box.innerHTML = `<p class="settings-hint">Qui a fait quoi, et quand (les 150 dernières actions). Une ligne ne peut plus être modifiée ni effacée.</p>
     <button class="btn-secondary" id="journalVoir" type="button">Afficher le journal</button><div id="journalListe"></div>`;
   document.getElementById("journalVoir").addEventListener("click", async () => {
     const out = document.getElementById("journalListe"); out.innerHTML = '<p class="settings-hint">Chargement…</p>';
@@ -1755,6 +1758,7 @@ function renderEnrollmentsAdmin() {
   const pending = ALL_ENROLLMENTS.filter(e => e.status === "pending");
   const active  = ALL_ENROLLMENTS.filter(e => e.status === "active");
   const refused = ALL_ENROLLMENTS.filter(e => e.status === "refused");
+  const cEl = document.getElementById("coordDemandesCount"); if (cEl) cEl.textContent = pending.length ? "(" + pending.length + " en attente)" : "";
 
   const row = (e, mode) => {
     const uidS = String(e.uid || "").replace(/[^A-Za-z0-9_-]/g, "");   // identifiant nettoyé (sert dans les boutons)
