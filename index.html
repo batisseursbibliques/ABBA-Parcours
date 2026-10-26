@@ -398,6 +398,24 @@
         </div>
       </div>
 
+      <!-- Certificats de fin de formation -->
+      <div class="card">
+        <button class="accord-head" onclick="toggleAccord('coordCertBody','coordCertArrow')" style="width:100%;padding:0;">
+          <p class="eyebrow" style="margin:0;">Certificats de fin de formation</p>
+          <span id="coordCertArrow" class="accord-arrow">▸</span>
+        </button>
+        <div id="coordCertBody" style="display:none;margin-top:10px;">
+          <p class="settings-hint">Pour délivrer le certificat à une personne qui n'a pas de compte dans l'application (formation suivie en présentiel ou en ligne) : écris son nom, choisis la date, et le certificat est créé avec son numéro et son QR de vérification.</p>
+          <label class="field"><span>Nom complet de la personne</span><input type="text" id="certNom" maxlength="150" placeholder="Prénom NOM" autocomplete="off"></label>
+          <label class="field"><span>Date du certificat</span><input type="date" id="certDate"></label>
+          <button class="btn-primary" id="certGenerer" type="button">Générer le certificat</button>
+          <p class="auth-error" id="certErr"></p>
+          <p class="eyebrow" style="margin-top:16px;">Certificats déjà délivrés</p>
+          <button class="btn-secondary" id="certListeBtn" type="button">Afficher la liste</button>
+          <div id="certListe"></div>
+        </div>
+      </div>
+
       <!-- Rapport de la promotion (formation) -->
       <div class="card">
         <button class="accord-head" onclick="toggleAccord('coordRapportBody','coordRapportArrow')" style="width:100%;padding:0;">
@@ -413,6 +431,11 @@
             <button class="btn-secondary" id="rapportTelecharger" type="button" style="margin-top:6px;">Télécharger le tableau (fichier .csv)</button>
             <p class="settings-hint">Le tableau contient les noms des étudiants : garde-le pour toi et ne le partage pas librement.</p>
           </div>
+          <p class="eyebrow" style="margin-top:18px;">Historique mensuel</p>
+          <p class="settings-hint">Un « point » de la promotion est gardé chaque mois (il se crée tout seul la première fois que tu génères le rapport du mois). Tu peux ainsi voir qui était actif, à relancer ou en risque d'abandon à chaque mois passé.</p>
+          <button class="btn-secondary" id="histVoir" type="button">Voir l'historique</button>
+          <button class="btn-secondary" id="histSave" type="button" style="display:none;">Mettre à jour le point de ce mois</button>
+          <div id="histOut"></div>
         </div>
       </div>
 

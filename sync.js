@@ -154,6 +154,28 @@ async function creerAttestation(uid, key, rec) {
   await lot.commit();
   return base;
 }
+// Certificat de fin de formation délivré à quelqu'un qui n'a pas de compte dans l'application (formation suivie en présentiel ou en ligne)
+async function creerCertificatManuel(nom, date) {
+  const n = String(nom || "").trim().replace(/\s+/g, " ");
+  if (!n) throw new Error("nom manquant");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date))) throw new Error("date invalide");
+  const numero = nouveauNumero();
+  const base = { numero, type: "parcours", nom: n.slice(0, 150), titre: "Parcours Bâtisseur — phase de formation", date: String(date), source: "manuel" };
+  await setDoc(doc(db, "attestations", numero), { ...base, creeLe: serverTimestamp() });
+  return base;
+}
+async function listCertificats() {
+  const snap = await getDocs(query(collection(db, "attestations"), orderBy("creeLe", "desc"), limit(300)));
+  return snap.docs.map((d) => d.data());
+}
+async function revoquerCertificat(numero) { await deleteDoc(doc(db, "attestations", String(numero))); }
+/* ---------- HISTORIQUE MENSUEL DE LA PROMOTION ---------- */
+async function getRapportMois(mois) { const s = await getDoc(doc(db, "rapports", mois)); return s.exists() ? s.data() : null; }
+async function saveRapportMois(mois, data) { await setDoc(doc(db, "rapports", mois), { ...data, mois, maj: serverTimestamp() }); }
+async function listRapports() {
+  const snap = await getDocs(query(collection(db, "rapports"), orderBy("mois", "desc"), limit(36)));
+  return snap.docs.map((d) => d.data());
+}
 async function verifierAttestation(numero) {
   const s = await getDoc(doc(db, "attestations", String(numero || "").trim().toUpperCase()));
   return s.exists() ? s.data() : null;
@@ -763,6 +785,9 @@ window.AbbaSync = {
   addDon, loadMesDons, loadDonsAttente, loadFonds, confirmerDon, refuserDon, affecterSolidarite,
   watchZonesPlan, saveZonesPlan, saveMyProgress,
   loadJournal, currentEmail, journaliser, loadEchanges, addEchange, getAttestation, creerAttestation, verifierAttestation,
+  creerCertificatManuel: L(creerCertificatManuel, "certificat_manuel_delivre", (nom, date, r) => [(r && r.numero) || "", nom]),
+  listCertificats, getRapportMois, saveRapportMois, listRapports,
+  revoquerCertificat: L(revoquerCertificat, "certificat_revoque", (numero) => [numero]),
   delivrerCertificat: L((uid, rec) => creerAttestation(uid, "parcours", rec), "certificat_delivre", (uid, rec, r) => [uid, (r && r.numero) || ""]),
   ...ajoutes,
 };

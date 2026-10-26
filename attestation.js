@@ -68,7 +68,59 @@ function lignes(ctx, texte, largeurMax) {            // coupe un texte en lignes
   return out;
 }
 
+// Mise en page du certificat de fin de formation sur le fond illustré « fond-certificat.jpg » (format 4:3)
+async function dessinerCertificatFinal(rec, lang, env, fond) {
+  const t = TXT[lang === "en" ? "en" : "fr"], FW = 3508, FH = Math.round(FW * fond.height / fond.width);
+  const c = env.canvas(FW, FH), ctx = c.getContext("2d"), cx = FW / 2;
+  ctx.drawImage(fond, 0, 0, FW, FH);
+  ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  const MAR = "#0b2a6b", BRUN = "#8a6410";
+  // bandeau doré : le mot-clé
+  ctx.fillStyle = MAR; ctx.font = `bold 128px ${SERIF}`; ctx.fillText(lang === "en" ? "CERTIFICATE" : "CERTIFICAT", cx, 625);
+  ctx.font = `bold 104px ${SERIF}`; ctx.fillText(lang === "en" ? "OF COMPLETION OF TRAINING" : "DE FIN DE FORMATION", cx, 905);
+  ctx.fillStyle = BRUN; ctx.font = `italic 58px ${SERIF}`; ctx.fillText(lang === "en" ? "Builder Path (Parcours Bâtisseur) · Training phase" : "Parcours Bâtisseur · Phase de formation", cx, 985);
+  ctx.strokeStyle = OR; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(cx - 420, 1030); ctx.lineTo(cx + 420, 1030); ctx.stroke();
+  ctx.fillStyle = DOUX; ctx.font = `italic 62px ${SERIF}`; ctx.fillText(t.parcours.intro, cx, 1130);
+  let taille = 180; const nom = String(rec.nom || "").trim();
+  do { ctx.font = `bold ${taille}px ${SERIF}`; taille -= 8; } while (ctx.measureText(nom).width > 2500 && taille > 70);
+  ctx.fillStyle = MAR; ctx.fillText(nom, cx, 1330);
+  const lw = Math.min(ctx.measureText(nom).width + 160, 2700);
+  ctx.strokeStyle = OR; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(cx - lw / 2, 1380); ctx.lineTo(cx + lw / 2, 1380); ctx.stroke();
+  let y = 1500;
+  t.corpsParcours().forEach((p) => {
+    ctx.fillStyle = ENCRE; ctx.font = `62px ${SERIF}`;
+    lignes(ctx, p[0], 2250).forEach((l) => { ctx.fillText(l, cx, y); y += 86; });
+    y += 24;
+  });
+  // panneau du bas (lisible sur le paysage) : QR, date et numéro, signature
+  const px = 985, pw = 1900, py = 2060, ph = 470;
+  ctx.fillStyle = "rgba(255,255,255,0.86)"; ctx.fillRect(px, py, pw, ph);
+  ctx.strokeStyle = OR; ctx.lineWidth = 4; ctx.strokeRect(px, py, pw, ph);
+  const m = await env.qr(URL_VERIF + encodeURIComponent(rec.numero)), n = m.length, cell = Math.floor(300 / (n + 4)), qs = cell * (n + 4);
+  const qx = px + 40, qy = py + 40;
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(qx, qy, qs, qs); ctx.fillStyle = "#111111";
+  for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (m[r][k]) ctx.fillRect(qx + (k + 2) * cell, qy + (r + 2) * cell, cell, cell);
+  ctx.fillStyle = DOUX; ctx.font = `38px ${SERIF}`; ctx.textAlign = "left"; ctx.fillText(t.scanne, qx, qy + qs + 48); ctx.textAlign = "center";
+  const mx = px + pw / 2 - 40;
+  ctx.fillStyle = ENCRE; ctx.font = `58px ${SERIF}`; ctx.fillText(t.delivre(dateLongue(rec.date, lang)), mx, py + 190);
+  ctx.fillStyle = MAR; ctx.font = `bold 60px ${SERIF}`; ctx.fillText(t.numero(rec.numero), mx, py + 270);
+  ctx.fillStyle = DOUX; ctx.font = `42px ${SERIF}`; ctx.fillText(t.org, mx, py + 335);
+  try {
+    const sig = await env.image("signature.png"), sw = 520, sh = sig.height * sw / sig.width, sx = px + pw - 70 - sw, base = py + 285;
+    ctx.drawImage(sig, sx, base - sh, sw, sh);
+    ctx.strokeStyle = ENCRE; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(sx - 15, base + 6); ctx.lineTo(sx + sw + 15, base + 6); ctx.stroke();
+    ctx.fillStyle = ENCRE; ctx.font = `bold 46px ${SERIF}`; ctx.fillText("Paul HOUEKIN", sx + sw / 2, base + 58);
+    ctx.fillStyle = DOUX; ctx.font = `italic 38px ${SERIF}`; ctx.fillText(t.titreSignataire, sx + sw / 2, base + 104);
+  } catch (e) {}
+  ctx.fillStyle = DOUX; ctx.font = `33px ${SERIF}`; ctx.fillText(t.verif, px + pw / 2, py + ph - 24);
+  return c;
+}
+
 export async function dessiner(rec, lang, env) {
+  if (rec.type === "parcours") {   // fond illustré propre au certificat final, s'il est présent
+    let fond = null; try { fond = await env.image("fond-certificat.jpg"); } catch (e) {}
+    if (fond) return dessinerCertificatFinal(rec, lang, env, fond);
+  }
   const t = TXT[lang === "en" ? "en" : "fr"], estParcours = rec.type === "parcours", bloc = estParcours ? t.parcours : t.module;
   const c = env.canvas(W, H), ctx = c.getContext("2d");
   const centre = W / 2;
@@ -138,7 +190,7 @@ export function jpegVersPdf(jpeg, wPx, hPx) {
     if (flux) { add("stream\n"); add(flux); add("\nendstream\n"); }
     add("endobj\n");
   };
-  const PW = 842, PH = 595;
+  const PW = 842, PH = Math.round(842 * hPx / wPx);   // A4 paysage (842 x 595) ou 4:3 selon le fond
   add("%PDF-1.4\n");
   obj(1, "<< /Type /Catalog /Pages 2 0 R >>");
   obj(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
@@ -157,7 +209,7 @@ export function jpegVersPdf(jpeg, wPx, hPx) {
 export async function creerPdf(rec, lang, env) {
   const c = await dessiner(rec, lang, env);
   const jpeg = await env.jpeg(c);
-  return jpegVersPdf(jpeg, W, H);
+  return jpegVersPdf(jpeg, c.width, c.height);
 }
 export const nomFichier = (rec) => (rec.type === "parcours" ? "Certificat-fin-de-formation-" : `Attestation-module-${String(rec.mid || "").replace(/^m/, "")}-`) + rec.numero + ".pdf";
 

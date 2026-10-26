@@ -27,7 +27,7 @@ const db = getFirestore();
 const auth = getAuth();
 
 // Collections que ce programme connaît (les autres sont seulement signalées)
-const CONNUES = new Set(["users", "summaries", "formation", "pushTokens", "liens", "enrollments", "binomes",
+const CONNUES = new Set(["rapports", "users", "summaries", "formation", "pushTokens", "liens", "enrollments", "binomes",
   "solidarite", "seances", "deletionRequests", "correcteurs", "admins", "config", "archives_finances"]);
 
 const log = (...a) => console.log(...a);
@@ -88,6 +88,9 @@ async function traiter(uid) {
   const versements = await db.collection(`formation/${uid}/paiements`).get();
   rapport.aSupprimer[GARDER_FINANCES ? "versements (gardés sans nom pour la comptabilité)" : "versements"] = versements.size;
 
+  const rapportsTouches = [];   // historique mensuel : la ligne du compte dans chaque « point »
+  for (const r of (await db.collection("rapports").get()).docs) { if (((r.data().lignes) || {})[uid]) rapportsTouches.push(r.ref); }
+  rapport.aSupprimer["lignes de l'historique mensuel"] = rapportsTouches.length;
   const seancesTouchees = [];
   for (const s of (await db.collection("seances").get()).docs) {
     if ((s.data().presences || {})[uid]) seancesTouchees.push(s.ref);
@@ -132,6 +135,7 @@ async function traiter(uid) {
   for (const ref of binomes.values()) await ref.delete();
   for (const d of dons.docs) await d.ref.delete();
   for (const ref of seancesTouchees) await ref.update(new FieldPath("presences", uid), FieldValue.delete());
+  for (const ref of rapportsTouches) await ref.update(new FieldPath("lignes", uid), FieldValue.delete());
 
   // --- 3. Compte de connexion
   try { await auth.deleteUser(uid); }

@@ -1420,6 +1420,7 @@ function setupRapport() {
     dernier = tableauRapport(LAST_COORD_ROWS);
     out.innerHTML = htmlRapport(calculerRapport(LAST_COORD_ROWS));
     document.getElementById("rapportActions").style.display = "";
+    if (window.__pointDuMois) window.__pointDuMois();
   });
   document.getElementById("rapportCopier").addEventListener("click", () => {
     if (!dernier) return;
@@ -1432,15 +1433,149 @@ function setupRapport() {
   document.getElementById("rapportTelecharger").addEventListener("click", () => {
     if (!dernier) return;
     const csv = "\ufeff" + [dernier.colonnes].concat(dernier.lignes).map(l => l.map(csvCase).join(";")).join("\r\n");
+    const nomFichier = "rapport-promotion-" + new Date().toISOString().slice(0, 10) + ".csv";
+    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+      // L'application Android ne sait pas enregistrer un fichier : on envoie le tableau (dans l'adresse, jamais à un serveur) vers une page ouverte dans le navigateur
+      const tsv = [dernier.colonnes].concat(dernier.lignes).map(l => l.map(v => String(v).replace(/[\t\n\r]+/g, " ")).join("\t")).join("\n");
+      (async () => {
+        const json = JSON.stringify({ n: nomFichier, c: csv, t: tsv });
+        let oct = new TextEncoder().encode(json), mode = "p";
+        try { if (window.CompressionStream) { oct = new Uint8Array(await new Response(new Blob([oct]).stream().pipeThrough(new CompressionStream("gzip"))).arrayBuffer()); mode = "g"; } } catch (e) { mode = "p"; oct = new TextEncoder().encode(json); }
+        let b = ""; for (let i = 0; i < oct.length; i += 8192) b += String.fromCharCode.apply(null, oct.subarray(i, i + 8192));
+        const url = "https://abba-g.web.app/ABBA-Parcours/export.html#d=" + mode + ":" + btoa(b).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+        if (url.length > 200000) { alert("Le tableau est trop grand pour cette méthode : utilise « Copier le tableau »."); return; }
+        location.href = url;
+      })();
+      return;
+    }
     const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    a.download = "rapport-promotion-" + new Date().toISOString().slice(0, 10) + ".csv"; document.body.appendChild(a); a.click();
+    a.download = nomFichier; document.body.appendChild(a); a.click();
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
-    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) alert("Dans l'application, le téléchargement peut ne pas marcher : utilise « Copier le tableau », ou ouvre cette page dans le navigateur.");
+  });
+}
+
+
+/* ---------- Certificats de fin de formation délivrés à la main (personnes sans compte) ---------- */
+function setupCertificats() {
+  const gen = document.getElementById("certGenerer"); if (!gen) return;
+  const S = () => window.AbbaSync, $ = (id) => document.getElementById(id);
+  const aujourdhui = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+  $("certDate").value = aujourdhui();
+  const telecharger = async (rec) => { const A = await import("./attestation.js"); return A.telecharger(rec, "fr"); };
+  gen.addEventListener("click", async () => {
+    const nom = $("certNom").value.trim().replace(/\s+/g, " "), date = $("certDate").value, err = $("certErr");
+    err.textContent = "";
+    if (nom.length < 3) { err.textContent = "Écris le nom complet de la personne."; return; }
+    if (!date) { err.textContent = "Choisis la date du certificat."; return; }
+    if (!confirm("Délivrer le certificat de fin de formation à :\n\n" + nom + "\n\nPense à vérifier l'orthographe : le nom ne pourra plus être modifié, seulement annulé puis refait.")) return;
+    gen.disabled = true;
+    try {
+      const rec = await S().creerCertificatManuel(nom, date);
+      $("certNom").value = "";
+      err.textContent = ""; err.style.color = "var(--green, #2e7d4f)"; err.textContent = "Certificat créé : N° " + rec.numero;
+      await telecharger(rec);
+      if ($("certListe").innerHTML) $("certListeBtn").click();
+    } catch (e) { err.style.color = ""; err.textContent = "Impossible de créer le certificat : " + (e.code || e.message); }
+    gen.disabled = false;
+  });
+  let liste = [];
+  const afficher = () => {
+    const out = $("certListe");
+    out.innerHTML = liste.length ? liste.map((c, i) => `<div class="enrollment-row" style="display:block;"><strong>${escC(c.nom)}</strong>
+        <span class="enrollment-email">${escC(c.type === "parcours" ? "Certificat de fin de formation" : "Attestation de module")} · ${escC(c.date)} · N° ${escC(c.numero)}${c.source === "manuel" ? " · délivré à la main" : ""}</span>
+        <button class="btn-secondary" data-cert-dl="${i}">Télécharger</button>${c.source === "manuel" ? ` <button class="btn-secondary" data-cert-annuler="${i}">Annuler ce certificat</button>` : ""}</div>`).join("")
+      : '<p class="settings-hint">Aucun certificat pour le moment.</p>';
+  };
+  $("certListeBtn").addEventListener("click", async () => {
+    $("certListe").innerHTML = '<p class="settings-hint">Chargement…</p>';
+    try { liste = (await S().listCertificats()).filter(c => c.type === "parcours"); afficher(); }
+    catch (e) { $("certListe").innerHTML = `<p class="auth-error">Impossible de lire la liste : ${escC(e.code || e.message)}</p>`; }
+  });
+  $("certListe").addEventListener("click", async (ev) => {
+    const dl = ev.target.closest("[data-cert-dl]"), an = ev.target.closest("[data-cert-annuler]");
+    if (dl) { try { await telecharger(liste[Number(dl.dataset.certDl)]); } catch (e) { alert("Téléchargement impossible : " + (e.code || e.message)); } }
+    if (an) {
+      const c = liste[Number(an.dataset.certAnnuler)];
+      if (!c || !confirm("Annuler le certificat de " + c.nom + " (N° " + c.numero + ") ?\nSon QR de vérification ne marchera plus.")) return;
+      try { await S().revoquerCertificat(c.numero); liste = liste.filter(x => x.numero !== c.numero); afficher(); }
+      catch (e) { alert("Annulation impossible : " + (e.code || e.message)); }
+    }
+  });
+}
+
+
+/* ---------- Historique mensuel de la promotion ---------- */
+function categorieRow(r, maintenant) {
+  const a = r.a; if (!a) return null;
+  if (a.termine) return "Terminé"; if (a.bloque) return "Bloqué"; if (a.indispo && a.indispo.actif) return "Indisponible";
+  if (a.modules.every(m => !m.started && !m.complete)) return "Pas commencé";
+  const d = a.lastMs ? Math.floor(((maintenant || Date.now()) - a.lastMs) / 86400000) : null;
+  if (d === null) return "Pas commencé"; return d <= 7 ? "Actif" : d < 30 ? "À relancer" : "Risque d'abandon";
+}
+function instantane(rows) {
+  const d = calculerRapport(rows), lignes = {};
+  rows.filter(r => r.a).forEach(r => {
+    lignes[r.uid] = [categorieRow(r), r.a.valides, r.a.total, r.a.lastMs ? Math.floor((Date.now() - r.a.lastMs) / 86400000) : -1, r.a.current ? String(r.a.current.n) : ""];
+  });
+  return { g: d.g, parModule: d.parModule, correcteurs: d.correcteurs, sansCorrecteur: d.sansCorrecteur, lignes };
+}
+const MOIS_FR = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+const libelleMois = (m) => { const x = /^(\d{4})-(\d{2})$/.exec(m || ""); return x ? MOIS_FR[Number(x[2]) - 1] + " " + x[1] : m; };
+const moisCourant = () => new Date().toISOString().slice(0, 7);
+function htmlHistorique(liste) {
+  const td = "padding:5px 6px;border-bottom:1px solid var(--line);text-align:center;font-size:13px;";
+  if (!liste.length) return '<p class="settings-hint">Aucun point enregistré pour le moment. Génère le rapport ci-dessus : le point du mois sera créé.</p>';
+  return `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;"><tr><th style="${td}text-align:left;">Mois</th><th style="${td}">Étudiants</th><th style="${td}">En formation</th><th style="${td}">🟢 Actifs</th><th style="${td}">🟠 À relancer</th><th style="${td}">🔴 Abandon</th><th style="${td}">✅ Terminés</th><th style="${td}"></th></tr>`
+    + liste.map(p => `<tr><td style="${td}text-align:left;"><strong>${escC(libelleMois(p.mois))}</strong></td><td style="${td}">${p.g.total}</td><td style="${td}">${p.g.enFormation}</td><td style="${td}">${p.g.actifs}</td><td style="${td}">${p.g.arelancer}</td><td style="${td}">${p.g.abandon}</td><td style="${td}">${p.g.termines}</td><td style="${td}"><button class="btn-secondary" data-hist="${escC(p.mois)}">Voir qui</button></td></tr>`).join("")
+    + "</table></div>";
+}
+function htmlDetailMois(p, rows) {
+  const noms = {}, actuel = {};
+  (rows || []).forEach(r => { noms[r.uid] = r.nom || r.email || "—"; actuel[r.uid] = categorieRow(r); });
+  const ordre = ["Actif", "À relancer", "Risque d'abandon", "Pas commencé", "Bloqué", "Indisponible", "Terminé"];
+  const groupes = {}; Object.entries(p.lignes || {}).forEach(([uid, l]) => { (groupes[l[0]] = groupes[l[0]] || []).push([uid, l]); });
+  let h = `<p class="eyebrow" style="margin-top:12px;">${escC(libelleMois(p.mois))} — qui était où</p>`;
+  ordre.filter(k => groupes[k]).forEach(k => {
+    h += `<p class="small" style="margin:8px 0 2px;"><strong>${escC(k)} (${groupes[k].length})</strong></p>`
+      + groupes[k].sort((a, b) => (noms[a[0]] || "~").localeCompare(noms[b[0]] || "~")).map(([uid, l]) => {
+        const auj = actuel[uid], change = auj && auj !== k ? ` <span class="enrollment-email">→ aujourd'hui : ${escC(auj)}</span>` : (!auj && !noms[uid] ? ' <span class="enrollment-email">(compte supprimé)</span>' : "");
+        return `<p class="small" style="margin:0 0 2px;">• ${escC(noms[uid] || "—")} — ${l[1]}/${l[2]} modules${l[4] ? ", module en cours M" + escC(l[4]) : ""}${l[3] >= 0 ? `, ${l[3]} j sans activité` : ""}${change}</p>`;
+      }).join("");
+  });
+  return h;
+}
+function setupHistorique() {
+  const voir = document.getElementById("histVoir"); if (!voir) return;
+  const S = () => window.AbbaSync, $ = (id) => document.getElementById(id);
+  let liste = [];
+  const enregistrer = async (silencieux) => {
+    if (!LAST_COORD_ROWS || !LAST_COORD_ROWS.length) return false;
+    try { await S().saveRapportMois(moisCourant(), instantane(LAST_COORD_ROWS)); return true; }
+    catch (e) { if (!silencieux) alert("Point du mois non enregistré : " + (e.code || e.message)); return false; }
+  };
+  window.__pointDuMois = async () => {   // appelé quand le rapport est généré : crée le point du mois s'il n'existe pas encore
+    try { if (!(await S().getRapportMois(moisCourant()))) await enregistrer(true); } catch (e) {}
+  };
+  voir.addEventListener("click", async () => {
+    $("histOut").innerHTML = '<p class="settings-hint">Chargement…</p>';
+    try { liste = await S().listRapports(); $("histOut").innerHTML = htmlHistorique(liste); $("histSave").style.display = ""; }
+    catch (e) { $("histOut").innerHTML = `<p class="auth-error">Impossible de lire l'historique : ${escC(e.code || e.message)}</p>`; }
+  });
+  $("histSave").addEventListener("click", async () => {
+    if (await enregistrer(false)) { $("histSave").textContent = "Point enregistré ✓"; setTimeout(() => $("histSave").textContent = "Mettre à jour le point de ce mois", 1800); voir.click(); }
+  });
+  $("histOut").addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-hist]"); if (!b) return;
+    const p = liste.find(x => x.mois === b.dataset.hist); if (!p) return;
+    const zone = $("histDetail") || (() => { const d = document.createElement("div"); d.id = "histDetail"; $("histOut").appendChild(d); return d; })();
+    zone.innerHTML = htmlDetailMois(p, LAST_COORD_ROWS);
   });
 }
 
 function setupResume() {
+  setupHistorique();
   setupRapport();
+  setupCertificats();
   document.getElementById("genResumeBtn").addEventListener("click", generateResume);
   document.getElementById("copyResumeBtn").addEventListener("click", () => {
     const ta = document.getElementById("resumeOutput");
@@ -1587,7 +1722,7 @@ const JOURNAL_LIBELLES = {
   compte_paiement_active: "Compte de paiement activé", tarif_modifie: "Tarif modifié", instructions_paiement_modifiees: "Instructions de paiement modifiées",
   don_confirme: "Don confirmé", don_refuse: "Don refusé", solidarite_affectee: "Solidarité affectée", correcteur_ajoute: "Correcteur ajouté",
   correcteur_retire: "Correcteur retiré", lien_correcteur_pose: "Correcteur attribué", lien_correcteur_retire: "Correcteur retiré d'un élève",
-  acquis_modifies: "Acquis modifiés", suivi_force: "Suivi forcé", fiche_revue: "Fiche corrigée", compte_supprime: "Compte supprimé (programme de suppression)", certificat_delivre: "Certificat de fin de formation délivré",
+  acquis_modifies: "Acquis modifiés", suivi_force: "Suivi forcé", fiche_revue: "Fiche corrigée", compte_supprime: "Compte supprimé (programme de suppression)", certificat_delivre: "Certificat de fin de formation délivré", certificat_manuel_delivre: "Certificat délivré à la main (sans compte)", certificat_revoque: "Certificat annulé",
 };
 async function renderJournal() {
   const box = document.getElementById("journalBox"); if (!box) return;

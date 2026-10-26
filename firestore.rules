@@ -165,9 +165,10 @@ service cloud.firestore {
     // mais pas lister les documents. Création : l'étudiant pour son propre module validé, le coordinateur pour le certificat final.
     match /attestations/{numero} {
       allow get: if true;
-      allow list: if false;
+      allow list: if hasDroit('suivi');   // la liste complète (noms) est réservée aux coordinateurs
       allow create: if request.auth != null
-        && request.resource.data.keys().hasOnly(['numero','type','nom','titre','mid','date','creeLe'])
+        && request.resource.data.keys().hasOnly(['numero','type','nom','titre','mid','date','creeLe','source'])
+        && (!('source' in request.resource.data) || (request.resource.data.source == 'manuel' && request.resource.data.type == 'parcours'))
         && request.resource.data.numero == numero
         && request.resource.data.creeLe == request.time
         && request.resource.data.nom is string && request.resource.data.nom.size() >= 1 && request.resource.data.nom.size() <= 150
@@ -182,6 +183,18 @@ service cloud.firestore {
             || (request.resource.data.type == 'parcours' && hasDroit('suivi')));
       allow update: if false;
       allow delete: if hasDroit('suivi');
+    }
+
+    // Historique mensuel de la promotion : un « point » par mois (chiffres et statut de chaque compte, sans nom).
+    // Seul le point du mois en cours peut être écrit ou mis à jour ; les mois passés ne bougent plus.
+    match /rapports/{mois} {
+      allow read: if hasDroit('suivi');
+      allow create, update: if hasDroit('suivi')
+        && mois == string(request.time.year()) + '-' + (request.time.month() < 10 ? '0' : '') + string(request.time.month())
+        && request.resource.data.keys().hasOnly(['mois','g','parModule','correcteurs','sansCorrecteur','lignes','maj'])
+        && request.resource.data.mois == mois
+        && request.resource.data.maj == request.time;
+      allow delete: if false;
     }
 
     // Journal des actions sensibles : on peut seulement AJOUTER une ligne (au nom de soi-même, à l'heure du serveur),
