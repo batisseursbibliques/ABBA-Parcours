@@ -385,7 +385,11 @@ function renderMbtiResult(f, ans) {
   const r = mbtiResult(f, ans);
   let h = '<div class="fm-result"><p class="eyebrow">Tes résultats</p>';
   r.rows.forEach((x, i) => { h += `<p><strong>Dimension ${i + 1}</strong> : ${esc(x.d.a.nom)} (${x.d.a.l}) ${x.sa}/15 · ${esc(x.d.b.nom)} (${x.d.b.l}) ${x.sb}/15 → <strong>${x.letter}</strong></p>`; });
-  h += `<p>Ton type MBTI : <strong style="font-size:20px;letter-spacing:.15em;">${esc(r.type)}</strong></p><p class="small"><em>Note-le dans ta fiche. C'est un outil pour mieux te connaître, pas un diagnostic : tu n'es jamais réduit(e) à quatre lettres.</em></p>`;
+  h += `<p>Ton type MBTI : <strong style="font-size:20px;letter-spacing:.15em;">${esc(r.type)}</strong></p><p class="small"><em>C'est un outil pour mieux te connaître, pas un diagnostic : tu n'es jamais réduit(e) à quatre lettres.</em></p>`;
+  const mp = window.__monProfil || {};
+  if (mp.mbti === r.type) h += '<p class="small" style="color:#4C7A5E;">✓ Confirmé dans ton profil (Réglages)</p>';
+  else h += `<p><button class="btn-primary" type="button" data-mbti-confirm="${esc(r.type)}">Je confirme ce résultat</button></p>`;
+  if (st.user && mp.mbtiCalcule !== r.type && st.mbtiSaved !== r.type) { st.mbtiSaved = r.type; S().saveMyProfilFormation(st.user.uid, { mbtiCalcule: r.type }).catch(() => {}); }
   const prof = st.mbti && st.mbti.profils && st.mbti.profils[r.type];
   if (prof) h += `<details class="fm-lecon" data-mbti="1" ${st.openMbti ? "open" : ""}><summary>📖 Comprendre mon type : ${esc(r.type)} — ${esc(prof.nom)}</summary><div class="fm-texte">${window.AbbaVersets ? window.AbbaVersets.lier((st.mbti.intro || "") + prof.html, "mbti") : (st.mbti.intro || "") + prof.html}</div></details>`;
   else { h += '<p class="small">Chargement de la description de ton type…</p>'; loadMbtiProfils(); }
@@ -1840,6 +1844,12 @@ function boot() {
   const root = $("formationRoot");
   if (!root) return;
   root.addEventListener("click", onClick);
+  root.addEventListener("click", async (e) => {
+    const b = e.target.closest && e.target.closest("[data-mbti-confirm]"); if (!b || !st.user) return;
+    const t = b.dataset.mbtiConfirm; b.disabled = true;
+    try { await S().saveMyProfilFormation(st.user.uid, { mbti: t, mbtiCalcule: t }); S().saveModulesSummary(st.user.uid, { mbti: t }).catch(() => {}); window.__monProfil = Object.assign({}, window.__monProfil, { mbti: t, mbtiCalcule: t }); render(); }
+    catch (err) { b.disabled = false; alert("Erreur technique : " + (err && err.message ? err.message : String(err))); }
+  });
   root.addEventListener("change", onChange);
   root.addEventListener("input", onInput);
   root.addEventListener("toggle", (e) => { const d = e.target; if (d && d.dataset && d.dataset.mbti) { st.openMbti = d.open; return; } if (d && d.dataset && d.dataset.ex) { if (d.open) st.openEx[d.dataset.ex] = true; else delete st.openEx[d.dataset.ex]; } }, true);

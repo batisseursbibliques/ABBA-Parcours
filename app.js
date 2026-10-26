@@ -778,14 +778,13 @@ function renderCoordProfils(rows) {
 function setupProfilFormation() {
   document.getElementById("saveProfilBtn").addEventListener("click", async () => {
     if (!CURRENT_USER) return;
-    const mbti = document.getElementById("profilMbti").value;
     const donsSpirituels = document.getElementById("profilDons").value.trim();
     const btn = document.getElementById("saveProfilBtn");
     const original = btn.textContent;
     try {
-      await window.AbbaSync.saveMyProfilFormation(CURRENT_USER.uid, { mbti, donsSpirituels });
+      await window.AbbaSync.saveMyProfilFormation(CURRENT_USER.uid, { donsSpirituels });
       // Poussé aussi dans le résumé partagé pour que le coordinateur le voie
-      window.AbbaSync.saveModulesSummary(CURRENT_USER.uid, { mbti, donsSpirituels }).catch(() => {});
+      window.AbbaSync.saveModulesSummary(CURRENT_USER.uid, { donsSpirituels }).catch(() => {});
       btn.textContent = "Enregistré ✓";
       setTimeout(() => btn.textContent = original, 1400);
     } catch (err) {
@@ -795,11 +794,24 @@ function setupProfilFormation() {
   });
 }
 function renderProfilFormation() {
-  const mbtiSel = document.getElementById("profilMbti");
+  window.__monProfil = MY_PROFIL;   // lu par la formation (module 5) pour savoir si le MBTI est déjà confirmé
+  const box = document.getElementById("profilMbtiBox");
   const donsInput = document.getElementById("profilDons");
-  if (!mbtiSel || !donsInput) return;
-  mbtiSel.value = MY_PROFIL.mbti || "";
-  donsInput.value = MY_PROFIL.donsSpirituels || "";
+  if (!box || !donsInput) return;
+  const calc = MY_PROFIL.mbtiCalcule, conf = MY_PROFIL.mbti;
+  const lbl = '<span style="font-size:14px;">Mon type MBTI</span><br>';
+  if (conf && (!calc || calc === conf)) box.innerHTML = lbl + `<strong style="font-size:20px;letter-spacing:.15em;">${escC(conf)}</strong> <span class="small" style="color:#4C7A5E;">✓ confirmé</span>`;
+  else if (calc) box.innerHTML = lbl + `<strong style="font-size:20px;letter-spacing:.15em;">${escC(calc)}</strong> <span class="small">(calculé d'après ton test du module 5)</span><br><button class="btn-primary" id="mbtiConfirmBtn" type="button" style="margin-top:8px;">Je confirme ce résultat</button>`;
+  else box.innerHTML = lbl + '<span class="small">Il se calculera automatiquement quand tu feras le test de personnalité du module 5.</span>';
+  const cb = document.getElementById("mbtiConfirmBtn");
+  if (cb) cb.addEventListener("click", async () => {
+    if (!CURRENT_USER) return; cb.disabled = true;
+    try {
+      await window.AbbaSync.saveMyProfilFormation(CURRENT_USER.uid, { mbti: calc });
+      window.AbbaSync.saveModulesSummary(CURRENT_USER.uid, { mbti: calc }).catch(() => {});
+    } catch (err) { cb.disabled = false; alert("Erreur technique : " + (err && err.message ? err.message : String(err))); }
+  });
+  if (document.activeElement !== donsInput) donsInput.value = MY_PROFIL.donsSpirituels || "";
 }
 
 /* ============================================================
