@@ -398,6 +398,24 @@
         </div>
       </div>
 
+      <!-- Rapport de la promotion (formation) -->
+      <div class="card">
+        <button class="accord-head" onclick="toggleAccord('coordRapportBody','coordRapportArrow')" style="width:100%;padding:0;">
+          <p class="eyebrow" style="margin:0;">Rapport de la promotion</p>
+          <span id="coordRapportArrow" class="accord-arrow">▸</span>
+        </button>
+        <div id="coordRapportBody" style="display:none;margin-top:10px;">
+          <p class="settings-hint">Un état actuel de la formation : où en sont les étudiants, où ça coûte, quelles corrections attendent. Les chiffres viennent de la liste des étudiants ci-dessus.</p>
+          <button class="btn-primary" id="genRapportBtn" type="button">Générer le rapport</button>
+          <div id="rapportOut"></div>
+          <div id="rapportActions" style="display:none;margin-top:10px;">
+            <button class="btn-secondary" id="rapportCopier" type="button">Copier le tableau (à coller dans Excel ou Google Sheets)</button>
+            <button class="btn-secondary" id="rapportTelecharger" type="button" style="margin-top:6px;">Télécharger le tableau (fichier .csv)</button>
+            <p class="settings-hint">Le tableau contient les noms des étudiants : garde-le pour toi et ne le partage pas librement.</p>
+          </div>
+        </div>
+      </div>
+
       <!-- À surveiller -->
       <div class="card">
         <p class="eyebrow">À surveiller</p>

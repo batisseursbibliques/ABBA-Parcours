@@ -1341,7 +1341,106 @@ async function renderSeancesAdmin() {
 /* ============================================================
    RÉSUMÉ POUR RAPPORT SEMESTRIEL (coordinateurs)
    ============================================================ */
+
+/* ============================================================
+   RAPPORT DE LA PROMOTION (coordinateurs) : état actuel de la formation, à partir de la liste des étudiants
+   ============================================================ */
+function calculerRapport(rows, maintenant) {
+  const jours = (ms) => (ms ? Math.floor(((maintenant || Date.now()) - ms) / 86400000) : null);
+  const R = rows.filter(r => r.a);
+  const statut = (r) => r.a.termine ? "Terminé" : r.a.bloque ? "Bloqué" : (r.a.indispo && r.a.indispo.actif) ? "Indisponible" : "En formation";
+  const enF = R.filter(r => statut(r) === "En formation");
+  const dj = (r) => jours(r.a.lastMs);
+  const rien = enF.filter(r => r.a.modules.every(m => !m.started && !m.complete));
+  const g = {
+    total: rows.length, termines: R.filter(r => statut(r) === "Terminé").length, bloques: R.filter(r => statut(r) === "Bloqué").length,
+    indispos: R.filter(r => statut(r) === "Indisponible").length, enFormation: enF.length, rien: rien.length,
+    actifs: enF.filter(r => dj(r) !== null && dj(r) <= 7).length,
+    arelancer: enF.filter(r => dj(r) !== null && dj(r) >= 8 && dj(r) < 30).length,
+    abandon: enF.filter(r => dj(r) !== null && dj(r) >= 30).length,
+    sansDonnees: rows.length - R.length,
+  };
+  const modeles = (R[0] && R[0].a.modules) || [];
+  const parModule = modeles.map((mod, i) => {
+    const lignes = R.map(r => ({ r, m: r.a.modules[i] })).filter(x => x.m);
+    return {
+      n: mod.n,
+      valides: lignes.filter(x => x.m.complete).length,
+      enCours: R.filter(r => statut(r) === "En formation" && r.a.current && r.a.current.n === mod.n).length,
+      renvoyees: lignes.filter(x => !x.m.complete && x.m.fiche === "returned").length,
+      qcmRates: lignes.filter(x => !x.m.complete && x.m.qcm && !x.m.qcm.ok && x.m.qcm.essais >= 3).length,
+      bloques: R.filter(r => r.a.current && r.a.current.n === mod.n && r.a.current.started && r.a.refMs && jours(r.a.refMs) >= 21 && statut(r) === "En formation").length,
+    };
+  });
+  const corr = {};
+  R.forEach(r => r.a.modules.filter(m => m.fiche === "submitted").forEach(m => {
+    const k = r.correcteur || "Pas de correcteur attribué";
+    const c = corr[k] = corr[k] || { nom: k, nb: 0, plus: 0 };
+    c.nb++; c.plus = Math.max(c.plus, m.submittedAt ? jours(m.submittedAt) : 0);
+  }));
+  const sansCorrecteur = enF.filter(r => !r.correcteur).length;
+  return { g, parModule, correcteurs: Object.values(corr).sort((a, b) => b.plus - a.plus), sansCorrecteur, date: new Date(maintenant || Date.now()).toLocaleDateString("fr-FR") };
+}
+function htmlRapport(d) {
+  const td = "padding:5px 6px;border-bottom:1px solid var(--line);text-align:center;font-size:13px;";
+  const th = "padding:5px 6px;border-bottom:2px solid var(--line);text-align:center;font-size:12px;";
+  const g = d.g;
+  let h = `<p class="small" style="margin-top:12px;"><strong>État au ${escC(d.date)}</strong></p>
+    <p class="small">👥 <strong>${g.total}</strong> étudiant(s) · ✅ ${g.termines} ont terminé · 📚 ${g.enFormation} en formation${g.bloques ? ` · ⛔ ${g.bloques} bloqué(s)` : ""}${g.indispos ? ` · ⏸ ${g.indispos} indisponible(s)` : ""}</p>
+    <p class="small">Parmi ceux qui sont en formation : 🟢 <strong>${g.actifs}</strong> actifs (7 derniers jours) · 🟠 <strong>${g.arelancer}</strong> à relancer (8 à 29 jours sans activité) · 🔴 <strong>${g.abandon}</strong> risque d'abandon (30 jours ou plus)${g.rien ? ` · ⚪ ${g.rien} n'ont encore rien commencé` : ""}.</p>`;
+  if (g.sansDonnees) h += `<p class="settings-hint">${g.sansDonnees} étudiant(s) sans données (compte récent ou non synchronisé).</p>`;
+  h += `<p class="eyebrow" style="margin-top:14px;">Module par module</p>
+    <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;"><tr><th style="${th}text-align:left;">Module</th><th style="${th}">Ont validé</th><th style="${th}">En cours</th><th style="${th}">Fiches renvoyées</th><th style="${th}">Questions ratées 3×+</th><th style="${th}">Bloqués 3 sem.+</th></tr>`
+    + d.parModule.map(m => `<tr><td style="${td}text-align:left;"><strong>M${escC(m.n)}</strong></td><td style="${td}">${m.valides}</td><td style="${td}">${m.enCours}</td><td style="${td}${m.renvoyees ? "font-weight:700;" : ""}">${m.renvoyees}</td><td style="${td}${m.qcmRates ? "font-weight:700;" : ""}">${m.qcmRates}</td><td style="${td}${m.bloques ? "font-weight:700;" : ""}">${m.bloques}</td></tr>`).join("")
+    + `</table></div><p class="settings-hint">Les colonnes en gras montrent où ça coûte : fiches renvoyées par le correcteur, questions ratées trois fois ou plus, étudiants bloqués sur le même module depuis plus de trois semaines.</p>`;
+  h += `<p class="eyebrow" style="margin-top:14px;">Corrections en attente</p>`;
+  h += d.correcteurs.length
+    ? d.correcteurs.map(c => `<p class="small"><strong>${escC(c.nom)}</strong> — ${c.nb} fiche(s)${c.plus >= 1 ? ` · la plus ancienne attend depuis ${c.plus} jour(s)` : ""}${c.plus >= 3 ? " ⚠" : ""}</p>`).join("")
+    : `<p class="small">✅ Aucune fiche en attente.</p>`;
+  if (d.sansCorrecteur) h += `<p class="small">⚠ ${d.sansCorrecteur} étudiant(s) en formation n'ont pas de correcteur attribué.</p>`;
+  return h;
+}
+function tableauRapport(rows) {
+  const jours = (ms) => (ms ? Math.floor((Date.now() - ms) / 86400000) : "");
+  const colonnes = ["Nom", "Statut", "Correcteur", "Modules validés", "Module en cours", "Jours sans activité", "Fiches en attente", "Fiches renvoyées", "Alertes"];
+  const lignes = rows.filter(r => r.a).map(r => {
+    const a = r.a, st = a.termine ? "Terminé" : a.bloque ? "Bloqué" : (a.indispo && a.indispo.actif) ? "Indisponible" : "En formation";
+    return [r.nom || r.email || "", st, r.correcteur || "", `${a.valides}/${a.total}`, a.termine ? "" : (a.current ? "M" + a.current.n : ""), jours(a.lastMs),
+      a.modules.filter(m => m.fiche === "submitted").length, a.modules.filter(m => !m.complete && m.fiche === "returned").length, (r.alertes || []).join(" | ")];
+  });
+  return { colonnes, lignes };
+}
+const csvCase = (v) => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
+function setupRapport() {
+  const gen = document.getElementById("genRapportBtn"); if (!gen) return;
+  let dernier = null;
+  gen.addEventListener("click", () => {
+    const out = document.getElementById("rapportOut");
+    if (!LAST_COORD_ROWS || !LAST_COORD_ROWS.length) { out.innerHTML = `<p class="settings-hint">La liste des étudiants n'est pas encore chargée : patiente quelques secondes, puis réessaie.</p>`; return; }
+    dernier = tableauRapport(LAST_COORD_ROWS);
+    out.innerHTML = htmlRapport(calculerRapport(LAST_COORD_ROWS));
+    document.getElementById("rapportActions").style.display = "";
+  });
+  document.getElementById("rapportCopier").addEventListener("click", () => {
+    if (!dernier) return;
+    const txt = [dernier.colonnes].concat(dernier.lignes).map(l => l.map(v => String(v).replace(/[\t\n\r]+/g, " ")).join("\t")).join("\n");
+    const b = document.getElementById("rapportCopier"), orig = b.textContent;
+    const fait = () => { b.textContent = "Copié ✓"; setTimeout(() => b.textContent = orig, 1600); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(fait).catch(() => {});
+    else { const ta = document.createElement("textarea"); ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand && document.execCommand("copy"); ta.remove(); fait(); }
+  });
+  document.getElementById("rapportTelecharger").addEventListener("click", () => {
+    if (!dernier) return;
+    const csv = "\ufeff" + [dernier.colonnes].concat(dernier.lignes).map(l => l.map(csvCase).join(";")).join("\r\n");
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    a.download = "rapport-promotion-" + new Date().toISOString().slice(0, 10) + ".csv"; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) alert("Dans l'application, le téléchargement peut ne pas marcher : utilise « Copier le tableau », ou ouvre cette page dans le navigateur.");
+  });
+}
+
 function setupResume() {
+  setupRapport();
   document.getElementById("genResumeBtn").addEventListener("click", generateResume);
   document.getElementById("copyResumeBtn").addEventListener("click", () => {
     const ta = document.getElementById("resumeOutput");
