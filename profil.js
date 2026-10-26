@@ -165,11 +165,27 @@ function htmlDonnees() {
     <p class="auth-error" id="data-err"></p>`;
 }
 
+/* « Ma personnalité et mes dons » (bloc défini dans index.html) vit comme dernière section de « Mon profil ».
+   On le déplace sans le recréer : ses boutons et son contenu (MBTI, dons) restent branchés par app.js. */
+function rangerPerso() {
+  const perso = $("persoCard"), reserve = $("persoHolder");
+  if (perso && reserve && perso.parentNode !== reserve) reserve.appendChild(perso);
+}
+function placerPerso(box, ouvert) {
+  const perso = $("persoCard"); if (!perso) return;
+  const accs = box.querySelectorAll("details.pf-acc");
+  const derniere = accs[accs.length - 1];
+  if (derniere) derniere.after(perso); else box.appendChild(perso);
+  perso.open = !!ouvert;
+}
+
 function rendreProfilCard() {
   const box = $("profilCard"); if (!box) return;
   const ouverts = new Set([...box.querySelectorAll("details[open]")].map((d) => d.dataset.acc));
+  rangerPerso();
   box.innerHTML = htmlProfil();
   if (ouverts.size) box.querySelectorAll("details").forEach((d) => { d.open = ouverts.has(d.dataset.acc); });
+  placerPerso(box, ouverts.has("perso"));
   if (P.mode === "edit") {
     remplirGeo();
     $("pf-pays").addEventListener("change", surPays);
@@ -364,7 +380,8 @@ async function rendre() {
     P.mode = profilRempli(P.contact, P.profil) ? "vue" : "edit";
     P.profilRempliAvant = P.mode === "vue";
     P.message = "";
-    host.innerHTML = `<div class="card settings-card" id="profilCard"></div><div class="card settings-card" id="pwCard"></div><div class="card settings-card" id="dataCard">${htmlDonnees()}</div>`;
+    rangerPerso();   // la section « personnalité et dons » est mise à l'abri avant de reconstruire la zone
+    host.innerHTML = `<div class="card settings-card" id="profilCard"></div><div class="card settings-card" id="dataCard">${htmlDonnees()}</div><div class="card settings-card" id="pwCard"></div>`;
     rendreProfilCard(); rendreMdpCard();
     $("data-export").addEventListener("click", exporter);
     afficherCertificat();

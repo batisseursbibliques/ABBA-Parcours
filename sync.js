@@ -256,7 +256,7 @@ function watchAdmins(callback) {
 }
 
 /* ---------- COORDINATEURS & BLOCAGE DU PARCOURS ---------- */
-const DROITS = ["apercu", "suivi", "corrections", "presences", "binomes", "paiements"];
+const DROITS = ["apercu", "suivi", "corrections", "presences", "binomes", "paiements", "diagnostic"];
 // Liste complète des coordinateurs avec leurs droits : { email: données }
 function watchAdminsData(callback) {
   return onSnapshot(collection(db, "admins"), (snap) => {
@@ -270,7 +270,7 @@ function watchAdminsData(callback) {
 function droitsDe(email, map) {
   const e = String(email || "").toLowerCase(), principal = isAdminEmail(e), d = (map || {})[e];
   const out = { principal, admin: principal || !!d, coordinateurs: principal };
-  DROITS.forEach(k => { out[k] = principal || (!!d && (d.droits ? d.droits[k] === true : (k !== "apercu" && k !== "paiements"))); });
+  DROITS.forEach(k => { out[k] = principal || (!!d && (d.droits ? d.droits[k] === true : (k !== "apercu" && k !== "paiements" && k !== "diagnostic"))); });
   return out;
 }
 async function addAdmin(email, byEmail) {
