@@ -220,24 +220,6 @@
         <p class="settings-hint" id="modulesProgressHint"></p>
         <div id="modulesList"></div>
       </div>
-
-      <div class="card">
-        <p class="eyebrow">Mon profil</p>
-        <p class="settings-hint">Visible par ton coordinateur — utile pour mieux t'accompagner.</p>
-        <label class="field"><span>Mon type MBTI</span>
-          <select id="profilMbti" class="text-input">
-            <option value="">— Pas encore fait —</option>
-            <option>ISTJ</option><option>ISFJ</option><option>INFJ</option><option>INTJ</option>
-            <option>ISTP</option><option>ISFP</option><option>INFP</option><option>INTP</option>
-            <option>ESTP</option><option>ESFP</option><option>ENFP</option><option>ENTP</option>
-            <option>ESTJ</option><option>ESFJ</option><option>ENFJ</option><option>ENTJ</option>
-          </select>
-        </label>
-        <label class="field" style="margin-top:12px;"><span>Mes dons spirituels</span>
-          <textarea id="profilDons" class="text-input" rows="2" placeholder="Ex. Enseignement, encouragement, service…"></textarea>
-        </label>
-        <button class="btn-primary" id="saveProfilBtn" type="button" style="margin-top:10px;">Enregistrer mon profil</button>
-      </div>
     </section>
 
     <!-- ================= FICHE BINÔME ================= -->
@@ -483,6 +465,24 @@
       </div>
 
       <div id="profilHost"></div>
+
+      <div class="card settings-card" id="persoCard">
+        <p class="eyebrow">Ma personnalité et mes dons</p>
+        <p class="settings-hint">Visible par ton coordinateur — utile pour mieux t'accompagner.</p>
+        <label class="field"><span>Mon type MBTI</span>
+          <select id="profilMbti" class="text-input">
+            <option value="">— Pas encore fait —</option>
+            <option>ISTJ</option><option>ISFJ</option><option>INFJ</option><option>INTJ</option>
+            <option>ISTP</option><option>ISFP</option><option>INFP</option><option>INTP</option>
+            <option>ESTP</option><option>ESFP</option><option>ENFP</option><option>ENTP</option>
+            <option>ESTJ</option><option>ESFJ</option><option>ENFJ</option><option>ENTJ</option>
+          </select>
+        </label>
+        <label class="field" style="margin-top:12px;"><span>Mes dons spirituels</span>
+          <textarea id="profilDons" class="text-input" rows="2" placeholder="Ex. Enseignement, encouragement, service…"></textarea>
+        </label>
+        <button class="btn-primary" id="saveProfilBtn" type="button" style="margin-top:10px;">Enregistrer</button>
+      </div>
 
       <div class="card settings-card">
         <p class="eyebrow">Mon compte</p>
