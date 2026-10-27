@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>Mon carnet de réponses · ABBA Parcours</title>
+<link rel="icon" href="icon-192.png">
+<style>
+  :root { --bg:#fbf7ef; --texte:#2b2a28; --doux:#5b574f; --bleu:#1a3b9a; --ko:#a12a2a; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#14161c; --texte:#ece8de; --doux:#b8b2a3; --bleu:#8fa8ff; --ko:#ff8c8c; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--texte); font:17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .barre { padding:14px 14px 6px; text-align:center; }
+  .barre p { margin:6px 0; } .doux { color:var(--doux); font-size:.92rem; } .ko { color:var(--ko); font-weight:600; }
+  button { padding:12px 18px; font-size:1rem; font-weight:700; border:0; border-radius:12px; background:var(--bleu); color:#fff; cursor:pointer; margin:4px; }
+  @media (prefers-color-scheme: dark) { button { color:#14161c; } }
+  button.second { background:transparent; color:var(--bleu); border:2px solid var(--bleu); }
+  iframe { display:block; width:100%; border:0; min-height:300px; }
+  @media print { .barre { display:none; } }
+</style>
+</head>
+<body>
+<div class="barre">
+  <p id="etat" class="doux">Préparation…</p>
+  <p><button id="dl" type="button" disabled>Télécharger le fichier</button><button id="pdf" type="button" class="second" disabled>Imprimer / Enregistrer en PDF</button></p>
+  <p class="doux">Ce document contient tes réponses personnelles. Les données restent dans ton téléphone, elles ne sont envoyées nulle part.</p>
+</div>
+<!-- Le carnet s'affiche dans un cadre « bac à sable » : même si l'adresse de la page était trafiquée, aucun programme ne peut s'y exécuter. -->
+<iframe id="cadre" sandbox="allow-same-origin" title="Mon carnet de réponses"></iframe>
+<script>
+(async function () {
+  const $ = (id) => document.getElementById(id);
+  const fin = (msg, ko) => { $("etat").textContent = msg; if (ko) $("etat").className = "ko"; };
+  try {
+    const m = /^#d=(g|p):(.+)$/.exec(location.hash); if (!m) throw new Error("vide");
+    const bin = Uint8Array.from(atob(m[2].replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
+    const txt = m[1] === "g" ? await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip"))).text() : new TextDecoder().decode(bin);
+    const d = JSON.parse(txt);                                   // { n: nom du fichier, doc: document HTML complet }
+    history.replaceState(null, "", location.pathname);           // on efface les données de l'adresse
+    const cadre = $("cadre");
+    cadre.addEventListener("load", () => { try { cadre.style.height = cadre.contentDocument.documentElement.scrollHeight + 24 + "px"; } catch (e) {} });
+    cadre.srcdoc = String(d.doc);
+    fin("Fichier : " + d.n); $("dl").disabled = false; $("pdf").disabled = false;
+    $("dl").addEventListener("click", () => {
+      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([d.doc], { type: "text/html;charset=utf-8" })); a.download = d.n;
+      document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    });
+    $("pdf").addEventListener("click", () => window.print());
+  } catch (e) { fin("Aucun document à afficher. Retourne dans l'application et appuie de nouveau sur le bouton.", true); }
+})();
+</script>
+</body>
+</html>

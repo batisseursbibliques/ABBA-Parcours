@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex">
-<title>Télécharger le tableau · ABBA Parcours</title>
+<title>Télécharger le fichier · ABBA Parcours</title>
 <link rel="icon" href="icon-192.png">
 <style>
   :root { --bg:#fbf7ef; --carte:#ffffff; --texte:#2b2a28; --doux:#5b574f; --bleu:#1a3b9a; --trait:#e3d9c0; --ko:#a12a2a; }
@@ -23,11 +23,11 @@
 </head>
 <body>
 <main><div class="carte">
-  <h1>Ton tableau est prêt</h1>
+  <h1>Ton fichier est prêt</h1>
   <p id="etat" class="doux">Préparation…</p>
   <p><button id="dl" type="button" disabled>Télécharger le fichier</button></p>
   <p><button id="cp" type="button" class="second" disabled>Copier le tableau</button></p>
-  <p class="doux">Ce tableau contient des noms : ne le partage pas librement. Les données restent dans ton téléphone, elles ne sont envoyées nulle part.</p>
+  <p class="doux">Ce fichier peut contenir des informations personnelles : ne le partage pas librement. Les données restent dans ton téléphone, elles ne sont envoyées nulle part.</p>
 </div></main>
 <script>
 (async function () {
@@ -42,15 +42,16 @@
     const d = JSON.parse(txt);                                  // { n: nom du fichier, c: contenu du tableau, t: version à copier }
     history.replaceState(null, "", location.pathname);          // on efface les données de l'adresse
     fin("Fichier : " + d.n);
-    $("dl").disabled = false; $("cp").disabled = false;
+    $("dl").disabled = false; if (d.t) $("cp").disabled = false; else $("cp").style.display = "none";
     $("dl").addEventListener("click", () => {
-      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([d.c], { type: "text/csv;charset=utf-8" })); a.download = d.n;
+      const type = /\.json$/i.test(d.n) ? "application/json;charset=utf-8" : "text/csv;charset=utf-8";
+      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([d.c], { type })); a.download = d.n;
       document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
     });
     $("cp").addEventListener("click", async () => {
       try { await navigator.clipboard.writeText(d.t); $("cp").textContent = "Copié ✓"; } catch (e) { fin("Copie impossible : utilise le téléchargement.", true); }
     });
-  } catch (e) { fin("Aucun tableau à télécharger. Retourne dans l'application et appuie de nouveau sur « Télécharger ».", true); }
+  } catch (e) { fin("Aucun fichier à télécharger. Retourne dans l'application et appuie de nouveau sur « Télécharger ».", true); }
 })();
 </script>
 </body>

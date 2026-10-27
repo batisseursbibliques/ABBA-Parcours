@@ -159,7 +159,8 @@ function htmlDonnees() {
     <div id="cert-box"></div>
     <p class="eyebrow">${T("Mes données", "My data")}</p>
     <p class="settings-hint">${T("Tu peux télécharger toutes les données que le Parcours garde sur toi. Tu peux aussi demander la suppression de ton compte : un coordinateur la traitera.", "You can download all the data the Course keeps about you. You can also ask for your account to be deleted: a coordinator will process it.")}</p>
-    <button class="btn-secondary" id="data-export" type="button">${T("Télécharger mes données", "Download my data")}</button>
+    <button class="btn-secondary" id="rep-export" type="button">${T("Télécharger mes réponses (document lisible)", "Download my answers (readable document)")}</button>
+    <button class="btn-secondary" id="data-export" type="button" style="margin-top:6px;">${T("Télécharger toutes mes données (fichier technique)", "Download all my data (technical file)")}</button>
     <div id="data-suppr" style="margin-top:12px;"></div>
     <p class="settings-hint"><a href="confidentialite.html" data-cadre target="_blank" rel="noopener">${T("Lire la politique de confidentialité", "Read the privacy policy")}</a></p>
     <p class="auth-error" id="data-err"></p>`;
@@ -351,11 +352,35 @@ async function exporter() {
   const err = $("data-err"); err.textContent = "";
   try {
     const d = await S().exportMyData(P.user.uid);
-    const blob = new Blob([JSON.stringify(d, (k, v) => (v && typeof v === "object" && typeof v.toDate === "function") ? v.toDate().toISOString() : v, 2)], { type: "application/json" });
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
-    a.download = "mes-donnees-parcours.json"; document.body.appendChild(a); a.click();
-    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    const texte = JSON.stringify(d, (k, v) => (v && typeof v === "object" && typeof v.toDate === "function") ? v.toDate().toISOString() : v, 2);
+    const L = await import("./livraison.js");
+    if (L.estAppAndroid()) {   // l'application Android ne sait pas enregistrer un fichier : on l'ouvre dans le navigateur du téléphone
+      if (!(await L.ouvrirDansNavigateur("export.html", { n: "mes-donnees-parcours.json", c: texte, t: "" }))) err.textContent = T("Tes données sont trop volumineuses pour cette méthode : ouvre l'application dans ton navigateur (Chrome) pour les télécharger.", "Your data is too large for this method: open the app in your browser (Chrome) to download it.");
+    } else L.telechargerTexte("mes-donnees-parcours.json", texte, "application/json");
   } catch (e) { err.textContent = T("Impossible de préparer tes données pour le moment.", "Unable to prepare your data right now."); }
+}
+
+// « Mon carnet de réponses » : un document lisible, module par module (réponses, fiches, résultats, remarques du correcteur)
+async function exporterReponses() {
+  const err = $("data-err"), bouton = $("rep-export"); err.textContent = "";
+  const lang = EN() ? "en" : "fr", original = bouton.textContent; bouton.disabled = true; bouton.textContent = T("Préparation…", "Preparing…");
+  try {
+    const [R, L] = await Promise.all([import("./reponses.js"), import("./livraison.js")]);
+    const modules = await S().loadStudentModules(P.user.uid), contenus = {};
+    await Promise.all(Object.keys(modules).map(async (mid) => {
+      const fichier = mid === "autoeval" || mid === "charte" ? mid : "m" + String(mid.slice(1)).padStart(2, "0");
+      let r = lang === "en" ? await fetch(`content/en/${fichier}.json`).catch(() => null) : null;
+      if (!r || !r.ok) r = await fetch(`content/${fichier}.json`).catch(() => null);
+      if (r && r.ok) contenus[mid] = await r.json();
+    }));
+    const nom = (P.profil && P.profil.nom) || P.user.displayName || "";
+    const carnet = R.construireCarnet({ nom, modules, contenus, lang, aujourdhui: new Date().toLocaleDateString(lang === "en" ? "en-GB" : "fr-FR", { day: "numeric", month: "long", year: "numeric" }) });
+    const doc = R.documentComplet(carnet, lang), fichier = lang === "en" ? "my-answer-notebook.html" : "mon-carnet-de-reponses.html";
+    if (L.estAppAndroid()) {
+      if (!(await L.ouvrirDansNavigateur("reponses.html", { n: fichier, doc }))) err.textContent = T("Ton carnet est volumineux : ouvre l'application dans ton navigateur (Chrome) pour le télécharger.", "Your notebook is large: open the app in your browser (Chrome) to download it.");
+    } else L.telechargerTexte(fichier, doc, "text/html;charset=utf-8");
+  } catch (e) { err.textContent = T("Impossible de préparer ton carnet pour le moment.", "Unable to prepare your notebook right now."); }
+  bouton.disabled = false; bouton.textContent = original;
 }
 
 function rendreSuppr() {
@@ -396,6 +421,7 @@ async function rendre() {
     host.innerHTML = `<div class="card settings-card" id="profilCard"></div><div class="card settings-card" id="dataCard">${htmlDonnees()}</div><div class="card settings-card" id="pwCard"></div>`;
     rendreProfilCard(); rendreMdpCard();
     $("data-export").addEventListener("click", exporter);
+    $("rep-export").addEventListener("click", exporterReponses);
     afficherCertificat();
     rendreSuppr();
     majBandeau();
