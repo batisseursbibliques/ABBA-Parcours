@@ -159,7 +159,7 @@ function htmlDonnees() {
     <div id="cert-box"></div>
     <p class="eyebrow">${T("Mes données", "My data")}</p>
     <p class="settings-hint">${T("Tu peux télécharger toutes les données que le Parcours garde sur toi. Tu peux aussi demander la suppression de ton compte : un coordinateur la traitera.", "You can download all the data the Course keeps about you. You can also ask for your account to be deleted: a coordinator will process it.")}</p>
-    <button class="btn-secondary" id="rep-export" type="button">${T("Télécharger mes réponses (document lisible)", "Download my answers (readable document)")}</button>
+    <button class="btn-secondary" id="rep-export" type="button">${T("Télécharger mes réponses (PDF)", "Download my answers (PDF)")}</button>
     <button class="btn-secondary" id="data-export" type="button" style="margin-top:6px;">${T("Télécharger toutes mes données (fichier technique)", "Download all my data (technical file)")}</button>
     <div id="data-suppr" style="margin-top:12px;"></div>
     <p class="settings-hint"><a href="confidentialite.html" data-cadre target="_blank" rel="noopener">${T("Lire la politique de confidentialité", "Read the privacy policy")}</a></p>
@@ -374,11 +374,14 @@ async function exporterReponses() {
       if (r && r.ok) contenus[mid] = await r.json();
     }));
     const nom = (P.profil && P.profil.nom) || P.user.displayName || "";
-    const carnet = R.construireCarnet({ nom, modules, contenus, lang, aujourdhui: new Date().toLocaleDateString(lang === "en" ? "en-GB" : "fr-FR", { day: "numeric", month: "long", year: "numeric" }) });
-    const doc = R.documentComplet(carnet, lang), fichier = lang === "en" ? "my-answer-notebook.html" : "mon-carnet-de-reponses.html";
-    if (L.estAppAndroid()) {
-      if (!(await L.ouvrirDansNavigateur("reponses.html", { n: fichier, doc }))) err.textContent = T("Ton carnet est volumineux : ouvre l'application dans ton navigateur (Chrome) pour le télécharger.", "Your notebook is large: open the app in your browser (Chrome) to download it.");
-    } else L.telechargerTexte(fichier, doc, "text/html;charset=utf-8");
+    const carnet = R.construireBlocs({ nom, modules, contenus, lang, aujourdhui: new Date().toLocaleDateString(lang === "en" ? "en-GB" : "fr-FR", { day: "numeric", month: "long", year: "numeric" }) });
+    const base = lang === "en" ? "my-answer-notebook" : "mon-carnet-de-reponses";
+    if (L.estAppAndroid()) {   // application Android : une page s'ouvre dans le navigateur, avec « Télécharger le PDF »
+      if (!(await L.ouvrirDansNavigateur("reponses.html", { base, carnet }))) err.textContent = T("Ton carnet est volumineux : ouvre l'application dans ton navigateur (Chrome) pour le télécharger.", "Your notebook is large: open the app in your browser (Chrome) to download it.");
+    } else {                    // navigateur : le PDF se télécharge directement
+      const pdf = R.blocsVersPdf(carnet, await L.chargerJsPdf());
+      L.telechargerOctets(base + ".pdf", pdf, "application/pdf");
+    }
   } catch (e) { err.textContent = T("Impossible de préparer ton carnet pour le moment.", "Unable to prepare your notebook right now."); }
   bouton.disabled = false; bouton.textContent = original;
 }

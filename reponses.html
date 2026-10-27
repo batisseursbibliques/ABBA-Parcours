@@ -17,39 +17,42 @@
   button { padding:12px 18px; font-size:1rem; font-weight:700; border:0; border-radius:12px; background:var(--bleu); color:#fff; cursor:pointer; margin:4px; }
   @media (prefers-color-scheme: dark) { button { color:#14161c; } }
   button.second { background:transparent; color:var(--bleu); border:2px solid var(--bleu); }
+  button[disabled] { opacity:.5; }
   iframe { display:block; width:100%; border:0; min-height:300px; }
-  @media print { .barre { display:none; } }
 </style>
 </head>
 <body>
 <div class="barre">
   <p id="etat" class="doux">Préparation…</p>
-  <p><button id="dl" type="button" disabled>Télécharger le fichier</button><button id="pdf" type="button" class="second" disabled>Imprimer / Enregistrer en PDF</button></p>
+  <p><button id="pdf" type="button" disabled>Télécharger le PDF</button><button id="html" type="button" class="second" disabled>Télécharger en HTML</button></p>
   <p class="doux">Ce document contient tes réponses personnelles. Les données restent dans ton téléphone, elles ne sont envoyées nulle part.</p>
 </div>
 <!-- Le carnet s'affiche dans un cadre « bac à sable » : même si l'adresse de la page était trafiquée, aucun programme ne peut s'y exécuter. -->
 <iframe id="cadre" sandbox="allow-same-origin" title="Mon carnet de réponses"></iframe>
-<script>
-(async function () {
-  const $ = (id) => document.getElementById(id);
-  const fin = (msg, ko) => { $("etat").textContent = msg; if (ko) $("etat").className = "ko"; };
-  try {
-    const m = /^#d=(g|p):(.+)$/.exec(location.hash); if (!m) throw new Error("vide");
-    const bin = Uint8Array.from(atob(m[2].replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
-    const txt = m[1] === "g" ? await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip"))).text() : new TextDecoder().decode(bin);
-    const d = JSON.parse(txt);                                   // { n: nom du fichier, doc: document HTML complet }
-    history.replaceState(null, "", location.pathname);           // on efface les données de l'adresse
-    const cadre = $("cadre");
-    cadre.addEventListener("load", () => { try { cadre.style.height = cadre.contentDocument.documentElement.scrollHeight + 24 + "px"; } catch (e) {} });
-    cadre.srcdoc = String(d.doc);
-    fin("Fichier : " + d.n); $("dl").disabled = false; $("pdf").disabled = false;
-    $("dl").addEventListener("click", () => {
-      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([d.doc], { type: "text/html;charset=utf-8" })); a.download = d.n;
-      document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
-    });
-    $("pdf").addEventListener("click", () => window.print());
-  } catch (e) { fin("Aucun document à afficher. Retourne dans l'application et appuie de nouveau sur le bouton.", true); }
-})();
+<script type="module">
+import { blocsVersPdf, documentComplet } from "./reponses.js";
+const $ = (id) => document.getElementById(id);
+const fin = (msg, ko) => { $("etat").textContent = msg; $("etat").className = ko ? "ko" : "doux"; };
+try {
+  const m = /^#d=(g|p):(.+)$/.exec(location.hash); if (!m) throw new Error("vide");
+  const bin = Uint8Array.from(atob(m[2].replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
+  const txt = m[1] === "g" ? await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip"))).text() : new TextDecoder().decode(bin);
+  const d = JSON.parse(txt), carnet = d.carnet;                 // { base: nom du fichier, carnet: blocs du carnet }
+  if (!carnet || !Array.isArray(carnet.blocs)) throw new Error("vide");
+  history.replaceState(null, "", location.pathname);            // on efface les données de l'adresse
+  const cadre = $("cadre"), doc = documentComplet(carnet);
+  cadre.addEventListener("load", () => { try { cadre.style.height = cadre.contentDocument.documentElement.scrollHeight + 24 + "px"; } catch (e) {} });
+  cadre.srcdoc = doc;
+  const enregistrer = (nom, contenu, type) => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([contenu], { type })); a.download = nom; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); };
+  fin(carnet.lang === "en" ? "Your notebook is ready." : "Ton carnet est prêt."); $("pdf").disabled = false; $("html").disabled = false;
+  $("pdf").addEventListener("click", async () => {
+    try {
+      if (!globalThis.jspdf) await new Promise((ok, ko) => { const s = document.createElement("script"); s.src = "vendor/jspdf.umd.min.js"; s.onload = ok; s.onerror = ko; document.head.appendChild(s); });
+      enregistrer(d.base + ".pdf", blocsVersPdf(carnet, globalThis.jspdf), "application/pdf");
+    } catch (e) { fin("Impossible de préparer le PDF pour le moment. Réessaie, ou utilise « Télécharger en HTML ».", true); }
+  });
+  $("html").addEventListener("click", () => enregistrer(d.base + ".html", doc, "text/html;charset=utf-8"));
+} catch (e) { fin("Aucun document à afficher. Retourne dans l'application et appuie de nouveau sur le bouton.", true); }
 </script>
 </body>
 </html>

@@ -18,3 +18,13 @@ export async function ouvrirDansNavigateur(page, objet, tailleMax) {
   if (url.length > (tailleMax || 250000)) return false;
   location.href = url; return true;
 }
+
+// Charge la bibliothèque qui fabrique les PDF, seulement quand on en a besoin (pas au démarrage de l'application)
+export function chargerJsPdf() {
+  if (globalThis.jspdf) return Promise.resolve(globalThis.jspdf);
+  return new Promise((ok, ko) => { const s = document.createElement("script"); s.src = "vendor/jspdf.umd.min.js"; s.onload = () => ok(globalThis.jspdf); s.onerror = () => ko(new Error("jspdf")); document.head.appendChild(s); });
+}
+export function telechargerOctets(nom, octets, type) {
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([octets], { type })); a.download = nom;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
