@@ -150,6 +150,7 @@ async function exportMyData(uid) {
   await liste(["formation", uid, "revisions"], "revisions");
   await liste(["formation", uid, "echanges"], "echangesAvecCorrecteur");
   await liste(["formation", uid, "attestations"], "attestations");
+  await liste(["formation", uid, "avis"], "avisSurLesModules");
   await liste(["formation", uid, "paiements"], "versements");
   return out;
 }
@@ -195,6 +196,14 @@ async function listRapports() {
 async function verifierAttestation(numero) {
   const s = await getDoc(doc(db, "attestations", String(numero || "").trim().toUpperCase()));
   return s.exists() ? s.data() : null;
+}
+/* ---------- AVIS SUR LES MODULES (questionnaire de satisfaction) ---------- */
+async function loadAvisDe(uid) {
+  const snap = await getDocs(collection(db, "formation", uid, "avis"));
+  return snap.docs.map((d) => ({ mid: d.id, ...d.data() }));
+}
+async function saveAvis(uid, mid, a) {
+  await setDoc(doc(db, "formation", uid, "avis", String(mid)), { clarte: Number(a.clarte), utilite: Number(a.utilite), manque: String(a.manque || "").trim().slice(0, 500), maj: serverTimestamp() });
 }
 /* ---------- ÉCHANGES étudiant ↔ correcteur (par module) ---------- */
 async function loadEchanges(uid) {
@@ -800,6 +809,7 @@ window.AbbaSync = {
   addDeclaration, enregistrerPaiement, annulerPaiement, traiterDeclaration, activerCompte, setTarif, setInstructions,
   addDon, loadMesDons, loadDonsAttente, loadFonds, confirmerDon, refuserDon, affecterSolidarite,
   watchZonesPlan, saveZonesPlan, saveMyProgress,
+  loadAvisDe, saveAvis,
   loadJournal, currentEmail, journaliser, loadEchanges, addEchange, getAttestation, creerAttestation, verifierAttestation,
   creerCertificatManuel: L(creerCertificatManuel, "certificat_manuel_delivre", (nom, date, r) => [(r && r.numero) || "", nom]),
   listCertificats, getRapportMois, saveRapportMois, listRapports,

@@ -665,9 +665,35 @@ function renderFiche(c, p, ss) {
     if (manque.length) h += `<div class="fm-return"><strong>Tes exercices de pratique doivent avancer avant l’envoi.</strong><ul>${manque.map((x) => `<li>${esc(rythmeLigne(x))}</li>`).join("")}</ul><p class="small">La transformation se construit dans la durée : fais-les chaque jour. Si ta situation est particulière, parle à ta coordination.</p></div>`;
   }
   if (isComplete(st.view.mod)) h += `<p style="margin-top:14px;"><button class="btn-secondary" data-act="att-module" data-m="${esc(st.view.mod)}">🎓 Télécharger mon attestation de module (PDF)</button></p>`;
+  if (isComplete(st.view.mod)) h += renderAvis(st.view.mod);
   h += renderEchangesEleve(st.view.mod);
   return h;
 }
+
+/* ---------- Avis sur le module (facultatif) ---------- */
+const AVIS = { data: {}, draft: {}, ok: {} };
+async function chargerAvis() {
+  try { (await S().loadAvisDe(st.user.uid)).forEach((a) => { AVIS.data[a.mid] = a; }); } catch (e) {}
+  render();
+}
+const avisBrouillon = (mid) => AVIS.draft[mid] || (AVIS.draft[mid] = { clarte: (AVIS.data[mid] || {}).clarte || 0, utilite: (AVIS.data[mid] || {}).utilite || 0, manque: (AVIS.data[mid] || {}).manque || "" });
+function renderAvis(mid) {
+  const b = avisBrouillon(mid), deja = !!AVIS.data[mid];
+  const etoiles = (k) => [1, 2, 3, 4, 5].map((v) => `<button type="button" class="btn-small" data-act="avis-note" data-m="${esc(mid)}" data-k="${k}" data-v="${v}" aria-label="${v} / 5" style="font-size:20px;padding:4px 8px;margin-right:2px;${b[k] >= v ? "font-weight:700;" : "opacity:.55;"}">${b[k] >= v ? "★" : "☆"}</button>`).join("");
+  return `<p class="eyebrow" style="margin-top:16px;">⭐ Ton avis sur ce module <span class="small">(facultatif, il m'aide à améliorer la formation)</span></p>
+    <p class="small" style="margin:6px 0 2px;">Les explications étaient claires</p><p style="margin:0 0 6px;">${etoiles("clarte")}</p>
+    <p class="small" style="margin:6px 0 2px;">Ce module m'est utile pour ma vie</p><p style="margin:0 0 6px;">${etoiles("utilite")}</p>
+    <label class="field"><span>Qu'est-ce qui t'a manqué, ou pourrait être amélioré ?</span><textarea class="text-input" rows="2" maxlength="500" data-avis="${esc(mid)}">${esc(b.manque)}</textarea></label>
+    <button class="btn-secondary" data-act="avis-save" data-m="${esc(mid)}" ${b.clarte && b.utilite ? "" : "disabled"}>${deja ? "Mettre à jour mon avis" : "Envoyer mon avis"}</button>
+    ${AVIS.ok[mid] ? '<p class="small" style="margin:6px 0 0;">Merci pour ton avis ! 🙏</p>' : (b.clarte && b.utilite ? "" : '<p class="small" style="margin:6px 0 0;color:var(--ink-soft);">Choisis une note pour chaque question, puis envoie.</p>')}`;
+}
+async function envoyerAvis(mid) {
+  const b = avisBrouillon(mid); if (!b.clarte || !b.utilite) return;
+  try { await S().saveAvis(st.user.uid, mid, b); AVIS.data[mid] = { mid, ...b }; AVIS.ok[mid] = true; }
+  catch (e) { st.msg = "Avis non envoyé : " + (e.code || e.message); }
+  render();
+}
+document.addEventListener("input", (ev) => { const t = ev.target; if (t && t.dataset && t.dataset.avis !== undefined) avisBrouillon(t.dataset.avis).manque = t.value; });
 
 /* ---------- Attestation de module (PDF) ---------- */
 const dateIso = (ms) => { const d = new Date(ms); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; };
@@ -793,7 +819,7 @@ async function onClick(e) {
     if (act === "charte-sign") return signCharte();
     if (act === "ind-vu") { await S().updateIndispo(b.dataset.uid, b.dataset.id, { vu: { par: st.user.email, at: new Date().toISOString() } }); return loadCorrections(); }
     if (act === "open" && b.dataset.m === "autoeval") { st.view = { mod: "autoeval", step: "fiche" }; st.cache = {}; render(); window.scrollTo(0, 0); return; }
-    if (act === "open") { chargerMesEchanges(); S().getMyLien(st.user.uid).then((l) => { st.lien = l; }); st.view = { mod: b.dataset.m, step: "lecture" }; st.cache = {}; st.qcmDraft = {}; render(); window.scrollTo(0, 0); return; }
+    if (act === "open") { chargerMesEchanges(); chargerAvis(); S().getMyLien(st.user.uid).then((l) => { st.lien = l; }); st.view = { mod: b.dataset.m, step: "lecture" }; st.cache = {}; st.qcmDraft = {}; render(); window.scrollTo(0, 0); return; }
     if (act === "goto-zones") { const t = document.querySelector('.tab[data-tab="caractere"]'); if (t) t.click(); return; }
     if (act === "tasks-toggle") { st.tasksOpen = !st.tasksOpen; renderTasks(); return; }
     if (act === "suivi-start") { if (st.view.mod && inReview(st.view.mod)) { st.msg = "Ce suivi se fait pendant le parcours."; render(); return; } return suiviStart(b.dataset.sk); }
@@ -823,6 +849,8 @@ async function onClick(e) {
     if (act === "qcm-submit") return submitQcm();
     if (act === "ex-save") return saveExercise(b.dataset.e);
     if (act === "att-module") return telechargerAttestationModule(b.dataset.m);
+    if (act === "avis-note") { const x = avisBrouillon(b.dataset.m); x[b.dataset.k] = Number(b.dataset.v); AVIS.ok[b.dataset.m] = false; return render(); }
+    if (act === "avis-save") return envoyerAvis(b.dataset.m);
     if (act === "ech-send") return envoyerEchange(b.dataset.m);
     if (act === "ech-reply") return repondreEchange(b.dataset.u, b.dataset.m);
     if (act === "fiche-save") return saveFiche(false);

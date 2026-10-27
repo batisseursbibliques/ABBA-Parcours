@@ -1431,6 +1431,31 @@ function htmlRapport(d) {
   if (d.sansCorrecteur) h += `<p class="small">⚠ ${d.sansCorrecteur} étudiant(s) en formation n'ont pas de correcteur attribué.</p>`;
   return h;
 }
+// Avis des étudiants sur les modules : moyennes par module et remarques (sans noms)
+async function chargerAvisPromotion(rows) {
+  const S = window.AbbaSync, parMod = {}, remarques = [];
+  const uids = rows.filter(r => r.uid).map(r => r.uid);
+  for (let i = 0; i < uids.length; i += 8) {
+    const lots = await Promise.all(uids.slice(i, i + 8).map(u => S.loadAvisDe(u).catch(() => [])));
+    lots.flat().forEach(a => {
+      const m = parMod[a.mid] = parMod[a.mid] || { mid: a.mid, n: 0, c: 0, u: 0 };
+      m.n++; m.c += a.clarte || 0; m.u += a.utilite || 0;
+      if (a.manque) remarques.push({ mid: a.mid, texte: a.manque, ms: a.maj && a.maj.seconds ? a.maj.seconds * 1000 : 0 });
+    });
+  }
+  const ordre = (id) => parseFloat(String(id).replace(/^m/, "")) + (/b$/.test(id) ? 0.5 : 0);
+  return { modules: Object.values(parMod).sort((a, b) => ordre(a.mid) - ordre(b.mid)), remarques: remarques.sort((a, b) => b.ms - a.ms).slice(0, 12) };
+}
+function htmlAvisPromotion(d) {
+  const td = "padding:5px 6px;border-bottom:1px solid var(--line);text-align:center;font-size:13px;";
+  if (!d.modules.length) return `<p class="eyebrow" style="margin-top:14px;">Avis des étudiants</p><p class="small">Aucun avis pour le moment : ils apparaîtront ici dès que des étudiants auront donné leur avis à la fin d'un module.</p>`;
+  const lib = (id) => "M" + String(id).replace(/^m/, "").replace(/b$/, ".2").replace(/^14$/, "14.1");
+  return `<p class="eyebrow" style="margin-top:14px;">Avis des étudiants</p>
+    <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;"><tr><th style="${td}text-align:left;">Module</th><th style="${td}">Avis</th><th style="${td}">Clarté (sur 5)</th><th style="${td}">Utilité (sur 5)</th></tr>`
+    + d.modules.map(m => `<tr><td style="${td}text-align:left;"><strong>${escC(lib(m.mid))}</strong></td><td style="${td}">${m.n}</td><td style="${td}${m.c / m.n < 3.5 ? "font-weight:700;" : ""}">${(m.c / m.n).toFixed(1)}</td><td style="${td}${m.u / m.n < 3.5 ? "font-weight:700;" : ""}">${(m.u / m.n).toFixed(1)}</td></tr>`).join("")
+    + `</table></div><p class="settings-hint">En gras : une moyenne en dessous de 3,5 sur 5, un module à regarder de plus près.</p>`
+    + (d.remarques.length ? `<p class="small" style="margin:10px 0 4px;"><strong>Ce qui a manqué ou pourrait être amélioré</strong> (les plus récentes, sans noms) :</p>` + d.remarques.map(r => `<p class="small" style="margin:0 0 4px;">• <strong>${escC(lib(r.mid))}</strong> — ${escC(r.texte)}</p>`).join("") : "");
+}
 function tableauRapport(rows) {
   const jours = (ms) => (ms ? Math.floor((Date.now() - ms) / 86400000) : "");
   const colonnes = ["Nom", "Statut", "Correcteur", "Modules validés", "Module en cours", "Jours sans activité", "Fiches en attente", "Fiches renvoyées", "Alertes"];
@@ -1449,7 +1474,8 @@ function setupRapport() {
     const out = document.getElementById("rapportOut");
     if (!LAST_COORD_ROWS || !LAST_COORD_ROWS.length) { out.innerHTML = `<p class="settings-hint">La liste des étudiants n'est pas encore chargée : patiente quelques secondes, puis réessaie.</p>`; return; }
     dernier = tableauRapport(LAST_COORD_ROWS);
-    out.innerHTML = htmlRapport(calculerRapport(LAST_COORD_ROWS));
+    out.innerHTML = htmlRapport(calculerRapport(LAST_COORD_ROWS)) + '<p class="settings-hint" id="avisChargement">Chargement des avis des étudiants…</p>';
+    chargerAvisPromotion(LAST_COORD_ROWS).then(d => { const z = document.getElementById("avisChargement"); if (z) z.outerHTML = htmlAvisPromotion(d); }).catch(() => { const z = document.getElementById("avisChargement"); if (z) z.textContent = "Les avis n'ont pas pu être chargés pour le moment."; });
     document.getElementById("rapportActions").style.display = "";
     if (window.__pointDuMois) window.__pointDuMois();
   });

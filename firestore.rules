@@ -264,6 +264,21 @@ service cloud.firestore {
         allow delete: if hasDroit('suivi');
       }
 
+      // Avis de l'étudiant sur un module (facultatif) : deux notes de 1 à 5 et un mot libre.
+      // L'étudiant l'écrit seulement pour un module qu'il a terminé ; les coordinateurs le lisent.
+      match /avis/{mid} {
+        allow read: if (request.auth != null && request.auth.uid == uid) || hasDroit('suivi');
+        allow create, update: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['clarte','utilite','manque','maj'])
+          && request.resource.data.clarte is int && request.resource.data.clarte >= 1 && request.resource.data.clarte <= 5
+          && request.resource.data.utilite is int && request.resource.data.utilite >= 1 && request.resource.data.utilite <= 5
+          && request.resource.data.manque is string && request.resource.data.manque.size() <= 500
+          && request.resource.data.maj == request.time
+          && ((get(/databases/$(database)/documents/formation/$(uid)/modules/$(mid)).data.get('ficheStatus', '') == 'validated')
+              || mid in get(/databases/$(database)/documents/formation/$(uid)).data.get('acquis', []));
+        allow delete: if false;
+      }
+
       // Attestations et certificat : copie privée de l'étudiant (le document public de vérification est dans /attestations)
       match /attestations/{key} {
         allow read: if (request.auth != null && request.auth.uid == uid) || hasDroit('suivi');
