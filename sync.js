@@ -11,16 +11,32 @@ import {
   reauthenticateWithCredential, EmailAuthProvider, updatePassword,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp,
-  enableIndexedDbPersistence, collection, getDocs, query, where, updateDoc, writeBatch, increment, arrayUnion, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  getFirestore, doc, getDoc, setDoc as _setDoc, deleteDoc as _deleteDoc, onSnapshot, serverTimestamp,
+  enableIndexedDbPersistence, collection, getDocs, query, where, updateDoc as _updateDoc, writeBatch as _writeBatch, increment, arrayUnion, orderBy, limit, waitForPendingWrites } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig, ADMIN_EMAILS } from "./firebase-config.js";
 import { nouveauNumero } from "./attestation.js";
+import { initReseau } from "./reseau.js";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
 try { enableIndexedDbPersistence(db); } catch (e) { /* déjà activé dans un autre onglet — sans gravité */ }
+
+/* Hors connexion, Firestore garde l'écriture sur le téléphone mais ne la « confirme » qu'au retour du réseau.
+   On ne fait donc pas attendre l'étudiant : après 1,5 s sans réseau, l'action continue (l'envoi se fera tout seul). */
+const _delai = (ms) => new Promise((ok) => setTimeout(ok, ms));
+const horsLigne = (p) => { if (typeof navigator !== "undefined" && navigator.onLine === false) { p.catch(() => {}); return Promise.race([p, _delai(1500)]); } return p; };
+const setDoc = (...a) => horsLigne(_setDoc(...a));
+const updateDoc = (...a) => horsLigne(_updateDoc(...a));
+const deleteDoc = (...a) => horsLigne(_deleteDoc(...a));
+const writeBatch = (d) => { const b = _writeBatch(d); const c = b.commit.bind(b); b.commit = () => horsLigne(c()); return b; };
+
+// Bandeau « pas de connexion / envoi en cours / tout est enregistré »
+if (typeof document !== "undefined") {
+  const lancer = () => initReseau({ attendreEcritures: () => waitForPendingWrites(db), estHorsLigne: () => navigator.onLine === false, langue: () => (window.I18N && window.I18N.lang) || "fr" });
+  if (document.body) lancer(); else document.addEventListener("DOMContentLoaded", lancer);
+}
 
 function isAdminEmail(email) {
   return !!email && ADMIN_EMAILS.map(e => e.toLowerCase()).includes(String(email).toLowerCase());
