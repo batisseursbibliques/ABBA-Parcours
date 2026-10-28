@@ -1,0 +1,42 @@
+name: Supprimer des attestations (pour les refaire)
+
+# Lancé À LA MAIN : GitHub > Actions > « Supprimer des attestations (pour les refaire) » > Run workflow.
+# Par défaut : SIMULATION (rien n'est effacé) — écrire SUPPRIMER pour effacer vraiment.
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "Adresse e-mail du compte concerné"
+        default: "apotrepaulabba@gmail.com"
+      modules:
+        description: "Clés à effacer, séparées par des virgules (ex : m2,m3). Vide = on liste seulement."
+        default: ""
+      confirmer:
+        description: "Écris SUPPRIMER (en majuscules) pour effacer vraiment. Tout autre texte = simulation."
+        default: "simulation"
+
+concurrency:
+  group: supprimer-attestations
+  cancel-in-progress: false
+
+jobs:
+  suppression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Écrire la clé de service (secret GitHub, jamais dans le code)
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+      - name: Installer firebase-admin
+        run: npm install --no-save --no-audit --no-fund firebase-admin@12
+      - name: Lister ou supprimer
+        env:
+          SIMULATION: ${{ github.event.inputs.confirmer == 'SUPPRIMER' && '0' || '1' }}
+          EMAIL: ${{ github.event.inputs.email }}
+          MODULES: ${{ github.event.inputs.modules }}
+        run: node scripts/supprimer-attestations.mjs
