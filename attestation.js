@@ -124,20 +124,20 @@ async function dessinerCertificatFinal(rec, lang, env, fond) {
   ctx.font = `bold 104px ${SERIF}`; ctx.fillText(lang === "en" ? "OF COMPLETION OF TRAINING" : "DE FIN DE FORMATION", cx, 905);
   ctx.fillStyle = BRUN; ctx.font = `italic 58px ${SERIF}`; ctx.fillText(lang === "en" ? "Builder Path (Parcours Bâtisseur) · Training phase" : "Parcours Bâtisseur · Phase de formation", cx, 985);
   ctx.strokeStyle = OR; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(cx - 420, 1030); ctx.lineTo(cx + 420, 1030); ctx.stroke();
-  ctx.fillStyle = DOUX; ctx.font = `italic 62px ${SERIF}`; ctx.fillText(t.parcours.intro, cx, 1130);
-  let taille = 180; const nom = String(rec.nom || "").trim();
+  ctx.fillStyle = DOUX; ctx.font = `italic 62px ${SERIF}`; ctx.fillText(t.parcours.intro, cx, 1108);
+  let taille = 150; const nom = String(rec.nom || "").trim();
   do { ctx.font = `bold ${taille}px ${SERIF}`; taille -= 8; } while (ctx.measureText(nom).width > 2500 && taille > 70);
-  ctx.fillStyle = MAR; ctx.fillText(nom, cx, 1330);
+  ctx.fillStyle = MAR; ctx.fillText(nom, cx, 1250);
   const lw = Math.min(ctx.measureText(nom).width + 160, 2700);
-  ctx.strokeStyle = OR; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(cx - lw / 2, 1380); ctx.lineTo(cx + lw / 2, 1380); ctx.stroke();
-  let y = 1500;
+  ctx.strokeStyle = OR; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(cx - lw / 2, 1298); ctx.lineTo(cx + lw / 2, 1298); ctx.stroke();
+  let y = 1372;
   t.corpsParcours().forEach((p) => {
-    ctx.fillStyle = ENCRE; ctx.font = `62px ${SERIF}`;
-    lignes(ctx, p[0], 2250).forEach((l) => { ctx.fillText(l, cx, y); y += 86; });
-    y += 24;
+    ctx.fillStyle = ENCRE; ctx.font = `56px ${SERIF}`;
+    lignes(ctx, p[0], 1600).forEach((l) => { ctx.fillText(l, cx, y); y += 76; });
+    y += 22;
   });
   // panneau du bas (lisible sur le paysage) : QR, date et numéro, signature
-  const px = 985, pw = coord ? 2050 : 1900, py = coord ? 2035 : 2060, ph = coord ? 495 : 470;
+  const pw = 2200, px = Math.round(FW / 2 - pw / 2), py = 2030, ph = 500;
   ctx.fillStyle = "rgba(255,255,255,0.86)"; ctx.fillRect(px, py, pw, ph);
   ctx.strokeStyle = OR; ctx.lineWidth = 4; ctx.strokeRect(px, py, pw, ph);
   const m = await env.qr(URL_VERIF + encodeURIComponent(rec.numero));
