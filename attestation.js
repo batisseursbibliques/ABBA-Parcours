@@ -39,6 +39,7 @@ const TXT = {
     verif: "Vérifier ce document : scanne le QR code ou va sur batisseursbibliques.org/ABBA-Parcours/verifier.html",
     org: "Alliance des Bâtisseurs Bibliques en Action",
     titreSignataire: "Président Porteur de Vision",
+    coordNat: (p) => "Coordinateur national" + (p ? " · " + p : ""),
     scanne: "Scanne pour vérifier",
   },
   en: {
@@ -54,6 +55,7 @@ const TXT = {
     verif: "Verify this document: scan the QR code or visit batisseursbibliques.org/ABBA-Parcours/verifier.html",
     org: "Alliance des Bâtisseurs Bibliques en Action",
     titreSignataire: "Vision-Bearing President",
+    coordNat: (p) => "National Coordinator" + (p ? " · " + p : ""),
     scanne: "Scan to verify",
   },
 };
@@ -64,6 +66,32 @@ async function poserCachet(ctx, env, cx, cy, diametre, angle) {
     ctx.save(); ctx.globalAlpha = 0.84; ctx.globalCompositeOperation = "multiply";
     ctx.translate(cx, cy); ctx.rotate(angle); ctx.drawImage(img, -diametre / 2, -h / 2, diametre, h); ctx.restore();
   } catch (e) {}
+}
+
+
+// Deuxième signature : celle du coordinateur national du pays de l'étudiant (si son pays en a un).
+// Le document ne garde que le numéro de la version de signature (rec.sigCoord) ; l'image est relue à l'affichage.
+async function chargerCoord(rec, env, lang) {
+  let c = rec.coord || null;
+  if (!c && rec.sigCoord && env.signature) { try { c = await env.signature(rec.sigCoord); } catch (e) { c = null; } }
+  if (!c || !c.image) return null;
+  const t = TXT[lang === "en" ? "en" : "fr"], pays = lang === "en" ? (c.paysEn || c.paysFr) : (c.paysFr || c.paysEn);
+  return { image: c.image, nom: String(c.nom || ""), titre: t.coordNat(pays || "") };
+}
+// Un bloc de signature : l'image, un trait, le nom, la fonction.
+async function blocSignature(ctx, env, o) {
+  try {
+    const sig = await env.image(o.src);
+    let sw = o.sw, sh = sig.height * sw / sig.width;
+    if (sh > sw * 0.5) { sh = sw * 0.5; sw = sig.width * sh / sig.height; }
+    ctx.drawImage(sig, o.cx - sw / 2, o.base - sh, sw, sh);
+  } catch (e) {}
+  ctx.textAlign = "center";
+  ctx.strokeStyle = ENCRE; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(o.cx - o.sw / 2 - 20, o.base + 8); ctx.lineTo(o.cx + o.sw / 2 + 20, o.base + 8); ctx.stroke();
+  let f = o.f1; do { ctx.font = `bold ${f}px ${SERIF}`; f -= 2; } while (ctx.measureText(o.nom).width > o.sw + 120 && f > 28);
+  ctx.fillStyle = ENCRE; ctx.fillText(o.nom, o.cx, o.base + o.f1 + 16);
+  let g = o.f2; do { ctx.font = `italic ${g}px ${SERIF}`; g -= 2; } while (ctx.measureText(o.titre).width > o.sw + 160 && g > 26);
+  ctx.fillStyle = DOUX; ctx.fillText(o.titre, o.cx, o.base + o.f1 + o.f2 + 30);
 }
 
 function lignes(ctx, texte, largeurMax) {            // coupe un texte en lignes qui tiennent dans la largeur
@@ -78,6 +106,7 @@ function lignes(ctx, texte, largeurMax) {            // coupe un texte en lignes
 
 // Mise en page du certificat de fin de formation sur le fond illustré « fond-certificat.jpg » (format 4:3)
 async function dessinerCertificatFinal(rec, lang, env, fond) {
+  const coord = await chargerCoord(rec, env, lang);
   const t = TXT[lang === "en" ? "en" : "fr"], FW = 3508, FH = Math.round(FW * fond.height / fond.width);
   const c = env.canvas(FW, FH), ctx = c.getContext("2d"), cx = FW / 2;
   ctx.drawImage(fond, 0, 0, FW, FH);
@@ -101,7 +130,7 @@ async function dessinerCertificatFinal(rec, lang, env, fond) {
     y += 24;
   });
   // panneau du bas (lisible sur le paysage) : QR, date et numéro, signature
-  const px = 985, pw = 1900, py = 2060, ph = 470;
+  const px = coord ? 330 : 985, pw = coord ? 2850 : 1900, py = coord ? 1895 : 2060, ph = coord ? 635 : 470;
   ctx.fillStyle = "rgba(255,255,255,0.86)"; ctx.fillRect(px, py, pw, ph);
   ctx.strokeStyle = OR; ctx.lineWidth = 4; ctx.strokeRect(px, py, pw, ph);
   const m = await env.qr(URL_VERIF + encodeURIComponent(rec.numero)), n = m.length, cell = Math.floor(300 / (n + 4)), qs = cell * (n + 4);
@@ -109,19 +138,30 @@ async function dessinerCertificatFinal(rec, lang, env, fond) {
   ctx.fillStyle = "#ffffff"; ctx.fillRect(qx, qy, qs, qs); ctx.fillStyle = "#111111";
   for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (m[r][k]) ctx.fillRect(qx + (k + 2) * cell, qy + (r + 2) * cell, cell, cell);
   ctx.fillStyle = DOUX; ctx.font = `38px ${SERIF}`; ctx.textAlign = "left"; ctx.fillText(t.scanne, qx, qy + qs + 48); ctx.textAlign = "center";
-  const mx = px + pw / 2 - 40;
-  ctx.fillStyle = ENCRE; ctx.font = `58px ${SERIF}`; ctx.fillText(t.delivre(dateLongue(rec.date, lang)), mx, py + 190);
-  ctx.fillStyle = MAR; ctx.font = `bold 60px ${SERIF}`; ctx.fillText(t.numero(rec.numero), mx, py + 270);
-  ctx.fillStyle = DOUX; ctx.font = `42px ${SERIF}`; ctx.fillText(t.org, mx, py + 335);
-  try {
-    const sig = await env.image("signature.png"), sw = 520, sh = sig.height * sw / sig.width, sx = px + pw - 70 - sw, base = py + 285;
-    ctx.drawImage(sig, sx, base - sh, sw, sh);
-    ctx.strokeStyle = ENCRE; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(sx - 15, base + 6); ctx.lineTo(sx + sw + 15, base + 6); ctx.stroke();
-    ctx.fillStyle = ENCRE; ctx.font = `bold 46px ${SERIF}`; ctx.fillText("Paul HOUEKIN", sx + sw / 2, base + 58);
-    ctx.fillStyle = DOUX; ctx.font = `italic 38px ${SERIF}`; ctx.fillText(t.titreSignataire, sx + sw / 2, base + 104);
-    await poserCachet(ctx, env, sx + sw - 25, base - 150, 330, -0.17);
-  } catch (e) {}
-  ctx.fillStyle = DOUX; ctx.font = `33px ${SERIF}`; ctx.fillText(t.verif, px + pw / 2, py + ph - 24);
+  if (coord) {                       // deux signatures, cachet entre les deux
+    const mid = px + pw / 2;
+    ctx.fillStyle = ENCRE; ctx.font = `56px ${SERIF}`; ctx.fillText(t.delivre(dateLongue(rec.date, lang)), mid, py + 78);
+    ctx.fillStyle = MAR; ctx.font = `bold 58px ${SERIF}`; ctx.fillText(t.numero(rec.numero), mid, py + 148);
+    ctx.fillStyle = DOUX; ctx.font = `40px ${SERIF}`; ctx.fillText(t.org, mid, py + 200);
+    const base = py + 440;
+    await blocSignature(ctx, env, { src: coord.image, cx: mid - 620, base, sw: 520, nom: coord.nom, titre: coord.titre, f1: 44, f2: 36 });
+    await blocSignature(ctx, env, { src: "signature.png", cx: mid + 620, base, sw: 520, nom: "Paul HOUEKIN", titre: t.titreSignataire, f1: 44, f2: 36 });
+    await poserCachet(ctx, env, mid, py + 355, 290, -0.17);
+  } else {
+    const mx = px + pw / 2 - 40;
+    ctx.fillStyle = ENCRE; ctx.font = `58px ${SERIF}`; ctx.fillText(t.delivre(dateLongue(rec.date, lang)), mx, py + 190);
+    ctx.fillStyle = MAR; ctx.font = `bold 60px ${SERIF}`; ctx.fillText(t.numero(rec.numero), mx, py + 270);
+    ctx.fillStyle = DOUX; ctx.font = `42px ${SERIF}`; ctx.fillText(t.org, mx, py + 335);
+    try {
+      const sig = await env.image("signature.png"), sw = 520, sh = sig.height * sw / sig.width, sx = px + pw - 70 - sw, base = py + 285;
+      ctx.drawImage(sig, sx, base - sh, sw, sh);
+      ctx.strokeStyle = ENCRE; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(sx - 15, base + 6); ctx.lineTo(sx + sw + 15, base + 6); ctx.stroke();
+      ctx.fillStyle = ENCRE; ctx.font = `bold 46px ${SERIF}`; ctx.fillText("Paul HOUEKIN", sx + sw / 2, base + 58);
+      ctx.fillStyle = DOUX; ctx.font = `italic 38px ${SERIF}`; ctx.fillText(t.titreSignataire, sx + sw / 2, base + 104);
+      await poserCachet(ctx, env, sx + sw - 25, base - 150, 330, -0.17);
+    } catch (e) {}
+  }
+  ctx.fillStyle = DOUX; ctx.font = `33px ${SERIF}`; ctx.fillText(t.verif, px + pw / 2, py + ph - 20);
   return c;
 }
 
@@ -131,6 +171,7 @@ export async function dessiner(rec, lang, env) {
     if (fond) return dessinerCertificatFinal(rec, lang, env, fond);
   }
   const t = TXT[lang === "en" ? "en" : "fr"], estParcours = rec.type === "parcours", bloc = estParcours ? t.parcours : t.module;
+  const coord = await chargerCoord(rec, env, lang);
   const c = env.canvas(W, H), ctx = c.getContext("2d");
   const centre = W / 2;
   let fondOk = false;                                     // décor : fond illustré (cadre bleu et or, vagues, livre ouvert)
@@ -174,19 +215,30 @@ export async function dessiner(rec, lang, env) {
   for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (m[r][k]) ctx.fillRect(qx + (k + 2) * cell, qy + (r + 2) * cell, cell, cell);
   ctx.fillStyle = DOUX; ctx.font = `42px ${SERIF}`; ctx.textAlign = "left"; ctx.fillText(t.scanne, qx, qy + taille2 + 55);
   ctx.textAlign = "center";
-  ctx.fillStyle = ENCRE; ctx.font = `60px ${SERIF}`;
-  ctx.fillText(estParcours ? t.delivre(dateLongue(rec.date, lang)) : t.org, centre, 2030);
-  ctx.fillStyle = MARINE; ctx.font = `bold 62px ${SERIF}`; ctx.fillText(t.numero(rec.numero), centre, 2115);
-  if (estParcours) { ctx.fillStyle = DOUX; ctx.font = `44px ${SERIF}`; ctx.fillText(t.org, centre, 2185); }
-  // signature
-  try {
-    const sig = await env.image("signature.png"), sw = 640, sh = sig.height * sw / sig.width, sx = W - 400 - sw, base = 2090;
-    ctx.drawImage(sig, sx, base - sh, sw, sh);
-    ctx.strokeStyle = ENCRE; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(sx - 20, base + 8); ctx.lineTo(sx + sw + 20, base + 8); ctx.stroke();
-    ctx.fillStyle = ENCRE; ctx.font = `bold 52px ${SERIF}`; ctx.fillText("Paul HOUEKIN", sx + sw / 2, base + 70);
-    ctx.fillStyle = DOUX; ctx.font = `italic 44px ${SERIF}`; ctx.fillText(t.titreSignataire, sx + sw / 2, base + 124);
-    await poserCachet(ctx, env, sx + sw + 5, base - 175, 390, -0.17);
-  } catch (e) {}
+  if (coord) {                       // deux signatures, cachet entre les deux
+    ctx.fillStyle = ENCRE; ctx.font = `60px ${SERIF}`;
+    ctx.fillText(estParcours ? t.delivre(dateLongue(rec.date, lang)) : t.org, centre, 1790);
+    ctx.fillStyle = MARINE; ctx.font = `bold 62px ${SERIF}`; ctx.fillText(t.numero(rec.numero), centre, 1865);
+    if (estParcours) { ctx.fillStyle = DOUX; ctx.font = `44px ${SERIF}`; ctx.fillText(t.org, centre, 1925); }
+    const base = 2085;
+    await blocSignature(ctx, env, { src: coord.image, cx: centre - 600, base, sw: 560, nom: coord.nom, titre: coord.titre, f1: 50, f2: 42 });
+    await blocSignature(ctx, env, { src: "signature.png", cx: centre + 600, base, sw: 560, nom: "Paul HOUEKIN", titre: t.titreSignataire, f1: 50, f2: 42 });
+    await poserCachet(ctx, env, centre, 2050, 330, -0.17);
+  } else {
+    ctx.fillStyle = ENCRE; ctx.font = `60px ${SERIF}`;
+    ctx.fillText(estParcours ? t.delivre(dateLongue(rec.date, lang)) : t.org, centre, 2030);
+    ctx.fillStyle = MARINE; ctx.font = `bold 62px ${SERIF}`; ctx.fillText(t.numero(rec.numero), centre, 2115);
+    if (estParcours) { ctx.fillStyle = DOUX; ctx.font = `44px ${SERIF}`; ctx.fillText(t.org, centre, 2185); }
+    // signature
+    try {
+      const sig = await env.image("signature.png"), sw = 640, sh = sig.height * sw / sig.width, sx = W - 400 - sw, base = 2090;
+      ctx.drawImage(sig, sx, base - sh, sw, sh);
+      ctx.strokeStyle = ENCRE; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(sx - 20, base + 8); ctx.lineTo(sx + sw + 20, base + 8); ctx.stroke();
+      ctx.fillStyle = ENCRE; ctx.font = `bold 52px ${SERIF}`; ctx.fillText("Paul HOUEKIN", sx + sw / 2, base + 70);
+      ctx.fillStyle = DOUX; ctx.font = `italic 44px ${SERIF}`; ctx.fillText(t.titreSignataire, sx + sw / 2, base + 124);
+      await poserCachet(ctx, env, sx + sw + 5, base - 175, 390, -0.17);
+    } catch (e) {}
+  }
   ctx.fillStyle = DOUX; ctx.font = `38px ${SERIF}`; ctx.fillText(t.verif, centre, H - 190);
   return c;
 }
@@ -228,6 +280,8 @@ function chargerScript(src) {
   return new Promise((ok, ko) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => ko(new Error("script " + src)); document.head.appendChild(s); });
 }
 export const envNavigateur = {
+  // lit la version de signature : par l'application (AbbaSync) ou, sur la page certificat.html, par la fonction qu'elle fournit
+  signature: (id) => (globalThis.AbbaSync && globalThis.AbbaSync.getSignature ? globalThis.AbbaSync.getSignature(id) : globalThis.__abbaGetSignature ? globalThis.__abbaGetSignature(id) : null),
   canvas: (w, h) => { const c = document.createElement("canvas"); c.width = w; c.height = h; return c; },
   image: (src) => new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ko(new Error("image " + src)); i.src = src; }),
   jpeg: (c) => new Promise((ok, ko) => c.toBlob((b) => (b ? b.arrayBuffer().then((x) => ok(new Uint8Array(x))) : ko(new Error("jpeg"))), "image/jpeg", 0.92)),

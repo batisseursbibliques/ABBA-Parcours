@@ -31,6 +31,17 @@ service cloud.firestore {
       );
     }
 
+
+    // Deuxième signature des documents : si le document porte « sigCoord », ce numéro de version doit être
+    // celui que le pays indiqué publie actuellement dans /signataires (le document ne peut pas citer une signature au hasard).
+    function sigCoordOk() {
+      return (!('pays' in request.resource.data) || (request.resource.data.pays is string && request.resource.data.pays.size() == 2))
+        && (!('sigCoord' in request.resource.data)
+            || ('pays' in request.resource.data
+                && exists(/databases/$(database)/documents/signataires/$(request.resource.data.pays))
+                && get(/databases/$(database)/documents/signataires/$(request.resource.data.pays)).data.get('sigId', '') == request.resource.data.sigCoord));
+    }
+
     // Paiement : 5 000 F en cinq paliers. Un module n'accepte ni réponses ni fiche tant que le palier n'est pas payé.
     // Sans compte de paiement (cohorte d'avant), aucun blocage.
     function palier(mid) {
@@ -100,6 +111,42 @@ service cloud.firestore {
       allow write: if isBootstrapAdmin();
     }
 
+
+    // Signatures des coordinateurs (versions figées). Lisibles par qui connaît le numéro (la page certificat.html n'a pas de connexion),
+    // jamais listables, jamais modifiables. Création : le coordinateur principal pour n'importe qui,
+    // ou un coordinateur national pour lui-même et pour son propre pays.
+    match /signatures/{sid} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['email','nom','fonction','pays','paysFr','paysEn','image','creeLe'])
+        && request.resource.data.creeLe == request.time
+        && request.resource.data.nom is string && request.resource.data.nom.size() <= 100
+        && request.resource.data.image is string && request.resource.data.image.size() < 400000
+        && request.resource.data.image.matches('^data:image/png;base64,.*')
+        && request.resource.data.fonction in ['national','local','special']
+        && (isBootstrapAdmin()
+            || (isAdmin()
+                && request.resource.data.email == request.auth.token.email.lower()
+                && request.resource.data.fonction == 'national'
+                && adminDocData().get('fonction', '') == 'national'
+                && adminDocData().get('pays', '') == request.resource.data.pays));
+      allow update: if false;
+      allow delete: if isBootstrapAdmin();
+    }
+
+    // Version de signature actuelle du coordinateur national de chaque pays (code à deux lettres)
+    match /signataires/{pays} {
+      allow get: if true;
+      allow list: if false;
+      allow write: if isBootstrapAdmin()
+        || (isAdmin() && request.resource != null
+            && adminDocData().get('fonction', '') == 'national'
+            && adminDocData().get('pays', '') == pays
+            && request.resource.data.keys().hasOnly(['sigId','email','nom','maj'])
+            && request.resource.data.email == request.auth.token.email.lower());
+    }
+
     // Binômes (accountability) : le coordinateur crée/supprime la paire,
     // les deux membres peuvent ensuite modifier librement leur fiche partagée.
     match /binomes/{pairId} {
@@ -167,7 +214,8 @@ service cloud.firestore {
       allow get: if true;
       allow list: if hasDroit('suivi');   // la liste complète (noms) est réservée aux coordinateurs
       allow create: if request.auth != null
-        && request.resource.data.keys().hasOnly(['numero','type','nom','titre','mid','date','creeLe','source'])
+        && request.resource.data.keys().hasOnly(['numero','type','nom','titre','mid','date','creeLe','source','pays','sigCoord'])
+        && sigCoordOk()
         && (!('source' in request.resource.data) || (request.resource.data.source == 'manuel' && request.resource.data.type == 'parcours'))
         && request.resource.data.numero == numero
         && request.resource.data.creeLe == request.time
@@ -283,7 +331,8 @@ service cloud.firestore {
       match /attestations/{key} {
         allow read: if (request.auth != null && request.auth.uid == uid) || hasDroit('suivi');
         allow create: if request.auth != null
-          && request.resource.data.keys().hasOnly(['numero','type','nom','titre','mid','date','creeLe'])
+          && request.resource.data.keys().hasOnly(['numero','type','nom','titre','mid','date','creeLe','pays','sigCoord'])
+          && sigCoordOk()
           && request.resource.data.creeLe == request.time
           && ((request.auth.uid == uid && request.resource.data.type == 'module' && request.resource.data.mid == key)
               || (request.resource.data.type == 'parcours' && key == 'parcours' && hasDroit('suivi')));

@@ -46,7 +46,10 @@ document.documentElement.lang = lang; $("t-titre").textContent = T.titre; $("t-e
 
 try {
   if (!/^ABBA-P-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(numero)) throw new Error("absent");
-  const s = await getDoc(doc(getFirestore(initializeApp(firebaseConfig)), "attestations", numero));
+  const bd = getFirestore(initializeApp(firebaseConfig));
+  // Cette page n'a pas de connexion : elle lit elle-même la version de signature citée par le document.
+  globalThis.__abbaGetSignature = async (id) => { const g = await getDoc(doc(bd, "signatures", String(id))); return g.exists() ? g.data() : null; };
+  const s = await getDoc(doc(bd, "attestations", numero));
   if (!s.exists()) throw new Error("absent");
   const rec = s.data();
   const canvas = await dessiner(rec, lang, envNavigateur);

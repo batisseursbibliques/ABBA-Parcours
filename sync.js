@@ -159,12 +159,48 @@ async function getAttestation(uid, key) {
   const s = await getDoc(doc(db, "formation", uid, "attestations", key));
   return s.exists() ? s.data() : null;
 }
+/* ---------- SIGNATURES DES COORDINATEURS ---------- */
+// Une « version » de signature = un document figé dans /signatures (lisible par qui connaît son numéro, jamais modifiable).
+// /signataires/{PAYS} indique la version actuelle du coordinateur national de ce pays. Un document délivré garde le numéro
+// de la version signée ce jour-là : changer de signature plus tard ne modifie pas les anciens documents.
+async function getSignature(id) {
+  if (!id) return null;
+  const s = await getDoc(doc(db, "signatures", String(id)));
+  return s.exists() ? s.data() : null;
+}
+async function getSignataire(pays) {
+  if (!/^[A-Z]{2}$/.test(pays || "")) return null;
+  try { const s = await getDoc(doc(db, "signataires", pays)); return s.exists() ? s.data() : null; } catch (e) { return null; }
+}
+async function paysDe(uid) {          // pays inscrit dans le profil de l'étudiant (vide s'il n'est pas renseigné)
+  try { const s = await getDoc(doc(db, "users", uid, "priv", "contact")); const p = s.exists() ? String(s.data().pays || "").toUpperCase() : ""; return /^[A-Z]{2}$/.test(p) ? p : ""; } catch (e) { return ""; }
+}
+async function sceauCoord(pays) {      // { pays, sigCoord } à ajouter au document, ou {} si ce pays n'a pas de coordinateur national signé
+  const g = await getSignataire(pays);
+  return g && g.sigId ? { pays, sigCoord: g.sigId } : {};
+}
+// Enregistre une nouvelle version de signature (image PNG déjà préparée) ; pour un coordinateur national, elle devient la signature du pays.
+async function enregistrerSignature(email, p) {
+  const e = lc(email);
+  const ref = doc(collection(db, "signatures"));
+  const data = { email: e, nom: String(p.nom || "").trim().slice(0, 100), fonction: String(p.fonction), pays: String(p.pays || ""), paysFr: String(p.paysFr || ""), paysEn: String(p.paysEn || ""), image: String(p.image), creeLe: serverTimestamp() };
+  await setDoc(ref, data);
+  if (data.fonction === "national" && /^[A-Z]{2}$/.test(data.pays)) await setDoc(doc(db, "signataires", data.pays), { sigId: ref.id, email: e, nom: data.nom, maj: serverTimestamp() });
+  return ref.id;
+}
+// Fiche d'un coordinateur (réservé au coordinateur principal) : nom, type, pays, lieu ou mission, version de signature.
+async function setCoordProfil(email, p) {
+  const data = { nom: String(p.nom || "").trim().slice(0, 100), fonction: String(p.fonction || ""), pays: String(p.pays || ""), lieu: String(p.lieu || "").trim().slice(0, 120), mission: String(p.mission || "").trim().slice(0, 400) };
+  if (p.sigId) data.sigId = String(p.sigId);
+  await setDoc(doc(db, "admins", lc(email)), data, { merge: true });
+}
 // Renvoie l'attestation déjà délivrée, sinon la crée (document public de vérification + copie privée, en une seule opération)
 async function creerAttestation(uid, key, rec) {
   const ex = await getAttestation(uid, key); if (ex) return ex;
   const numero = nouveauNumero();
   const base = { numero, type: rec.type, nom: String(rec.nom).trim(), titre: String(rec.titre), date: String(rec.date) };
   if (rec.mid) base.mid = String(rec.mid);
+  Object.assign(base, await sceauCoord(rec.pays || await paysDe(uid)));
   const lot = writeBatch(db);
   lot.set(doc(db, "attestations", numero), { ...base, creeLe: serverTimestamp() });
   lot.set(doc(db, "formation", uid, "attestations", key), { ...base, creeLe: serverTimestamp() });
@@ -172,12 +208,13 @@ async function creerAttestation(uid, key, rec) {
   return base;
 }
 // Certificat de fin de formation délivré à quelqu'un qui n'a pas de compte dans l'application (formation suivie en présentiel ou en ligne)
-async function creerCertificatManuel(nom, date) {
+async function creerCertificatManuel(nom, date, pays) {
   const n = String(nom || "").trim().replace(/\s+/g, " ");
   if (!n) throw new Error("nom manquant");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date))) throw new Error("date invalide");
   const numero = nouveauNumero();
   const base = { numero, type: "parcours", nom: n.slice(0, 150), titre: "Parcours Bâtisseur — phase de formation", date: String(date), source: "manuel" };
+  Object.assign(base, await sceauCoord(String(pays || "").toUpperCase()));
   await setDoc(doc(db, "attestations", numero), { ...base, creeLe: serverTimestamp() });
   return base;
 }
@@ -811,7 +848,10 @@ window.AbbaSync = {
   watchZonesPlan, saveZonesPlan, saveMyProgress,
   loadAvisDe, saveAvis,
   loadJournal, currentEmail, journaliser, loadEchanges, addEchange, getAttestation, creerAttestation, verifierAttestation,
-  creerCertificatManuel: L(creerCertificatManuel, "certificat_manuel_delivre", (nom, date, r) => [(r && r.numero) || "", nom]),
+  creerCertificatManuel: L(creerCertificatManuel, "certificat_manuel_delivre", (nom, date, pays, r) => [(r && r.numero) || "", nom]),
+  getSignature, getSignataire, paysDe,
+  enregistrerSignature: L(enregistrerSignature, "signature_enregistree", (email, p) => [email, p.fonction + (p.pays ? " " + p.pays : "")]),
+  setCoordProfil: L(setCoordProfil, "coordinateur_fiche_modifiee", (email, p) => [email, p.fonction + (p.pays ? " " + p.pays : "")]),
   listCertificats, getRapportMois, saveRapportMois, listRapports,
   revoquerCertificat: L(revoquerCertificat, "certificat_revoque", (numero) => [numero]),
   delivrerCertificat: L((uid, rec) => creerAttestation(uid, "parcours", rec), "certificat_delivre", (uid, rec, r) => [uid, (r && r.numero) || ""]),

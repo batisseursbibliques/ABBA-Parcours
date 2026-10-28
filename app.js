@@ -328,6 +328,7 @@ async function onAuthChanged(user) {
     renderModulesEditor();
     renderZonesEditor();
     LAST_ADMIN_EMAILS = Object.keys(ADMINS_DATA);
+    if (window.AbbaCoord) window.AbbaCoord.majMaSignature(ADMINS_DATA, user.email);
     if (RIGHTS.coordinateurs) renderAdminsCard();
     if (RIGHTS.suivi) renderCoordModules();
     if (RIGHTS.binomes) loadBinomesManager();
@@ -549,8 +550,9 @@ function renderAdminsCard() {
     const principal = window.AbbaSync.isAdminEmail(e);
     const dd = (ADMINS_DATA[e] || {}).droits, val = (k) => dd ? dd[k] === true : (k !== "apercu" && k !== "paiements" && k !== "diagnostic");
     const cases = principal ? "" : `<div class="fm-acq" style="margin:2px 0 10px;">${Object.keys(DROITS_LABELS).map(k => `<label><input type="checkbox" data-dk="${k}" data-dkemail="${escC(e)}" ${val(k) ? "checked" : ""}> ${DROITS_LABELS[k]}</label>`).join("")}</div>`;
-    return `<div>` + `<p class="small" style="display:flex;justify-content:space-between;gap:8px;align-items:center;"><span>${escC(e)}${principal ? " (principal)" : ""}${e === me ? " — vous" : ""}</span>${principal || e === me ? "" : `<button class="btn-secondary" data-rmadmin="${escC(e)}">Retirer</button>`}</p>` + cases + `</div>`;
+    return `<div>` + `<p class="small" style="display:flex;justify-content:space-between;gap:8px;align-items:center;"><span>${escC(e)}${principal ? " (principal)" : ""}${e === me ? " — vous" : ""}</span>${principal || e === me ? "" : `<button class="btn-secondary" data-rmadmin="${escC(e)}">Retirer</button>`}</p>` + (principal ? "" : `<p class="settings-hint" data-coordres="${escC(e)}" style="margin:0 0 4px;">${escC(window.AbbaCoord ? window.AbbaCoord.resume(ADMINS_DATA[e]) : "")}</p><button class="btn-secondary" data-fichecoord="${escC(e)}" style="margin-bottom:8px;">Fiche et signature</button>`) + cases + `</div>`;
   }).join("") : `<p class="settings-hint">Aucun coordinateur dans la liste (le coordinateur principal reste actif).</p>`;
+  if (window.AbbaCoord) window.AbbaCoord.completerResumes(list, ADMINS_DATA);
   if (!list.dataset.bound) {
     list.dataset.bound = "1";
     list.addEventListener("change", async (ev) => {
@@ -562,6 +564,8 @@ function renderAdminsCard() {
       catch (e2) { document.getElementById("adminsMsg").textContent = "Impossible d'enregistrer : " + (e2.code || e2.message); }
     });
     list.addEventListener("click", async (ev) => {
+      const f = ev.target.closest("[data-fichecoord]");
+      if (f) { window.AbbaCoord && window.AbbaCoord.ouvrirFiche(f.dataset.fichecoord, ADMINS_DATA, { apres: () => { document.getElementById("adminsMsg").textContent = "Fiche enregistrée."; } }); return; }
       const b = ev.target.closest("[data-rmadmin]");
       if (!b || !confirm("Retirer " + b.dataset.rmadmin + " des coordinateurs ?")) return;
       try { await window.AbbaSync.removeAdmin(b.dataset.rmadmin); } catch (e) { document.getElementById("adminsMsg").textContent = "Impossible de retirer."; }
@@ -570,7 +574,7 @@ function renderAdminsCard() {
       const inp = document.getElementById("newAdminEmail"), msg = document.getElementById("adminsMsg");
       const em = inp.value.trim().toLowerCase();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { msg.textContent = "Entre une adresse e-mail valide."; return; }
-      try { await window.AbbaSync.addAdmin(em, CURRENT_USER.email); inp.value = ""; msg.textContent = em + " est maintenant coordinateur, sans aucun droit : coche ses droits dans la liste."; }
+      try { await window.AbbaSync.addAdmin(em, CURRENT_USER.email); inp.value = ""; msg.textContent = em + " est maintenant coordinateur, sans aucun droit : coche ses droits dans la liste."; if (window.AbbaCoord) window.AbbaCoord.ouvrirFiche(em, ADMINS_DATA); }
       catch (e) { msg.textContent = "Impossible d'ajouter : " + (e.code || e.message); }
     });
   }
@@ -727,7 +731,9 @@ async function renderCoordModules() {
             if (!rec) {
               const profil = (await S.getUserProfile(uid)) || {}, nom = String(profil.nom || r.nom || "").trim();
               if (!nom) { alert("Cette personne n'a pas de nom dans son profil."); return; }
-              if (!confirm("Délivrer le certificat de fin de formation à " + nom + " ?\n(14 modules validés. Pense à vérifier sa situation avant de confirmer.)")) return;
+              const paysEtu = await S.paysDe(uid);
+              const note = paysEtu ? "" : "\n\nLe pays de cette personne n'est pas renseigné dans son profil : le certificat ne portera que la signature du Président.";
+              if (!confirm("Délivrer le certificat de fin de formation à " + nom + " ?\n(14 modules validés. Pense à vérifier sa situation avant de confirmer.)" + note)) return;
               const d = new Date(), iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
               rec = await S.delivrerCertificat(uid, { type: "parcours", nom, titre: "Parcours Bâtisseur — phase de formation", date: iso });
             }
@@ -1518,6 +1524,7 @@ function setupCertificats() {
   const S = () => window.AbbaSync, $ = (id) => document.getElementById(id);
   const aujourdhui = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
   $("certDate").value = aujourdhui();
+  import("./geo.js").then((g) => { const sel = $("certPays"); if (sel) sel.innerHTML = g.listePays("fr").map((p) => `<option value="${p.code}">${escC(p.nom)}</option>`).join(""); }).catch(() => {});
   const telecharger = async (rec) => { const A = await import("./attestation.js"); return A.telecharger(rec, "fr"); };
   gen.addEventListener("click", async () => {
     const nom = $("certNom").value.trim().replace(/\s+/g, " "), date = $("certDate").value, err = $("certErr");
@@ -1527,7 +1534,7 @@ function setupCertificats() {
     if (!confirm("Délivrer le certificat de fin de formation à :\n\n" + nom + "\n\nPense à vérifier l'orthographe : le nom ne pourra plus être modifié, seulement annulé puis refait.")) return;
     gen.disabled = true;
     try {
-      const rec = await S().creerCertificatManuel(nom, date);
+      const rec = await S().creerCertificatManuel(nom, date, ($("certPays") || {}).value || "");
       $("certNom").value = "";
       err.textContent = ""; err.style.color = "var(--green, #2e7d4f)"; err.textContent = "Certificat créé : N° " + rec.numero;
       await telecharger(rec);
