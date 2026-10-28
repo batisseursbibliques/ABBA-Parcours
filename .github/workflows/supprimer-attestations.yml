@@ -39,4 +39,10 @@ jobs:
           SIMULATION: ${{ github.event.inputs.confirmer == 'SUPPRIMER' && '0' || '1' }}
           EMAIL: ${{ github.event.inputs.email }}
           MODULES: ${{ github.event.inputs.modules }}
-        run: node scripts/supprimer-attestations.mjs
+        run: |
+          set +e
+          node scripts/supprimer-attestations.mjs > out.txt 2>&1
+          code=$?
+          cat out.txt
+          echo "::notice title=Résultat::$(tr '\n' '|' < out.txt | cut -c1-1800)"
+          exit $code
