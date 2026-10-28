@@ -78,6 +78,13 @@ async function chargerCoord(rec, env, lang) {
   const t = TXT[lang === "en" ? "en" : "fr"], pays = lang === "en" ? (c.paysEn || c.paysFr) : (c.paysFr || c.paysEn);
   return { image: c.image, nom: String(c.nom || ""), titre: t.coordNat(pays || "") };
 }
+// Dessine un QR (matrice m) sur fond blanc, centré en cx, haut en top ; renvoie sa taille.
+function poserQR(ctx, m, cx, top, taille) {
+  const n = m.length, cell = Math.floor(taille / (n + 4)), qs = cell * (n + 4), qx = Math.round(cx - qs / 2);
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(qx, top, qs, qs); ctx.fillStyle = "#111111";
+  for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (m[r][k]) ctx.fillRect(qx + (k + 2) * cell, top + (r + 2) * cell, cell, cell);
+  return qs;
+}
 // Un bloc de signature : l'image, un trait, le nom, la fonction.
 async function blocSignature(ctx, env, o) {
   try {
@@ -130,23 +137,27 @@ async function dessinerCertificatFinal(rec, lang, env, fond) {
     y += 24;
   });
   // panneau du bas (lisible sur le paysage) : QR, date et numéro, signature
-  const px = coord ? 330 : 985, pw = coord ? 2850 : 1900, py = coord ? 1895 : 2060, ph = coord ? 635 : 470;
+  const px = 985, pw = coord ? 2050 : 1900, py = coord ? 2035 : 2060, ph = coord ? 495 : 470;
   ctx.fillStyle = "rgba(255,255,255,0.86)"; ctx.fillRect(px, py, pw, ph);
   ctx.strokeStyle = OR; ctx.lineWidth = 4; ctx.strokeRect(px, py, pw, ph);
-  const m = await env.qr(URL_VERIF + encodeURIComponent(rec.numero)), n = m.length, cell = Math.floor(300 / (n + 4)), qs = cell * (n + 4);
-  const qx = px + 40, qy = py + 40;
-  ctx.fillStyle = "#ffffff"; ctx.fillRect(qx, qy, qs, qs); ctx.fillStyle = "#111111";
-  for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (m[r][k]) ctx.fillRect(qx + (k + 2) * cell, qy + (r + 2) * cell, cell, cell);
-  ctx.fillStyle = DOUX; ctx.font = `38px ${SERIF}`; ctx.textAlign = "left"; ctx.fillText(t.scanne, qx, qy + qs + 48); ctx.textAlign = "center";
-  if (coord) {                       // deux signatures, cachet entre les deux
+  const m = await env.qr(URL_VERIF + encodeURIComponent(rec.numero));
+  if (!coord) {
+    const n = m.length, cell = Math.floor(300 / (n + 4)), qs = cell * (n + 4);
+    const qx = px + 40, qy = py + 40;
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(qx, qy, qs, qs); ctx.fillStyle = "#111111";
+    for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (m[r][k]) ctx.fillRect(qx + (k + 2) * cell, qy + (r + 2) * cell, cell, cell);
+    ctx.fillStyle = DOUX; ctx.font = `38px ${SERIF}`; ctx.textAlign = "left"; ctx.fillText(t.scanne, qx, qy + qs + 48); ctx.textAlign = "center";
+  }
+  if (coord) {                       // deux signatures de part et d'autre, QR au milieu, sans cachet (le bas-gauche de l'image reste visible)
     const mid = px + pw / 2;
-    ctx.fillStyle = ENCRE; ctx.font = `56px ${SERIF}`; ctx.fillText(t.delivre(dateLongue(rec.date, lang)), mid, py + 78);
-    ctx.fillStyle = MAR; ctx.font = `bold 58px ${SERIF}`; ctx.fillText(t.numero(rec.numero), mid, py + 148);
-    ctx.fillStyle = DOUX; ctx.font = `40px ${SERIF}`; ctx.fillText(t.org, mid, py + 200);
-    const base = py + 440;
-    await blocSignature(ctx, env, { src: coord.image, cx: mid - 620, base, sw: 520, nom: coord.nom, titre: coord.titre, f1: 44, f2: 36 });
-    await blocSignature(ctx, env, { src: "signature.png", cx: mid + 620, base, sw: 520, nom: "Paul HOUEKIN", titre: t.titreSignataire, f1: 44, f2: 36 });
-    await poserCachet(ctx, env, mid, py + 355, 290, -0.17);
+    ctx.fillStyle = ENCRE; ctx.font = `44px ${SERIF}`; ctx.fillText(t.delivre(dateLongue(rec.date, lang)), mid, py + 52);
+    ctx.fillStyle = MAR; ctx.font = `bold 50px ${SERIF}`; ctx.fillText(t.numero(rec.numero), mid, py + 106);
+    ctx.fillStyle = DOUX; ctx.font = `32px ${SERIF}`; ctx.fillText(t.org, mid, py + 146);
+    const qs2 = poserQR(ctx, m, mid, py + 170, 230);
+    ctx.fillStyle = DOUX; ctx.font = `30px ${SERIF}`; ctx.fillText(t.scanne, mid, py + 170 + qs2 + 36);
+    const base = py + 318;
+    await blocSignature(ctx, env, { src: coord.image, cx: mid - 650, base, sw: 480, nom: coord.nom, titre: coord.titre, f1: 42, f2: 34 });
+    await blocSignature(ctx, env, { src: "signature.png", cx: mid + 650, base, sw: 480, nom: "Paul HOUEKIN", titre: t.titreSignataire, f1: 42, f2: 34 });
   } else {
     const mx = px + pw / 2 - 40;
     ctx.fillStyle = ENCRE; ctx.font = `58px ${SERIF}`; ctx.fillText(t.delivre(dateLongue(rec.date, lang)), mx, py + 190);
@@ -209,21 +220,23 @@ export async function dessiner(rec, lang, env) {
   // pied : QR, date et numéro, signature
   const lienVerif = URL_VERIF + encodeURIComponent(rec.numero);
   const m = await env.qr(lienVerif), n = m.length, cell = Math.floor(330 / (n + 4)), taille2 = cell * (n + 4);
-  const qx = 380, qy = 1790;
-  ctx.fillStyle = "#ffffff"; ctx.fillRect(qx, qy, taille2, taille2);
-  ctx.fillStyle = "#111111";
-  for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (m[r][k]) ctx.fillRect(qx + (k + 2) * cell, qy + (r + 2) * cell, cell, cell);
-  ctx.fillStyle = DOUX; ctx.font = `42px ${SERIF}`; ctx.textAlign = "left"; ctx.fillText(t.scanne, qx, qy + taille2 + 55);
+  if (!coord) {
+    const qx = 380, qy = 1790;
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(qx, qy, taille2, taille2);
+    ctx.fillStyle = "#111111";
+    for (let r = 0; r < n; r++) for (let k = 0; k < n; k++) if (m[r][k]) ctx.fillRect(qx + (k + 2) * cell, qy + (r + 2) * cell, cell, cell);
+    ctx.fillStyle = DOUX; ctx.font = `42px ${SERIF}`; ctx.textAlign = "left"; ctx.fillText(t.scanne, qx, qy + taille2 + 55);
+    ctx.textAlign = "center";
+  }
   ctx.textAlign = "center";
-  if (coord) {                       // deux signatures, cachet entre les deux
-    ctx.fillStyle = ENCRE; ctx.font = `60px ${SERIF}`;
-    ctx.fillText(estParcours ? t.delivre(dateLongue(rec.date, lang)) : t.org, centre, 1790);
-    ctx.fillStyle = MARINE; ctx.font = `bold 62px ${SERIF}`; ctx.fillText(t.numero(rec.numero), centre, 1865);
-    if (estParcours) { ctx.fillStyle = DOUX; ctx.font = `44px ${SERIF}`; ctx.fillText(t.org, centre, 1925); }
+  if (coord) {                       // deux signatures de part et d'autre, QR au milieu, sans cachet
+    ctx.fillStyle = ENCRE; ctx.font = `50px ${SERIF}`; ctx.fillText(t.org, centre, 1650);
+    ctx.fillStyle = MARINE; ctx.font = `bold 58px ${SERIF}`; ctx.fillText(t.numero(rec.numero), centre, 1722);
+    const qs2 = poserQR(ctx, m, centre, 1760, 320);
+    ctx.fillStyle = DOUX; ctx.font = `36px ${SERIF}`; ctx.fillText(t.scanne, centre, 1760 + qs2 + 52);
     const base = 2085;
-    await blocSignature(ctx, env, { src: coord.image, cx: centre - 600, base, sw: 560, nom: coord.nom, titre: coord.titre, f1: 50, f2: 42 });
-    await blocSignature(ctx, env, { src: "signature.png", cx: centre + 600, base, sw: 560, nom: "Paul HOUEKIN", titre: t.titreSignataire, f1: 50, f2: 42 });
-    await poserCachet(ctx, env, centre, 2050, 330, -0.17);
+    await blocSignature(ctx, env, { src: coord.image, cx: centre - 760, base, sw: 560, nom: coord.nom, titre: coord.titre, f1: 50, f2: 42 });
+    await blocSignature(ctx, env, { src: "signature.png", cx: centre + 760, base, sw: 560, nom: "Paul HOUEKIN", titre: t.titreSignataire, f1: 50, f2: 42 });
   } else {
     ctx.fillStyle = ENCRE; ctx.font = `60px ${SERIF}`;
     ctx.fillText(estParcours ? t.delivre(dateLongue(rec.date, lang)) : t.org, centre, 2030);
