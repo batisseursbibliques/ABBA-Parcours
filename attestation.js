@@ -169,7 +169,6 @@ async function dessinerCertificatFinal(rec, lang, env, fond) {
       ctx.strokeStyle = ENCRE; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(sx - 15, base + 6); ctx.lineTo(sx + sw + 15, base + 6); ctx.stroke();
       ctx.fillStyle = ENCRE; ctx.font = `bold 46px ${SERIF}`; ctx.fillText("Paul HOUEKIN", sx + sw / 2, base + 58);
       ctx.fillStyle = DOUX; ctx.font = `italic 38px ${SERIF}`; ctx.fillText(t.titreSignataire, sx + sw / 2, base + 104);
-      await poserCachet(ctx, env, sx + sw - 25, base - 150, 330, -0.17);
     } catch (e) {}
   }
   ctx.fillStyle = DOUX; ctx.font = `33px ${SERIF}`; ctx.fillText(t.verif, px + pw / 2, py + ph - 20);
@@ -249,7 +248,6 @@ export async function dessiner(rec, lang, env) {
       ctx.strokeStyle = ENCRE; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(sx - 20, base + 8); ctx.lineTo(sx + sw + 20, base + 8); ctx.stroke();
       ctx.fillStyle = ENCRE; ctx.font = `bold 52px ${SERIF}`; ctx.fillText("Paul HOUEKIN", sx + sw / 2, base + 70);
       ctx.fillStyle = DOUX; ctx.font = `italic 44px ${SERIF}`; ctx.fillText(t.titreSignataire, sx + sw / 2, base + 124);
-      await poserCachet(ctx, env, sx + sw + 5, base - 175, 390, -0.17);
     } catch (e) {}
   }
   ctx.fillStyle = DOUX; ctx.font = `38px ${SERIF}`; ctx.fillText(t.verif, centre, H - 190);
