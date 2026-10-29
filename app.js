@@ -1539,13 +1539,14 @@ function setupCertificats() {
   const S = () => window.AbbaSync, $ = (id) => document.getElementById(id);
   const aujourdhui = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
   $("certDate").value = aujourdhui();
-  import("./geo.js").then((g) => { const sel = $("certPays"); if (sel) sel.innerHTML = g.listePays("fr").map((p) => `<option value="${p.code}">${escC(p.nom)}</option>`).join(""); }).catch(() => {});
+  import("./geo.js").then((g) => { const sel = $("certPays"); if (sel) sel.innerHTML = `<option value="">— Choisir le pays —</option>` + g.listePays("fr").map((p) => `<option value="${p.code}">${escC(p.nom)}</option>`).join(""); }).catch(() => {});
   const telecharger = async (rec) => { const A = await import("./attestation.js"); return A.telecharger(rec, "fr"); };
   gen.addEventListener("click", async () => {
     const nom = $("certNom").value.trim().replace(/\s+/g, " "), date = $("certDate").value, err = $("certErr");
     err.textContent = "";
     if (nom.length < 3) { err.textContent = "Écris le nom complet de la personne."; return; }
     if (!date) { err.textContent = "Choisis la date du certificat."; return; }
+    if (!(($("certPays") || {}).value)) { err.textContent = "Choisis le pays de la personne (il sert à retrouver son coordinateur national)."; return; }
     if (!confirm("Délivrer le certificat de fin de formation à :\n\n" + nom + "\n\nPense à vérifier l'orthographe : le nom ne pourra plus être modifié, seulement annulé puis refait.")) return;
     gen.disabled = true;
     try {

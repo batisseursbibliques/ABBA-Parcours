@@ -28,7 +28,7 @@ const auth = getAuth();
 
 // Collections que ce programme connaît (les autres sont seulement signalées)
 const CONNUES = new Set(["rapports", "users", "summaries", "formation", "pushTokens", "liens", "enrollments", "binomes",
-  "solidarite", "seances", "deletionRequests", "correcteurs", "admins", "config", "archives_finances", "mea_mentors", "mea_assignments", "mea_summaries"]);
+  "solidarite", "seances", "deletionRequests", "correcteurs", "admins", "config", "archives_finances", "mea_mentors", "mea_assignments", "mea_summaries", "mea_numeros"]);
 
 const log = (...a) => console.log(...a);
 
@@ -70,6 +70,8 @@ async function traiter(uid) {
     "Mise en Action : affectation au mentor": db.doc(`mea_assignments/${uid}`),
     "Mise en Action : résumé": db.doc(`mea_summaries/${uid}`),
   };
+  // Numéros de certificat utilisés par cette personne pour entrer dans la Mise en Action (libère aussi le numéro)
+  for (const d of (await db.collection("mea_numeros").where("uid", "==", uid).get()).docs) cibles[`Mise en Action : numéro de certificat ${d.id}`] = d.ref;
   for (const [nom, ref] of Object.entries(cibles)) rapport.aSupprimer[nom] = await compter(ref);
 
   const enr = await db.collection("enrollments").where("uid", "==", uid).get();
