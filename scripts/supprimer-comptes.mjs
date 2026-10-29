@@ -28,7 +28,7 @@ const auth = getAuth();
 
 // Collections que ce programme connaît (les autres sont seulement signalées)
 const CONNUES = new Set(["rapports", "users", "summaries", "formation", "pushTokens", "liens", "enrollments", "binomes",
-  "solidarite", "seances", "deletionRequests", "correcteurs", "admins", "config", "archives_finances"]);
+  "solidarite", "seances", "deletionRequests", "correcteurs", "admins", "config", "archives_finances", "mea_mentors", "mea_assignments", "mea_summaries"]);
 
 const log = (...a) => console.log(...a);
 
@@ -57,6 +57,7 @@ async function traiter(uid) {
   if (email) {
     if ((await db.doc(`admins/${email}`).get()).exists) { rapport.refus = "coordinateur : le retirer d'abord de la liste des coordinateurs dans l'application"; return rapport; }
     if ((await db.doc(`correcteurs/${email}`).get()).exists) { rapport.refus = "correcteur : le retirer d'abord de la liste des correcteurs dans l'application"; return rapport; }
+    if ((await db.doc(`mea_mentors/${email}`).get()).exists) { rapport.refus = "mentor (Mise en Action) : le retirer d'abord de la liste des mentors dans l'application"; return rapport; }
   }
 
   // --- Inventaire de ce qui existe
@@ -66,6 +67,8 @@ async function traiter(uid) {
     "formation (modules, réponses, suivis, lecture…)": db.doc(`formation/${uid}`),
     "rappels (appareils)": db.doc(`pushTokens/${uid}`),
     "lien avec le correcteur": db.doc(`liens/${uid}`),
+    "Mise en Action : affectation au mentor": db.doc(`mea_assignments/${uid}`),
+    "Mise en Action : résumé": db.doc(`mea_summaries/${uid}`),
   };
   for (const [nom, ref] of Object.entries(cibles)) rapport.aSupprimer[nom] = await compter(ref);
 

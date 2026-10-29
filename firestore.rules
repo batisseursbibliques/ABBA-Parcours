@@ -55,6 +55,22 @@ service cloud.firestore {
            >= get(/databases/$(database)/documents/formation/$(uid)/compte/paiement).data.get('total', 5000) * palier(mid);
     }
 
+    // ===== MISE EN ACTION (phase 2) : mentors =====
+    // Un mentor est une personne inscrite dans /mea_mentors (par e-mail). Il ne lit que les bâtisseurs qui lui sont affectés.
+    function isMentor() {
+      return request.auth != null && exists(/databases/$(database)/documents/mea_mentors/$(request.auth.token.email.lower()));
+    }
+    function isMentorOf(uid) {
+      return isMentor()
+        && exists(/databases/$(database)/documents/mea_assignments/$(uid))
+        && get(/databases/$(database)/documents/mea_assignments/$(uid)).data.get('mentorEmail', '') == request.auth.token.email.lower();
+    }
+    // Dans le résumé d'un bâtisseur, le mentor affecté ne peut être changé que par le coordinateur (droit « corrections »)
+    function meaMentorInchange() {
+      return request.resource.data.get('mentorEmail', null) == (resource == null ? null : resource.data.get('mentorEmail', null))
+        && request.resource.data.get('mentorNom', null) == (resource == null ? null : resource.data.get('mentorNom', null));
+    }
+
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
       allow read: if hasDroit('suivi') || hasDroit('corrections') || hasDroit('presences') || hasDroit('binomes') || hasDroit('paiements');
@@ -66,6 +82,10 @@ service cloud.firestore {
         allow write: if hasDroit('binomes') && doc == "binome";
         // Fiche de contact (adresse, naissance, urgence…) : lisible par le suivi et par le correcteur lié à l'élève
         allow read: if doc == "contact" && (hasDroit('suivi') || isCorrecteurOf(uid));
+        // Mise en Action : le PDP et les rencontres sont lisibles par le mentor affecté et par le suivi.
+        // Ces deux documents ne contiennent QUE ce que le bâtisseur a choisi de partager.
+        // Le document « mea_prive » (blessures, défis non partagés) n'est lisible par personne d'autre que le bâtisseur.
+        allow read: if (doc == "mea_pdp" || doc == "mea_rencontres") && (isMentorOf(uid) || hasDroit('suivi'));
       }
 
       // Données mensuelles (spirituel + bilans + finance), un document par mois AAAA-MM
@@ -196,6 +216,33 @@ service cloud.firestore {
         && request.resource.data.get('via', '') is string && request.resource.data.get('via', '').size() <= 60;
       allow update: if hasDroit('presences');
       allow delete: if hasDroit('presences');
+    }
+
+    // ===== MISE EN ACTION (phase 2 du Parcours Bâtisseur) =====
+    // Les règles de cette application vivent ICI (une seule source). Ne jamais publier un autre fichier de règles pour ce projet.
+
+    // Liste des mentors : gérée par le coordinateur (droit « corrections »). Un mentor ne lit que sa propre fiche.
+    match /mea_mentors/{email} {
+      allow read: if hasDroit('corrections') || hasDroit('suivi') || (request.auth != null && email == myEmail());
+      allow write: if hasDroit('corrections');
+    }
+
+    // Affectation bâtisseur -> mentor : posée par le coordinateur ; lue par le bâtisseur, son mentor et les coordinateurs
+    match /mea_assignments/{buid} {
+      allow read: if hasDroit('corrections') || hasDroit('suivi')
+        || (request.auth != null && request.auth.uid == buid)
+        || (isMentor() && resource.data.get('mentorEmail', '') == myEmail());
+      allow write: if hasDroit('corrections');
+    }
+
+    // Résumé allégé (notes, victoires, défis PARTAGÉS seulement) : écrit par le bâtisseur, sauf le champ mentor (réservé au coordinateur)
+    match /mea_summaries/{buid} {
+      allow read: if hasDroit('corrections') || hasDroit('suivi')
+        || (request.auth != null && request.auth.uid == buid)
+        || (isMentor() && resource.data.get('mentorEmail', '') == myEmail());
+      allow create, update: if (request.auth != null && request.auth.uid == buid && meaMentorInchange())
+        || hasDroit('corrections');
+      allow delete: if hasDroit('corrections');
     }
 
     // ===== FORMATION EN AUTONOMIE (correcteurs, liens, progression par module) =====
