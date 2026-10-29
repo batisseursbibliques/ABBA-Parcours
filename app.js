@@ -552,12 +552,12 @@ function renderAdminsCard() {
   list.innerHTML = all.length ? all.map(e => {
     const principal = window.AbbaSync.isAdminEmail(e);
     const dd = (ADMINS_DATA[e] || {}).droits, val = (k) => dd ? dd[k] === true : (k !== "apercu" && k !== "paiements" && k !== "diagnostic");
-    const nom = `<span>${escC(e)}${principal ? " (principal)" : ""}${e === me ? " — vous" : ""}</span>`;
-    if (principal) return `<p class="small" style="padding:10px 2px;margin:0;display:flex;justify-content:space-between;gap:8px;">${nom}<small class="settings-hint" style="margin:0;">tous les droits</small></p>`;
+    const nom = `${escC(e)}${principal ? " (principal)" : ""}${e === me ? " — vous" : ""}`;
+    if (principal) return `<div class="adm-ligne" style="padding:10px 2px;"><span class="adm-id">${nom}</span><small>tous les droits</small></div>`;
     const nb = cles.filter(val).length;
     const cases = `<div class="fm-acq" style="margin:2px 0 10px;">${cles.map(k => `<label><input type="checkbox" data-dk="${k}" data-dkemail="${escC(e)}" ${val(k) ? "checked" : ""}> ${DROITS_LABELS[k]}</label>`).join("")}</div>`;
     const retirer = e === me ? "" : `<button class="btn-secondary" data-rmadmin="${escC(e)}" style="margin:0 0 8px 8px;">Retirer</button>`;
-    return `<details class="pf-acc adm-row" data-adm="${escC(e)}" ${ADMIN_OUVERTS.has(e) ? "open" : ""}><summary>${nom}<small data-admcount="${escC(e)}">${nb} droit${nb > 1 ? "s" : ""} sur ${cles.length}</small></summary><div class="pf-acc-body">`
+    return `<details class="pf-acc adm-row" data-adm="${escC(e)}" ${ADMIN_OUVERTS.has(e) ? "open" : ""}><summary><span class="adm-ligne"><span class="adm-id">${nom}</span><small data-admcount="${escC(e)}">${nb} droit${nb > 1 ? "s" : ""} sur ${cles.length}</small></span></summary><div class="pf-acc-body">`
       + `<p class="settings-hint" data-coordres="${escC(e)}" style="margin:0 0 4px;">${escC(window.AbbaCoord ? window.AbbaCoord.resume(ADMINS_DATA[e]) : "")}</p>`
       + cases + `<button class="btn-secondary" data-fichecoord="${escC(e)}" style="margin-bottom:8px;">Fiche et signature</button>${retirer}</div></details>`;
   }).join("") : `<p class="settings-hint">Aucun coordinateur dans la liste (le coordinateur principal reste actif).</p>`;
