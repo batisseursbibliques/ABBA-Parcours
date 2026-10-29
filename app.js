@@ -541,25 +541,40 @@ function setupCoordModules() {
   const btn = document.getElementById("refreshCoordModules");
   if (btn) btn.addEventListener("click", renderCoordModules);
 }
+const ADMIN_OUVERTS = new Set();   // coordinateurs dont la fiche est dépliée (conservé quand la liste est redessinée)
 function renderAdminsCard() {
   const list = document.getElementById("adminsList");
   if (!list) return;
   const me = (CURRENT_USER && CURRENT_USER.email || "").toLowerCase();
   const all = Array.from(new Set(LAST_ADMIN_EMAILS.map(e => e.toLowerCase())));
+  const cles = Object.keys(DROITS_LABELS);
+  const cnt = document.getElementById("adminsCount"); if (cnt) cnt.textContent = all.length ? String(all.length) : "";
   list.innerHTML = all.length ? all.map(e => {
     const principal = window.AbbaSync.isAdminEmail(e);
     const dd = (ADMINS_DATA[e] || {}).droits, val = (k) => dd ? dd[k] === true : (k !== "apercu" && k !== "paiements" && k !== "diagnostic");
-    const cases = principal ? "" : `<div class="fm-acq" style="margin:2px 0 10px;">${Object.keys(DROITS_LABELS).map(k => `<label><input type="checkbox" data-dk="${k}" data-dkemail="${escC(e)}" ${val(k) ? "checked" : ""}> ${DROITS_LABELS[k]}</label>`).join("")}</div>`;
-    return `<div>` + `<p class="small" style="display:flex;justify-content:space-between;gap:8px;align-items:center;"><span>${escC(e)}${principal ? " (principal)" : ""}${e === me ? " — vous" : ""}</span>${principal || e === me ? "" : `<button class="btn-secondary" data-rmadmin="${escC(e)}">Retirer</button>`}</p>` + (principal ? "" : `<p class="settings-hint" data-coordres="${escC(e)}" style="margin:0 0 4px;">${escC(window.AbbaCoord ? window.AbbaCoord.resume(ADMINS_DATA[e]) : "")}</p><button class="btn-secondary" data-fichecoord="${escC(e)}" style="margin-bottom:8px;">Fiche et signature</button>`) + cases + `</div>`;
+    const nom = `<span>${escC(e)}${principal ? " (principal)" : ""}${e === me ? " — vous" : ""}</span>`;
+    if (principal) return `<p class="small" style="padding:10px 2px;margin:0;display:flex;justify-content:space-between;gap:8px;">${nom}<small class="settings-hint" style="margin:0;">tous les droits</small></p>`;
+    const nb = cles.filter(val).length;
+    const cases = `<div class="fm-acq" style="margin:2px 0 10px;">${cles.map(k => `<label><input type="checkbox" data-dk="${k}" data-dkemail="${escC(e)}" ${val(k) ? "checked" : ""}> ${DROITS_LABELS[k]}</label>`).join("")}</div>`;
+    const retirer = e === me ? "" : `<button class="btn-secondary" data-rmadmin="${escC(e)}" style="margin:0 0 8px 8px;">Retirer</button>`;
+    return `<details class="pf-acc adm-row" data-adm="${escC(e)}" ${ADMIN_OUVERTS.has(e) ? "open" : ""}><summary>${nom}<small data-admcount="${escC(e)}">${nb} droit${nb > 1 ? "s" : ""} sur ${cles.length}</small></summary><div class="pf-acc-body">`
+      + `<p class="settings-hint" data-coordres="${escC(e)}" style="margin:0 0 4px;">${escC(window.AbbaCoord ? window.AbbaCoord.resume(ADMINS_DATA[e]) : "")}</p>`
+      + cases + `<button class="btn-secondary" data-fichecoord="${escC(e)}" style="margin-bottom:8px;">Fiche et signature</button>${retirer}</div></details>`;
   }).join("") : `<p class="settings-hint">Aucun coordinateur dans la liste (le coordinateur principal reste actif).</p>`;
   if (window.AbbaCoord) window.AbbaCoord.completerResumes(list, ADMINS_DATA);
   if (!list.dataset.bound) {
     list.dataset.bound = "1";
+    list.addEventListener("toggle", (ev) => {   // « toggle » ne remonte pas : écoute en phase de capture
+      const d = ev.target; if (!d || !d.dataset || !d.dataset.adm) return;
+      if (d.open) ADMIN_OUVERTS.add(d.dataset.adm); else ADMIN_OUVERTS.delete(d.dataset.adm);
+    }, true);
     list.addEventListener("change", async (ev) => {
       const c = ev.target.closest("[data-dk]");
       if (!c) return;
       const em = c.dataset.dkemail, droits = {};
       list.querySelectorAll(`[data-dkemail="${em}"]`).forEach(x => { droits[x.dataset.dk] = x.checked; });
+      const n = Object.values(droits).filter(Boolean).length, tot = Object.keys(droits).length;
+      const sm = list.querySelector(`[data-admcount="${em}"]`); if (sm) sm.textContent = n + " droit" + (n > 1 ? "s" : "") + " sur " + tot;
       try { await window.AbbaSync.setDroits(em, droits); document.getElementById("adminsMsg").textContent = "Droits de " + em + " enregistrés."; }
       catch (e2) { document.getElementById("adminsMsg").textContent = "Impossible d'enregistrer : " + (e2.code || e2.message); }
     });
@@ -574,7 +589,7 @@ function renderAdminsCard() {
       const inp = document.getElementById("newAdminEmail"), msg = document.getElementById("adminsMsg");
       const em = inp.value.trim().toLowerCase();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { msg.textContent = "Entre une adresse e-mail valide."; return; }
-      try { await window.AbbaSync.addAdmin(em, CURRENT_USER.email); inp.value = ""; msg.textContent = em + " est maintenant coordinateur, sans aucun droit : coche ses droits dans la liste."; if (window.AbbaCoord) window.AbbaCoord.ouvrirFiche(em, ADMINS_DATA); }
+      try { await window.AbbaSync.addAdmin(em, CURRENT_USER.email); inp.value = ""; ADMIN_OUVERTS.add(em); msg.textContent = em + " est maintenant coordinateur, sans aucun droit : coche ses droits dans la liste."; if (window.AbbaCoord) window.AbbaCoord.ouvrirFiche(em, ADMINS_DATA); }
       catch (e) { msg.textContent = "Impossible d'ajouter : " + (e.code || e.message); }
     });
   }

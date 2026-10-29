@@ -489,12 +489,16 @@
       <div class="card admin-only" id="paiementsCard" data-droit="paiements" style="display:none;"></div>
 
       <div class="card admin-only" id="adminsCard" data-droit="coordinateurs" style="display:none;">
-        <p class="eyebrow">Coordinateurs</p>
-        <p class="settings-hint">Un coordinateur voit toute la page Coordination. Les correcteurs n'y ont pas accès.</p>
-        <div id="adminsList"></div>
-        <input type="email" id="newAdminEmail" class="text-input" placeholder="E-mail du nouveau coordinateur" autocomplete="off">
-        <button class="btn-primary" id="addAdminBtn" style="margin-top:8px;">Ajouter comme coordinateur</button>
-        <p class="settings-hint" id="adminsMsg"></p>
+        <details class="pf-acc adm-acc" id="adminsAcc" style="margin:0;border:0;background:none;">
+          <summary class="adm-sum" style="padding:0;"><span class="eyebrow" style="margin:0;">Coordinateurs</span><small id="adminsCount"></small></summary>
+          <div class="pf-acc-body" style="padding:10px 0 0;">
+            <p class="settings-hint">Un coordinateur voit toute la page Coordination. Les correcteurs n'y ont pas accès. Clique sur un nom pour modifier ses droits.</p>
+            <div id="adminsList"></div>
+            <input type="email" id="newAdminEmail" class="text-input" placeholder="E-mail du nouveau coordinateur" autocomplete="off">
+            <button class="btn-primary" id="addAdminBtn" style="margin-top:8px;">Ajouter comme coordinateur</button>
+            <p class="settings-hint" id="adminsMsg"></p>
+          </div>
+        </details>
       </div>
 
       <div class="card" id="maSignatureCard" style="display:none;">

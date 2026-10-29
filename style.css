@@ -1043,3 +1043,9 @@ details.pf-acc[open]>summary{border-bottom:1px dashed var(--line);}
 .reseau-bar[data-niveau="envoi"]{background:#dfe9ff;color:#14307a;}
 .reseau-bar[data-niveau="ok"]{background:#dff3e5;color:#1d5b34;}
 body.reseau-actif{padding-top:var(--reseau-h,56px);}
+
+/* Réglages › Coordinateurs : accordéons */
+.adm-sum small,.adm-row>summary small{margin-left:auto;font-weight:400;font-size:12px;color:var(--ink-soft);}
+details.adm-acc>summary{border-bottom:0 !important;}
+details.adm-row>summary{font-weight:500;}
+details.adm-row>summary>span:first-child{overflow-wrap:anywhere;}
