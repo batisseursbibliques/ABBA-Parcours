@@ -464,7 +464,13 @@ function renderTermine() {
   if (!st.user || !parcoursTermine()) { box.hidden = true; box.innerHTML = ""; return; }
   const last = Math.max(0, ...MODULES.map((m) => toMs((st.prog[m.id] || {}).validatedAt) || 0));
   box.hidden = false;
-  box.innerHTML = `<p class="eyebrow">🎉 Parcours terminé</p><p>Tu as validé tous les modules${last ? " le " + new Date(last).toLocaleDateString(LOC(), { day: "numeric", month: "long", year: "numeric" }) : ""}. Félicitations !</p><p class="small">Tu n’es plus suivi par un correcteur. Tes modules restent ouverts : relis-les et refais les exercices quand tu veux, tes réponses restent privées.</p><a class="link-btn" href="https://batisseursbibliques.org/abba-life/" style="display:block;">Continuer avec ABBA Life (checklist, finance, agenda) →</a>${window.AbbaPaiements && !window.AbbaPaiements.complet() ? `<p class="small">${TT("Pour ouvrir la Mise en Action, termine d’abord ton paiement (voir « Mon paiement »).", "To open Taking Action, first complete your payment (see “My payment”).")}</p>` : `<a class="link-btn" href="https://batisseursbibliques.org/abba-mise-en-action/" style="display:block;margin-top:6px;">Commencer la Mise en Action (Phase 2) →</a>`}`;
+  // Le certificat de fin de formation ouvre la Mise en Action : on le lit une seule fois, puis la carte est redessinée
+  if (st.certParcours === undefined && !st.certCharge) {
+    st.certCharge = true;
+    S().getAttestation(st.user.uid, "parcours").then((c) => { st.certParcours = c || null; renderTermine(); }).catch(() => { st.certParcours = null; });
+  }
+  box.innerHTML = `<p class="eyebrow">🎉 Parcours terminé</p><p>Tu as validé tous les modules${last ? " le " + new Date(last).toLocaleDateString(LOC(), { day: "numeric", month: "long", year: "numeric" }) : ""}. Félicitations !</p><p class="small">Tu n’es plus suivi par un correcteur. Tes modules restent ouverts : relis-les et refais les exercices quand tu veux, tes réponses restent privées.</p><a class="link-btn" href="https://batisseursbibliques.org/abba-life/" style="display:block;">Continuer avec ABBA Life (checklist, finance, agenda) →</a>${window.AbbaPaiements && !window.AbbaPaiements.complet() ? `<p class="small">${TT("Pour ouvrir la Mise en Action, termine d’abord ton paiement (voir « Mon paiement »).", "To open Taking Action, first complete your payment (see “My payment”).")}</p>` : (st.certParcours ? `<a class="link-btn" href="https://batisseursbibliques.org/abba-mise-en-action/" style="display:block;margin-top:6px;">Entrer dans la Mise en Action (Phase 2) →</a>` : `<p class="small">${TT("Ton certificat de fin de formation sera délivré par ton coordinateur. La Mise en Action s’ouvrira alors.", "Your completion certificate will be issued by your coordinator. Taking Action will then open.")}</p>`)}`;
+// Le certificat est lu une seule fois, puis la carte est redessinée
 }
 function render() {
   renderTermine();
