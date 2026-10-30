@@ -262,6 +262,18 @@ service cloud.firestore {
       allow delete: if hasDroit('corrections');
     }
 
+    // Confirmations des rencontres par le mentor : écrites UNIQUEMENT par le mentor affecté au bâtisseur.
+    // Le bâtisseur les lit (« confirmée par ton mentor », demandes de correction) mais ne peut jamais les écrire ;
+    // le mentor, lui, ne peut écrire que ici et jamais dans les textes du bâtisseur.
+    match /mea_confirmations/{buid} {
+      allow read: if hasDroit('corrections') || hasDroit('suivi')
+        || (request.auth != null && request.auth.uid == buid)
+        || isMentorOf(buid);
+      allow create, update: if isMentorOf(buid)
+        && request.resource.data.keys().hasOnly(['mois1', 'mois2', 'mois3', 'mois4', 'mois5', 'mois6']);
+      allow delete: if hasDroit('corrections');
+    }
+
     // Numéros de certificat utilisés pour entrer dans la Mise en Action (personnes dont le Parcours s'est fait hors de l'application).
     // Un numéro ne peut être utilisé QU'UNE FOIS : création possible, jamais de remplacement par l'étudiant.
     // statut « valide » : le nom du certificat correspond au compte ; « attente » : le coordinateur national du pays (ou le PPV) doit valider.
