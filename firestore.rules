@@ -88,6 +88,26 @@ service cloud.firestore {
         && request.resource.data.get('mentorNom', null) == (resource == null ? null : resource.data.get('mentorNom', null));
     }
 
+    // Limite de bâtisseurs par mentor (20 par défaut) et compteurs avant / après l'envoi en cours
+    function meaLimite() {
+      return exists(/databases/$(database)/documents/mea_config/limites)
+        ? get(/databases/$(database)/documents/mea_config/limites).data.get('maxParMentor', 20) : 20;
+    }
+    function meaChargeAvant(e) {
+      return exists(/databases/$(database)/documents/mea_charges/$(e))
+        ? get(/databases/$(database)/documents/mea_charges/$(e)).data.get('count', 0) : 0;
+    }
+    function meaChargeApres(e) {
+      return existsAfter(/databases/$(database)/documents/mea_charges/$(e))
+        ? getAfter(/databases/$(database)/documents/mea_charges/$(e)).data.get('count', 0) : 0;
+    }
+    function meaAffectationOk() {
+      let m = request.resource.data.get('mentorEmail', '');
+      let avant = resource == null ? '' : resource.data.get('mentorEmail', '');
+      return m == avant
+        || (meaChargeApres(m) <= meaLimite() && meaChargeApres(m) == meaChargeAvant(m) + 1);
+    }
+
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
       allow read: if hasDroit('suivi') || hasDroit('corrections') || hasDroit('presences') || hasDroit('binomes') || hasDroit('paiements');
@@ -102,7 +122,7 @@ service cloud.firestore {
         // Mise en Action : le PDP et les rencontres sont lisibles par le mentor affecté et par le suivi.
         // Ces deux documents ne contiennent QUE ce que le bâtisseur a choisi de partager.
         // Le document « mea_prive » (blessures, défis non partagés) n'est lisible par personne d'autre que le bâtisseur.
-        allow read: if (doc == "mea_pdp" || doc == "mea_rencontres") && (isMentorOf(uid) || hasDroit('suivi'));
+        allow read: if (doc == "mea_pdp" || doc == "mea_rencontres" || doc == "mea_semaines") && (isMentorOf(uid) || hasDroit('suivi'));
       }
 
       // Données mensuelles (spirituel + bilans + finance), un document par mois AAAA-MM
@@ -249,7 +269,32 @@ service cloud.firestore {
       allow read: if hasDroit('corrections') || hasDroit('suivi')
         || (request.auth != null && request.auth.uid == buid)
         || (isMentor() && resource.data.get('mentorEmail', '') == myEmail());
-      allow write: if hasDroit('corrections');
+      // Une nouvelle affectation n'est acceptée que si, dans le même envoi, le compteur du mentor passe de n à n+1
+      // et reste sous la limite fixée par le coordinateur (maximum absolu : 20).
+      allow create, update: if hasDroit('corrections') && meaAffectationOk();
+      allow delete: if hasDroit('corrections');
+    }
+
+    // Limite de bâtisseurs par mentor : fixée par le coordinateur, jamais au-dessus de 20
+    match /mea_config/{doc} {
+      allow read: if request.auth != null;
+      allow write: if hasDroit('corrections') && doc == 'limites'
+        && request.resource.data.keys().hasOnly(['maxParMentor', 'par', 'updatedAt'])
+        && request.resource.data.maxParMentor is int
+        && request.resource.data.maxParMentor >= 1 && request.resource.data.maxParMentor <= 20;
+    }
+    // Compteur de bâtisseurs par mentor (tenu par le coordinateur dans le même envoi que l'affectation)
+    match /mea_charges/{email} {
+      allow read: if hasDroit('corrections') || hasDroit('suivi') || (request.auth != null && email == myEmail());
+      allow write: if hasDroit('corrections')
+        && request.resource.data.keys().hasOnly(['count', 'updatedAt'])
+        && request.resource.data.count is int && request.resource.data.count >= 0
+        && request.resource.data.count <= meaLimite();
+    }
+    // Historique des affectations (jamais modifié ni supprimé)
+    match /mea_affectations_histo/{id} {
+      allow read: if hasDroit('corrections') || hasDroit('suivi');
+      allow create: if hasDroit('corrections');
     }
 
     // Résumé allégé (notes, victoires, défis PARTAGÉS seulement) : écrit par le bâtisseur, sauf le champ mentor (réservé au coordinateur)
@@ -270,7 +315,7 @@ service cloud.firestore {
         || (request.auth != null && request.auth.uid == buid)
         || isMentorOf(buid);
       allow create, update: if isMentorOf(buid)
-        && request.resource.data.keys().hasOnly(['mois1', 'mois2', 'mois3', 'mois4', 'mois5', 'mois6']);
+        && request.resource.data.keys().hasOnly(['mois1', 'mois2', 'mois3', 'mois4', 'mois5', 'mois6', 'derniereConfirmeeLe']);
       allow delete: if hasDroit('corrections');
     }
 
