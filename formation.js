@@ -630,7 +630,8 @@ function renderExercices(c, p, readonly) {
   const done = exoComplete(c, p);
   const oblig = (c.exercices || []).filter((ex) => !ex.facultatif), nbFac = (c.exercices || []).length - oblig.length;
   const nOk = oblig.filter((ex) => exerciseState(c, ex, p) === "ok").length;
-  let h = `<p class="settings-hint">${nOk}/${oblig.length} exercices faits${nbFac ? ` (+ ${nbFac} facultatif${nbFac > 1 ? "s" : ""})` : ""}. Ouvre un exercice pour le faire, puis touche « Enregistrer ». Tu peux revenir compléter les autres plus tard.</p>`;
+  // Phrase d'origine conservée telle quelle (elle est traduite par lang/en.json) ; l'exercice facultatif est annoncé à part
+  let h = `<p class="settings-hint">${nOk}/${oblig.length} exercices faits. Ouvre un exercice pour le faire, puis touche « Enregistrer ». Tu peux revenir compléter les autres plus tard.</p>${nbFac ? `<p class="settings-hint">${nbFac === 1 ? "+ 1 exercice facultatif" : "+ " + nbFac + " exercices facultatifs"}</p>` : ""}`;
   const pratique = rythmeLibre() ? [] : rythmeExercices(c, st.view.mod, st.suivis);
   if (pratique.length) h += `<p class="settings-hint"><strong>À prévoir :</strong> pour envoyer ta fiche, tes exercices de pratique doivent avoir avancé de moitié au moins. Commence-les dès maintenant pour ne pas perdre de temps :<br>${pratique.map((x) => esc(rythmeLigne(x))).join("<br>")}</p>`;
   (c.exercices || []).forEach((ex, exIdx) => {

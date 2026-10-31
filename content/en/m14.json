@@ -502,6 +502,277 @@
    ]
   },
   {
+   "id": "test_leadership",
+   "titre": "My leadership test (60 statements)",
+   "facultatif": true,
+   "consigne": "For each statement, choose the number that matches your real life, not the life you would like to have.",
+   "intro_html": "<p>This test contains <strong>60 statements</strong>, shown in mixed order. Allow about fifteen minutes. Answer honestly: no one will judge you, this is where the work begins. Once you have given all 60 answers, you will see your score out of 10 for each leadership competency, your level and your <strong>priority area</strong>.</p><p>This test is optional for validating the module, but it matters for what comes next: your score for each competency will be carried into step S8 of your PDP in the Mise en Action program. You can take it again later to measure your progress.</p>",
+   "directIntro": true,
+   "champs": [
+    {
+     "id": "scores",
+     "type": "scores",
+     "melange": true,
+     "titreCourt": "Leadership test",
+     "items": [
+      "I know where I am going in my life and in my project, and I can say it in two sentences.",
+      "I have written down my goals for the year, with dates.",
+      "Before I choose, I ask myself whether it brings me closer to my vision.",
+      "I say no to attractive opportunities that would take me away from my course.",
+      "The people I work with know where we are going.",
+      "I review my course regularly and correct it when I need to.",
+      "I truly listen when someone speaks to me, without preparing my answer while they are talking.",
+      "I say clearly what I expect from others, without leaving them to guess.",
+      "I rephrase what I heard to make sure I understood before I answer.",
+      "I say hard things with respect, and in private when it is a reproach.",
+      "I adapt the way I speak to the person in front of me.",
+      "I keep the people concerned informed without waiting for them to come and ask me.",
+      "Before deciding, I take the time to gather the important information.",
+      "For big decisions, I pray and ask wise people for advice.",
+      "I weigh the consequences in the short term and the long term.",
+      "I decide on time and I do not let the choices that scare me drag on.",
+      "Once a decision is made, I own it, even when it turns out to be a bad one.",
+      "I learn a lesson from my bad decisions and I correct course.",
+      "I share out the work according to each person's strengths.",
+      "I give others real responsibilities instead of doing everything myself.",
+      "I encourage those who do their work well, and I tell them so.",
+      "I follow up on the tasks I have handed out and check that they are moving forward.",
+      "I defend my team members in front of others and I only correct them in private.",
+      "I give others credit for their merit without taking it for myself.",
+      "When there is a conflict, I do not run away: I face the situation calmly.",
+      "I listen to each person before forming an opinion.",
+      "I separate the problem from the person: I deal with the problem without destroying anyone.",
+      "I look for the truth without breaking the peace.",
+      "I correct with kindness, so that the other person can improve.",
+      "I quickly ask forgiveness when I am wrong, and I forgive the one who hurt me.",
+      "I can recognize what I feel: anger, fear, jealousy, sadness.",
+      "I keep control of my words when I am upset.",
+      "I do not make important decisions in the heat of anger.",
+      "I notice when someone is uncomfortable or discouraged, and I care about it.",
+      "I receive criticism without getting defensive and without falling apart.",
+      "I stay calm when things get heated around me.",
+      "I am the same in public and in private.",
+      "I keep my promises, even when it costs me.",
+      "I refuse a dishonest shortcut, even if it would pay well.",
+      "I handle other people's money, or a group's money, with complete transparency.",
+      "I admit my mistakes openly instead of hiding them.",
+      "I do not change what I say depending on who is in front of me.",
+      "I look for new ways to solve the problems around me.",
+      "I notice what is missing or not working in my neighborhood or my work, and I imagine solutions.",
+      "I try small new ideas to see if they work before investing a lot.",
+      "I start with what I already have at hand: skills, equipment, relationships.",
+      "I listen to other people's ideas, even when they challenge my habits.",
+      "I keep on learning: I read, I train, I observe those who succeed.",
+      "After a failure or a disappointment, I get back up rather than give up.",
+      "I hold on even when it is not popular and the criticism comes.",
+      "When everything gets hard, I find my strength in my relationship with God.",
+      "I keep my course despite tiredness and obstacles.",
+      "I take care of my rest, my health and my peace so that I can last over the long term.",
+      "I learn a lesson from my trials and I can help others go through theirs.",
+      "I have at least one more experienced person who walks with me or advises me.",
+      "I accept being corrected by those who walk with me.",
+      "I take time to help a younger or less experienced person grow.",
+      "I share what I have learned instead of keeping it to myself.",
+      "I am preparing someone who could take my place one day.",
+      "I train myself regularly in what I need to learn."
+     ],
+     "echelle": [
+      1,
+      2,
+      3
+     ],
+     "legende": "1 = not me at all · 2 = a little me · 3 = very much me",
+     "sections": [
+      {
+       "de": 1,
+       "titre": "1. Vision and direction"
+      },
+      {
+       "de": 7,
+       "titre": "2. Effective communication"
+      },
+      {
+       "de": 13,
+       "titre": "3. Decision-making"
+      },
+      {
+       "de": 19,
+       "titre": "4. Team management"
+      },
+      {
+       "de": 25,
+       "titre": "5. Conflict resolution"
+      },
+      {
+       "de": 31,
+       "titre": "6. Emotional intelligence"
+      },
+      {
+       "de": 37,
+       "titre": "7. Integrity and ethics"
+      },
+      {
+       "de": 43,
+       "titre": "8. Innovation and creativity"
+      },
+      {
+       "de": 49,
+       "titre": "9. Resilience"
+      },
+      {
+       "de": 55,
+       "titre": "10. Mentoring and training"
+      }
+     ],
+     "groupes": [
+      {
+       "nom": "1. Vision and direction",
+       "items": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+       ]
+      },
+      {
+       "nom": "2. Effective communication",
+       "items": [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+       ]
+      },
+      {
+       "nom": "3. Decision-making",
+       "items": [
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+       ]
+      },
+      {
+       "nom": "4. Team management",
+       "items": [
+        19,
+        20,
+        21,
+        22,
+        23,
+        24
+       ]
+      },
+      {
+       "nom": "5. Conflict resolution",
+       "items": [
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+       ]
+      },
+      {
+       "nom": "6. Emotional intelligence",
+       "items": [
+        31,
+        32,
+        33,
+        34,
+        35,
+        36
+       ]
+      },
+      {
+       "nom": "7. Integrity and ethics",
+       "items": [
+        37,
+        38,
+        39,
+        40,
+        41,
+        42
+       ]
+      },
+      {
+       "nom": "8. Innovation and creativity",
+       "items": [
+        43,
+        44,
+        45,
+        46,
+        47,
+        48
+       ]
+      },
+      {
+       "nom": "9. Resilience",
+       "items": [
+        49,
+        50,
+        51,
+        52,
+        53,
+        54
+       ]
+      },
+      {
+       "nom": "10. Mentoring and training",
+       "items": [
+        55,
+        56,
+        57,
+        58,
+        59,
+        60
+       ]
+      }
+     ],
+     "resultat": "bilan",
+     "noteSur10": true,
+     "priorite": "basse",
+     "prioriteLabel": "Your priority area (the lowest score)",
+     "niveauxGroupe": [
+      [
+       6,
+       "🔴 To build (6 to 9)"
+      ],
+      [
+       10,
+       "🟠 Growing (10 to 14)"
+      ],
+      [
+       15,
+       "🟢 Solid (15 to 18)"
+      ]
+     ],
+     "niveauxTotal": [
+      [
+       60,
+       "🔴 Leader under construction (60 to 100)"
+      ],
+      [
+       101,
+       "🟠 Growing leader (101 to 140)"
+      ],
+      [
+       141,
+       "🟢 Established leader (141 to 180)"
+      ]
+     ],
+     "note": "This test shows where you stand today, not who you will be tomorrow. Choose your lowest competency as your first area of work, and talk about it with your corrector or your mentor."
+    }
+   ]
+  },
+  {
    "id": "idee",
    "titre": "My idea, my diagnosis, and the three-customer test",
    "consigne": "If you have a business idea, do your SWOT diagnosis, see whether you are the right person, and, if you can, test it with three people. Reread the lessons on the entrepreneur’s profile and the market study.",
