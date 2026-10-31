@@ -506,12 +506,12 @@
    "titre": "Mon test de leadership (60 affirmations)",
    "facultatif": true,
    "consigne": "Pour chaque affirmation, choisis le chiffre qui correspond à ta vie réelle, pas à ce que tu voudrais qu'elle soit.",
-   "intro_html": "<p>Ce test couvre les <strong>10 compétences</strong> du leader, avec 6 affirmations pour chacune. Compte une quinzaine de minutes. Réponds honnêtement : personne ne te jugera, c'est ici que le travail commence. À la fin, tu verras ta note sur 10 pour chaque compétence, ton niveau et ton <strong>chantier prioritaire</strong>.</p><p>Ce test est facultatif pour valider le module, mais il compte pour la suite : ta note par compétence sera reprise à l'étape S8 de ton PDP dans la Mise en Action. Tu peux le refaire plus tard pour mesurer ta progression.</p>",
+   "intro_html": "<p>Ce test contient <strong>60 affirmations</strong>, présentées dans le désordre. Compte une quinzaine de minutes. Réponds honnêtement : personne ne te jugera, c'est ici que le travail commence. Une fois les 60 réponses données, tu verras ta note sur 10 pour chaque compétence du leader, ton niveau et ton <strong>chantier prioritaire</strong>.</p><p>Ce test est facultatif pour valider le module, mais il compte pour la suite : ta note par compétence sera reprise à l'étape S8 de ton PDP dans la Mise en Action. Tu peux le refaire plus tard pour mesurer ta progression.</p>",
    "directIntro": true,
    "champs": [
     {
      "id": "scores",
-     "type": "scores",
+     "type": "scores", "melange": true,
      "titreCourt": "Test de leadership",
      "items": [
       "Je sais où je vais dans ma vie et dans mon projet, et je peux le dire en deux phrases.",

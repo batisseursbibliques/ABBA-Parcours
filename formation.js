@@ -207,6 +207,16 @@ function renderSuivi(f, key) {
   }
   return h + "</div></div>";
 }
+// Mélange déterministe (graine = identifiant étudiant + champ) : même ordre à chaque ouverture, ordre différent d'un étudiant à l'autre
+function melangeOrdre(n, graine) {
+  let h = 1779033703 ^ graine.length;
+  for (let i = 0; i < graine.length; i++) { h = Math.imul(h ^ graine.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+  let a = h >>> 0;
+  const rnd = () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const o = Array.from({ length: n }, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; }
+  return o;
+}
 function renderField(f, scope, saved, readonly) {
   if (f.type === "suivi") return renderSuivi(f, f.permanent ? DECL_KEY : suiviKey(st.view.mod, scope.slice(3), f.id));
   if (f.type === "lienZones") return `<div class="fm-suivi"><p class="small"><strong>${zonesChosenCount()}/6</strong> zones avec un exercice choisi pour ${esc(monthLabel(monthKey()))}.</p><button class="btn-secondary" data-act="goto-zones">Choisir mes exercices dans l'onglet Zones de caractère →</button></div>`;
@@ -285,11 +295,14 @@ function renderField(f, scope, saved, readonly) {
     const ans = v || {};
     const done = Object.keys(ans).length;
     let h = `<p class="settings-hint">${done}/${f.items.length} réponses</p>${f.legende ? `<p class="small"><strong>${esc(f.legende)}</strong></p>` : ""}<div class="fm-yn">`;
-    f.items.forEach((it, i) => {
+    // f.melange : affirmations dans un ordre propre à chaque étudiant, sans titres de compétences (le calcul se fait en coulisses)
+    const ordre = f.melange ? melangeOrdre(f.items.length, ((st.user && st.user.uid) || "") + ":" + f.id) : f.items.map((_, i) => i);
+    ordre.forEach((i, pos) => {
+      const it = f.items[i];
       const k = String(i + 1);
-      const sec = (f.sections || []).find((s) => s.de === i + 1);
+      const sec = f.melange ? null : (f.sections || []).find((s) => s.de === i + 1);
       if (sec) h += `<p class="fm-bloc">${esc(sec.titre)}</p>`;
-      h += `<div class="fm-yn-row"><span class="fm-yn-n">${k}</span><span class="fm-yn-q">${esc(it)}<span class="fm-sc">` +
+      h += `<div class="fm-yn-row"><span class="fm-yn-n">${f.melange ? pos + 1 : k}</span><span class="fm-yn-q">${esc(it)}<span class="fm-sc">` +
         (f.echelle || [0, 1, 2, 3]).map((n) => `<label><input type="radio" name="${key}-${k}" data-f="${key}" data-t="sc" data-i="${k}" value="${n}" ${String(ans[k]) === String(n) ? "checked" : ""} ${dis}><b>${n}</b></label>`).join("") + `</span></span></div>`;
     });
     h += "</div>";
