@@ -122,7 +122,7 @@ service cloud.firestore {
         // Mise en Action : le PDP et les rencontres sont lisibles par le mentor affecté et par le suivi.
         // Ces deux documents ne contiennent QUE ce que le bâtisseur a choisi de partager.
         // Le document « mea_prive » (blessures, défis non partagés) n'est lisible par personne d'autre que le bâtisseur.
-        allow read: if (doc == "mea_pdp" || doc == "mea_rencontres" || doc == "mea_semaines") && (isMentorOf(uid) || hasDroit('suivi'));
+        allow read: if (doc == "mea_pdp" || doc == "mea_rencontres" || doc == "mea_semaines" || doc == "mea_services") && (isMentorOf(uid) || hasDroit('suivi'));
         // Suivi économique : lisible UNIQUEMENT par le bâtisseur et son mentor affecté (ni la Trésorière, ni le suivi général)
         allow read: if doc == "mea_economie" && isMentorOf(uid);
       }
@@ -317,8 +317,34 @@ service cloud.firestore {
         || (request.auth != null && request.auth.uid == buid)
         || isMentorOf(buid);
       allow create, update: if isMentorOf(buid)
-        && request.resource.data.keys().hasOnly(['mois1', 'mois2', 'mois3', 'mois4', 'mois5', 'mois6', 'derniereConfirmeeLe', 'economie']);
+        && request.resource.data.keys().hasOnly(['mois1', 'mois2', 'mois3', 'mois4', 'mois5', 'mois6', 'derniereConfirmeeLe', 'economie', 'services', 'jalons']);
       allow delete: if hasDroit('corrections');
+    }
+
+    // Dossier de certification d'un bâtisseur (phase 4) : deux validations, dans cet ordre.
+    //  - « mentor » : écrit par le mentor affecté seulement (valide ou demande des corrections) ; plus modifiable une fois le coordinateur passé ;
+    //  - « coordo » : écrit par le coordinateur national (ou le coordinateur principal) seulement, et seulement après la validation du mentor.
+    // Le bâtisseur lit son dossier mais ne peut jamais l'écrire.
+    match /mea_dossiers/{buid} {
+      allow read: if isAdmin() || (request.auth != null && request.auth.uid == buid) || isMentorOf(buid);
+      allow create: if isMentorOf(buid) && request.resource.data.keys().hasOnly(['mentor']);
+      allow update: if (isMentorOf(buid) && !('coordo' in resource.data)
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['mentor']))
+                    || ((isBootstrapAdmin() || (isAdmin() && adminDocData().get('fonction', '') == 'national'))
+                        && resource.data.get('mentor', {}).get('statut', '') == 'valide'
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['coordo']));
+      allow delete: if hasDroit('corrections');
+    }
+
+    // Certification des Bâtisseurs : la rencontre (cohorte, date, lieu) où les certificats sont remis. Fixée par le coordinateur national ou principal ; lue par tous les comptes connectés.
+    match /mea_certifications/{cid} {
+      allow read: if request.auth != null;
+      allow create, update: if (isBootstrapAdmin() || (isAdmin() && adminDocData().get('fonction', '') == 'national'))
+        && request.resource.data.keys().hasOnly(['nom', 'date', 'lieu', 'par', 'updatedAt'])
+        && request.resource.data.nom is string && request.resource.data.nom.size() >= 1 && request.resource.data.nom.size() <= 100
+        && request.resource.data.date is string && request.resource.data.date.size() == 10
+        && request.resource.data.get('lieu', '') is string && request.resource.data.get('lieu', '').size() <= 150;
+      allow delete: if isBootstrapAdmin() || (isAdmin() && adminDocData().get('fonction', '') == 'national');
     }
 
     // Numéros de certificat utilisés pour entrer dans la Mise en Action (personnes dont le Parcours s'est fait hors de l'application).
