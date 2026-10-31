@@ -123,6 +123,8 @@ service cloud.firestore {
         // Ces deux documents ne contiennent QUE ce que le bâtisseur a choisi de partager.
         // Le document « mea_prive » (blessures, défis non partagés) n'est lisible par personne d'autre que le bâtisseur.
         allow read: if (doc == "mea_pdp" || doc == "mea_rencontres" || doc == "mea_semaines") && (isMentorOf(uid) || hasDroit('suivi'));
+        // Suivi économique : lisible UNIQUEMENT par le bâtisseur et son mentor affecté (ni la Trésorière, ni le suivi général)
+        allow read: if doc == "mea_economie" && isMentorOf(uid);
       }
 
       // Données mensuelles (spirituel + bilans + finance), un document par mois AAAA-MM
@@ -315,7 +317,7 @@ service cloud.firestore {
         || (request.auth != null && request.auth.uid == buid)
         || isMentorOf(buid);
       allow create, update: if isMentorOf(buid)
-        && request.resource.data.keys().hasOnly(['mois1', 'mois2', 'mois3', 'mois4', 'mois5', 'mois6', 'derniereConfirmeeLe']);
+        && request.resource.data.keys().hasOnly(['mois1', 'mois2', 'mois3', 'mois4', 'mois5', 'mois6', 'derniereConfirmeeLe', 'economie']);
       allow delete: if hasDroit('corrections');
     }
 
