@@ -169,7 +169,8 @@ function fieldsComplete(fields, values, prefix) {
   return (fields || []).every((f) => (f.si && !(values && values[f.si.champ] === f.si.val)) || fieldDone(f, values ? values[f.id] : undefined, prefix));
 }
 function exoComplete(c, p) {
-  return (c.exercices || []).every((ex) => fieldsComplete(ex.champs, (p.exercices || {})[ex.id], c.id + "_" + ex.id));
+  // Un exercice « facultatif » (par ex. le test de leadership) ne bloque pas la validation du module
+  return (c.exercices || []).filter((ex) => !ex.facultatif).every((ex) => fieldsComplete(ex.champs, (p.exercices || {})[ex.id], c.id + "_" + ex.id));
 }
 function stepStatus(c, p) {
   const lu = (p.lu || []).length >= (c.lecons || []).length;
@@ -334,13 +335,15 @@ function tbRefresh(el) {
   });
 }
 function lvlOf(tbl, t) { let out = ""; (tbl || []).forEach(([mn, lb]) => { if (t >= mn) out = lb; }); return out; }
+function noteSur10(total, nb, mx) { const mn = nb, top = nb * mx; return Math.max(1, Math.min(10, Math.round((total - mn) / (top - mn) * 9 + 1))); }
 function renderBilanResult(f, ans) {
   const mx = Math.max(...(f.echelle || [1, 2, 3]));
   const rows = (f.groupes || []).map((g) => ({ g, total: g.items.reduce((a, n) => a + Number(ans[String(n)] || 0), 0), max: g.items.length * mx }));
   let h = '<div class="fm-result"><p class="eyebrow">Tes résultats</p>';
   rows.forEach((r) => {
     const lv = lvlOf(f.niveauxGroupe, r.total);
-    h += `<div class="bm-row"><span class="bm-n bm-wide">${esc(r.g.nom)}</span><div class="bm-bar"><i style="width:${Math.round(r.total / r.max * 100)}%"></i></div><b>${r.total}/${r.max}</b></div>${lv ? `<p class="small" style="margin:0 0 8px">${esc(lv)}</p>` : ""}`;
+    const note = f.noteSur10 ? noteSur10(r.total, r.g.items.length, mx) : null;   // note sur 10 : le minimum possible vaut 1, le maximum 10
+    h += `<div class="bm-row"><span class="bm-n bm-wide">${esc(r.g.nom)}</span><div class="bm-bar"><i style="width:${Math.round(r.total / r.max * 100)}%"></i></div><b>${note != null ? note + "/10" : r.total + "/" + r.max}</b></div>${lv ? `<p class="small" style="margin:0 0 8px">${esc(lv)} · ${r.total}/${r.max}</p>` : ""}`;
   });
   if (f.niveauxTotal) {
     const tot = rows.reduce((a, r) => a + r.total, 0), mt = rows.reduce((a, r) => a + r.max, 0);
@@ -612,8 +615,9 @@ function exerciseState(c, ex, p) {
 }
 function renderExercices(c, p, readonly) {
   const done = exoComplete(c, p);
-  const nOk = (c.exercices || []).filter((ex) => exerciseState(c, ex, p) === "ok").length;
-  let h = `<p class="settings-hint">${nOk}/${(c.exercices || []).length} exercices faits. Ouvre un exercice pour le faire, puis touche « Enregistrer ». Tu peux revenir compléter les autres plus tard.</p>`;
+  const oblig = (c.exercices || []).filter((ex) => !ex.facultatif), nbFac = (c.exercices || []).length - oblig.length;
+  const nOk = oblig.filter((ex) => exerciseState(c, ex, p) === "ok").length;
+  let h = `<p class="settings-hint">${nOk}/${oblig.length} exercices faits${nbFac ? ` (+ ${nbFac} facultatif${nbFac > 1 ? "s" : ""})` : ""}. Ouvre un exercice pour le faire, puis touche « Enregistrer ». Tu peux revenir compléter les autres plus tard.</p>`;
   const pratique = rythmeLibre() ? [] : rythmeExercices(c, st.view.mod, st.suivis);
   if (pratique.length) h += `<p class="settings-hint"><strong>À prévoir :</strong> pour envoyer ta fiche, tes exercices de pratique doivent avoir avancé de moitié au moins. Commence-les dès maintenant pour ne pas perdre de temps :<br>${pratique.map((x) => esc(rythmeLigne(x))).join("<br>")}</p>`;
   (c.exercices || []).forEach((ex, exIdx) => {

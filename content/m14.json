@@ -502,6 +502,276 @@
    ]
   },
   {
+   "id": "test_leadership",
+   "titre": "Mon test de leadership (60 affirmations)",
+   "facultatif": true,
+   "consigne": "Pour chaque affirmation, choisis le chiffre qui correspond à ta vie réelle, pas à ce que tu voudrais qu'elle soit.",
+   "intro_html": "<p>Ce test couvre les <strong>10 compétences</strong> du leader, avec 6 affirmations pour chacune. Compte une quinzaine de minutes. Réponds honnêtement : personne ne te jugera, c'est ici que le travail commence. À la fin, tu verras ta note sur 10 pour chaque compétence, ton niveau et ton <strong>chantier prioritaire</strong>.</p><p>Ce test est facultatif pour valider le module, mais il compte pour la suite : ta note par compétence sera reprise à l'étape S8 de ton PDP dans la Mise en Action. Tu peux le refaire plus tard pour mesurer ta progression.</p>",
+   "directIntro": true,
+   "champs": [
+    {
+     "id": "scores",
+     "type": "scores",
+     "titreCourt": "Test de leadership",
+     "items": [
+      "Je sais où je vais dans ma vie et dans mon projet, et je peux le dire en deux phrases.",
+      "J'ai écrit mes objectifs de l'année, avec des dates.",
+      "Avant de choisir, je me demande si cela me rapproche de ma vision.",
+      "Je dis non à des occasions attirantes qui m'éloigneraient de mon cap.",
+      "Les personnes avec qui je travaille savent où nous allons.",
+      "Je revois mon cap régulièrement et je le corrige quand il le faut.",
+      "J'écoute vraiment quand quelqu'un me parle, sans préparer ma réponse pendant qu'il parle.",
+      "Je dis clairement ce que j'attends des autres, sans les laisser deviner.",
+      "Je reformule pour m'assurer d'avoir bien compris avant de répondre.",
+      "Je dis les choses difficiles avec respect, et en privé quand il s'agit d'un reproche.",
+      "J'adapte ma façon de parler à la personne que j'ai en face de moi.",
+      "Je tiens informées les personnes concernées sans attendre qu'elles viennent me demander.",
+      "Avant de décider, je prends le temps de réunir les informations importantes.",
+      "Pour les grandes décisions, je prie et je demande conseil à des personnes sages.",
+      "Je pèse les conséquences à court terme et à long terme.",
+      "Je décide à temps et je ne laisse pas traîner les choix qui me font peur.",
+      "Une fois la décision prise, je l'assume, même quand elle se révèle mauvaise.",
+      "Je tire une leçon de mes mauvaises décisions et je corrige.",
+      "Je répartis le travail selon les forces de chacun.",
+      "Je confie de vraies responsabilités aux autres au lieu de tout faire moi-même.",
+      "J'encourage ceux qui font bien leur travail, et je le leur dis.",
+      "Je suis les tâches confiées et je vérifie qu'elles avancent.",
+      "Je défends mes collaborateurs devant les autres et je ne les corrige qu'en privé.",
+      "Je reconnais le mérite des autres sans me l'attribuer.",
+      "Face à un conflit, je ne fuis pas : j'affronte la situation avec calme.",
+      "J'écoute chacune des personnes avant de me faire une opinion.",
+      "Je sépare le problème de la personne : je règle le problème sans détruire quelqu'un.",
+      "Je cherche la vérité sans casser la paix.",
+      "Je corrige avec bienveillance, pour que l'autre puisse s'améliorer.",
+      "Je demande pardon vite quand j'ai tort, et je pardonne à celui qui m'a blessé.",
+      "Je sais reconnaître ce que je ressens : colère, peur, jalousie, tristesse.",
+      "Je garde le contrôle de mes paroles quand je suis contrarié.",
+      "Je ne prends pas de décision importante sous le coup de la colère.",
+      "Je remarque quand quelqu'un est mal à l'aise ou découragé, et je m'en préoccupe.",
+      "Je reçois une critique sans me braquer et sans m'effondrer.",
+      "Je garde mon calme quand « ça chauffe » autour de moi.",
+      "Je suis le même en public et en privé.",
+      "Je tiens mes promesses, même quand cela me coûte.",
+      "Je refuse un raccourci malhonnête, même s'il rapporterait gros.",
+      "Je gère l'argent des autres, ou celui d'un groupe, avec une transparence totale.",
+      "Je reconnais mes erreurs ouvertement au lieu de les cacher.",
+      "Je ne change pas de discours selon la personne qui est en face de moi.",
+      "Je cherche de nouvelles façons de résoudre les problèmes autour de moi.",
+      "Je remarque ce qui manque ou ce qui ne marche pas dans mon quartier ou mon travail, et j'imagine des solutions.",
+      "J'essaie de petites idées nouvelles pour voir si elles marchent, avant d'investir beaucoup.",
+      "Je commence par ce que j'ai déjà sous la main : savoir-faire, matériel, relations.",
+      "J'écoute les idées des autres, même quand elles bousculent mes habitudes.",
+      "Je continue d'apprendre : je lis, je me forme, j'observe ceux qui réussissent.",
+      "Après un échec ou une déception, je me relève plutôt que d'abandonner.",
+      "Je tiens bon même quand ce n'est pas populaire et que les critiques arrivent.",
+      "Quand tout devient difficile, je trouve ma force dans ma relation avec Dieu.",
+      "Je garde mon cap malgré la fatigue et les obstacles.",
+      "Je prends soin de mon repos, de ma santé et de ma paix pour tenir dans la durée.",
+      "Je tire une leçon de mes épreuves et je peux aider d'autres à traverser les leurs.",
+      "J'ai au moins une personne plus expérimentée qui m'accompagne ou me conseille.",
+      "J'accepte d'être repris et corrigé par ceux qui m'accompagnent.",
+      "Je prends du temps pour aider une personne plus jeune ou moins expérimentée à grandir.",
+      "Je partage ce que j'ai appris au lieu de le garder pour moi.",
+      "Je prépare quelqu'un à pouvoir me remplacer un jour.",
+      "Je me forme régulièrement sur ce que j'ai besoin d'apprendre."
+     ],
+     "echelle": [
+      1,
+      2,
+      3
+     ],
+     "legende": "1 = pas du tout moi · 2 = un peu moi · 3 = tout à fait moi",
+     "sections": [
+      {
+       "de": 1,
+       "titre": "1. Vision et direction"
+      },
+      {
+       "de": 7,
+       "titre": "2. Communication efficace"
+      },
+      {
+       "de": 13,
+       "titre": "3. Prise de décision"
+      },
+      {
+       "de": 19,
+       "titre": "4. Gestion d'équipe"
+      },
+      {
+       "de": 25,
+       "titre": "5. Résolution de conflits"
+      },
+      {
+       "de": 31,
+       "titre": "6. Intelligence émotionnelle"
+      },
+      {
+       "de": 37,
+       "titre": "7. Intégrité et éthique"
+      },
+      {
+       "de": 43,
+       "titre": "8. Innovation et créativité"
+      },
+      {
+       "de": 49,
+       "titre": "9. Résilience"
+      },
+      {
+       "de": 55,
+       "titre": "10. Mentorat et formation"
+      }
+     ],
+     "groupes": [
+      {
+       "nom": "1. Vision et direction",
+       "items": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+       ]
+      },
+      {
+       "nom": "2. Communication efficace",
+       "items": [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+       ]
+      },
+      {
+       "nom": "3. Prise de décision",
+       "items": [
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+       ]
+      },
+      {
+       "nom": "4. Gestion d'équipe",
+       "items": [
+        19,
+        20,
+        21,
+        22,
+        23,
+        24
+       ]
+      },
+      {
+       "nom": "5. Résolution de conflits",
+       "items": [
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+       ]
+      },
+      {
+       "nom": "6. Intelligence émotionnelle",
+       "items": [
+        31,
+        32,
+        33,
+        34,
+        35,
+        36
+       ]
+      },
+      {
+       "nom": "7. Intégrité et éthique",
+       "items": [
+        37,
+        38,
+        39,
+        40,
+        41,
+        42
+       ]
+      },
+      {
+       "nom": "8. Innovation et créativité",
+       "items": [
+        43,
+        44,
+        45,
+        46,
+        47,
+        48
+       ]
+      },
+      {
+       "nom": "9. Résilience",
+       "items": [
+        49,
+        50,
+        51,
+        52,
+        53,
+        54
+       ]
+      },
+      {
+       "nom": "10. Mentorat et formation",
+       "items": [
+        55,
+        56,
+        57,
+        58,
+        59,
+        60
+       ]
+      }
+     ],
+     "resultat": "bilan",
+     "noteSur10": true,
+     "priorite": "basse",
+     "prioriteLabel": "Ton chantier prioritaire (la note la plus basse)",
+     "niveauxGroupe": [
+      [
+       6,
+       "🔴 À bâtir (6 à 9)"
+      ],
+      [
+       10,
+       "🟠 En progression (10 à 14)"
+      ],
+      [
+       15,
+       "🟢 Solide (15 à 18)"
+      ]
+     ],
+     "niveauxTotal": [
+      [
+       60,
+       "🔴 Leader en construction (60 à 100)"
+      ],
+      [
+       101,
+       "🟠 Leader en progression (101 à 140)"
+      ],
+      [
+       141,
+       "🟢 Leader affermi (141 à 180)"
+      ]
+     ],
+     "note": "Ce test montre où tu en es aujourd'hui, pas qui tu seras demain. Choisis ta compétence la plus basse comme premier chantier, et parles-en avec ton correcteur ou ton mentor."
+    }
+   ]
+  },
+  {
    "id": "idee",
    "titre": "Mon idée, mon diagnostic et le test des trois clients",
    "consigne": "Si tu as une idée d’entreprise, fais ton diagnostic SWOT, vois si tu es la bonne personne et, si tu le peux, teste-la auprès de trois personnes. Relis les leçons sur le profil de l’entrepreneur et l’étude de marché.",
