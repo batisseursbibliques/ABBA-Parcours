@@ -1,10 +1,9 @@
 name: Envoyer les rappels quotidiens
 
-# Toutes les 10 minutes, envoie la notification « C'est l'heure de ta journée » aux personnes
+# DÉSACTIVÉ (novembre 2026) : le rappel « ma journée » est supprimé ; les rappels de prière sont dans ABBA Bâtisseur.
+# (ancien fonctionnement : toutes les 10 minutes, envoie la notification « C'est l'heure de ta journée » aux personnes
 # dont l'heure de rappel est arrivée (réglée dans Réglages > Mon profil). Gratuit (dépôt public).
 on:
-  schedule:
-    - cron: "*/10 * * * *"
   workflow_dispatch:
     inputs:
       simulation:

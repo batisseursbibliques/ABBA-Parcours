@@ -33,6 +33,7 @@ const lnPlugin = () => {
 const lnDisponible = () => { try { const C = window.Capacitor; return !!(C && (C.isPluginAvailable ? C.isPluginAvailable("LocalNotifications") : true) && lnPlugin()); } catch (e) { return false; } };
 // retourne { etat } : "ok" | "off" | "bloque" | "mise-a-jour" | "erreur"
 async function programmerRappelNatif(actif, heure, demander) {
+  actif = false;   // le rappel « ma journée » de 20 h est supprimé : les rappels de prière sont dans ABBA Bâtisseur
   if (!lnDisponible()) return { etat: "mise-a-jour" };         // ancienne version de l'APK, sans le plugin
   const ln = lnPlugin();
   try {
@@ -104,10 +105,6 @@ function formSections() {
       <label class="field"><span>${T("Nom", "Name")}</span><input type="text" id="pf-urg-nom" value="${esc(c.urgenceNom || "")}"></label>
       <label class="field"><span>${T("Lien avec toi (conjoint, parent, frère, ami…)", "Relationship (spouse, parent, brother, friend…)")}</span><input type="text" id="pf-urg-lien" value="${esc(c.urgenceLien || "")}"></label>
       <label class="field"><span>${T("Téléphone", "Phone")}</span><input type="tel" id="pf-urg-tel" value="${esc(c.urgenceTel || "")}"></label>`],
-    ["rappel", T("Rappel quotidien", "Daily reminder"), `
-      <label class="fm-check"><input type="checkbox" id="pf-rappel-on"${c.rappelActif ? " checked" : ""}><span>${T("Me rappeler de faire ma journée", "Remind me to do my day")}</span></label>
-      <label class="field"><span>${T("Heure du rappel", "Reminder time")}</span><input type="time" id="pf-rappel-heure" value="${esc(c.heureRappel || "20:00")}"></label>
-      <p class="settings-hint">${T("Tu recevras une notification à cette heure, même quand l'application est fermée (sur iPhone, ajoute d'abord l'application à l'écran d'accueil). Si les notifications ne sont pas possibles, le rappel s'affiche quand l'application est ouverte.", "You will receive a notification at this time, even when the app is closed (on iPhone, first add the app to your home screen). If notifications are not possible, the reminder is shown when the app is open.")}</p>`],
   ];
 }
 
@@ -124,7 +121,6 @@ function vueSections() {
     ["adresse", T("Où habites-tu ?", "Where do you live?"), ligneVue(T("Adresse", "Address"), adresse) + ligneVue(T("Précisions", "Details"), c.complement || "")],
     ["contact", T("Comment te joindre", "How to reach you"), ligneVue(T("Canal préféré", "Preferred channel"), canaux[c.canal] || "") + ligneVue(T("Meilleur moment", "Best time"), moments[c.moment || ""] || "") + ligneVue(T("Église", "Church"), c.eglise || "")],
     ["urgence", T("Contact d'urgence", "Emergency contact"), ligneVue(T("Nom", "Name"), [c.urgenceNom, c.urgenceLien && "(" + c.urgenceLien + ")"].filter(Boolean).join(" ")) + ligneVue(T("Téléphone", "Phone"), c.urgenceTel || "")],
-    ["rappel", T("Rappel quotidien", "Daily reminder"), ligneVue(T("Rappel", "Reminder"), c.rappelActif ? T("Activé à ", "On at ") + (c.heureRappel || "20:00") : T("Désactivé", "Off"))],
   ];
 }
 
@@ -266,7 +262,7 @@ async function enregistrer() {
     pays, paysNom, quartier: v("pf-quartier"), complement: v("pf-complement"),
     canal: v("pf-canal"), moment: v("pf-moment"), eglise: v("pf-eglise"),
     urgenceNom: v("pf-urg-nom"), urgenceLien: v("pf-urg-lien"), urgenceTel: v("pf-urg-tel"),
-    rappelActif: $("pf-rappel-on").checked, heureRappel: v("pf-rappel-heure") || "20:00",
+    rappelActif: false, heureRappel: "20:00",
   };
   if (pays === "BJ") {
     contact.departement = v("pf-dep"); contact.commune = v("pf-com");
@@ -293,7 +289,7 @@ async function enregistrer() {
       const natif = estNatif();
       const rp = natif
         ? await programmerRappelNatif(contact.rappelActif, contact.heureRappel, true)
-        : await S().registerPush(P.user.uid, { actif: contact.rappelActif, heure: contact.heureRappel, langue: EN() ? "en" : "fr", demander: true });
+        : await S().registerPush(P.user.uid, { actif: false, heure: contact.heureRappel, langue: EN() ? "en" : "fr", demander: false });
       if (natif) { try { await S().registerPush(P.user.uid, { actif: false }); } catch (e) {} }   // pas de push serveur en double
       P.pushOk = rp.etat === "ok";
       if (contact.rappelActif) {
@@ -444,6 +440,7 @@ function majBandeau() {
 
 /* ----- Rappel quotidien : affiché quand l'application est ouverte ----- */
 async function verifierRappel() {
+  return;   // rappel « ma journée » supprimé
   if (!P.user || P.pushOk) return;
   let c = P.contact;
   if (!c || c.__vide) return;
@@ -476,7 +473,7 @@ const surConnexion = async (u) => {
     if (estNatif()) {
       const rp = await programmerRappelNatif(!!(P.contact && P.contact.rappelActif), P.contact && P.contact.heureRappel, false);
       P.pushOk = rp.etat === "ok";
-    } else if (P.contact && P.contact.rappelActif && S().registerPush) {
+    } else if (false) {
       const rp = await S().registerPush(P.user.uid, { actif: true, heure: P.contact.heureRappel, langue: EN() ? "en" : "fr", demander: false });
       P.pushOk = rp.etat === "ok";
     }
