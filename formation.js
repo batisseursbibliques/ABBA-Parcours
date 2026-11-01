@@ -488,6 +488,23 @@ function renderTermine() {
   box.innerHTML = `<p class="eyebrow">🎉 Parcours terminé</p><p>Tu as validé tous les modules${last ? " le " + new Date(last).toLocaleDateString(LOC(), { day: "numeric", month: "long", year: "numeric" }) : ""}. Félicitations !</p><p class="small">Tu n’es plus suivi par un correcteur. Tes modules restent ouverts : relis-les et refais les exercices quand tu veux, tes réponses restent privées.</p><a class="link-btn" href="https://batisseursbibliques.org/abba-life/" style="display:block;">Continuer avec ABBA Life (checklist, finance, agenda) →</a>${window.AbbaPaiements && !window.AbbaPaiements.complet() ? `<p class="small">${TT("Pour ouvrir la Mise en Action, termine d’abord ton paiement (voir « Mon paiement »).", "To open Taking Action, first complete your payment (see “My payment”).")}</p>` : (st.certParcours ? `<a class="link-btn" href="https://batisseursbibliques.org/abba-mise-en-action/" style="display:block;margin-top:6px;">Entrer dans la Mise en Action (Phase 2) →</a>` : `<p class="small">${TT("Ton certificat de fin de formation sera délivré par ton coordinateur. La Mise en Action s’ouvrira alors.", "Your completion certificate will be issued by your coordinator. Taking Action will then open.")}</p>`)}`;
 // Le certificat est lu une seule fois, puis la carte est redessinée
 }
+/* Lien direct depuis la Mise en Action : …/ABBA-Parcours/#module=m5 ouvre ce module, si la personne y a accès
+   (module ouvert, paiement fait). Sinon elle reste sur la liste de ses modules. */
+function ouvrirModuleDepuisLien() {
+  const m = (location.hash.match(/^#module=(m\d+b?)$/) || [])[1];
+  if (!m || !st.user || st.view.mod || st.lienModuleFait) return;
+  if (!st.lienOngletFait) {
+    st.lienOngletFait = true;
+    const tab = document.querySelector('.tab[data-tab="parcours"]');
+    if (tab) tab.click();
+  }
+  const b = document.querySelector('#formationRoot .fm-mod[data-m="' + m + '"]');
+  if (!b) return;                       // la liste n'est pas encore affichée : on réessaiera à l'affichage suivant
+  st.lienModuleFait = true;
+  try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+  if (b.dataset.act === "open") b.click();
+}
+
 function render() {
   renderTermine();
   renderLectureJour();
@@ -512,6 +529,7 @@ function render() {
   if (st.msg) { const m = root.querySelector(".fm-msg"); if (m) setTimeout(() => { st.msg = ""; if (m.parentNode) m.remove(); }, 4000); }
   if (st.view.mod && !st.content[st.view.mod]) loadContent(st.view.mod).then(render);
   if (st.focus) { const el = document.getElementById("ex-" + st.focus); if (el) { st.focus = null; setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 60); } }
+  ouvrirModuleDepuisLien();
   if (st.corr.open && st.corr.rows == null && !st.corr.loading) loadCorrections();
   if (st.adm.open && !st.adm.loaded) loadAdmin();
 }
