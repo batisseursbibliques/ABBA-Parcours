@@ -261,6 +261,20 @@ window.addEventListener("abba:profil-modifie", async (e) => {
     pushModulesSummary();
   } catch (err) { console.error("profil-modifie:", err); }
 });
+/* Connexion unique : sans compte connecté, on envoie vers l'accueil ABBA Bâtisseur (retour automatique ensuite).
+   Garde-fou : une seule redirection par minute ; si on revient sans être connecté, l'écran de connexion local s'affiche. */
+function allerALAccueil(extra) {
+  try {
+    const t = Number(sessionStorage.getItem("abba_redir") || 0);
+    if (t && Date.now() - t < 60000) return false;
+    sessionStorage.setItem("abba_redir", String(Date.now()));
+  } catch (e) { return false; }
+  const retour = location.pathname + location.search;
+  location.replace("/abba-batisseur/?" + (extra || ("retour=" + encodeURIComponent(retour))));
+  return true;
+}
+function accueilConnecte() { try { sessionStorage.removeItem("abba_redir"); } catch (e) {} }
+
 async function onAuthChanged(user) {
   if (unsubAdmins) { unsubAdmins(); unsubAdmins = null; }
   if (unsubModulesConfig) { unsubModulesConfig(); unsubModulesConfig = null; }
@@ -284,24 +298,22 @@ async function onAuthChanged(user) {
     MY_DIMENSIONS = {};
     SEANCES = [];
     MY_PROFIL = {};
+    if (allerALAccueil()) return;
     document.getElementById("authScreen").style.display = "flex";
     document.getElementById("app").style.display = "none";
     return;
   }
 
   CURRENT_USER = user;
+  accueilConnecte();
 
   // ── Enrollment : vérifier l'accès (sauf pour les admins) ───
   if (!window.AbbaSync.isAdminEmail(user.email)) {
-    let profile = {};
-    try { profile = await window.AbbaSync.getUserProfile(user.uid) || {}; } catch (e) {}
     const enrollment = await window.AbbaSync.getMyEnrollment(user.uid, "parcours");
     if (!enrollment) {
-      await window.AbbaSync.requestEnrollment(
-        user.uid, "parcours",
-        profile.nom || "", profile.prenom || "", user.email
-      );
-      showEnrollmentScreen("pending"); return;
+      // Aucune demande : la demande se fait volontairement depuis l'accueil (téléphone, naissance, tuteur…), jamais automatiquement ici
+      if (allerALAccueil("demande=formation")) return;
+      showEnrollmentScreen("aucune"); return;
     }
     if (enrollment.status === "pending") { showEnrollmentScreen("pending"); return; }
     if (enrollment.status === "refused") { showEnrollmentScreen("refused"); return; }
@@ -1761,6 +1773,8 @@ function showEnrollmentScreen(status) {
   const msgs = {
     pending: { icone: "⏳", titre: "Accès en attente",
       texte: "Ta demande d'accès au Parcours Bâtisseur a bien été enregistrée. Le coordinateur doit la valider avant que tu puisses entrer." },
+    aucune: { icone: "📝", titre: "Demande d'accès à la Formation",
+      texte: "La Formation s'ouvre sur demande. Fais ta demande depuis l'accueil ABBA Bâtisseur : un coordinateur l'examinera." },
     refused: { icone: "❌", titre: "Accès refusé",
       texte: "Le coordinateur n'a pas validé ton accès. Contacte-le directement pour plus d'informations." },
   };
@@ -1768,6 +1782,16 @@ function showEnrollmentScreen(status) {
   document.getElementById("enrollmentIcon").textContent  = m.icone;
   document.getElementById("enrollmentTitle").textContent = m.titre;
   document.getElementById("enrollmentText").textContent  = m.texte;
+  let lien = document.getElementById("enrollmentAccueil");
+  if (status === "aucune") {
+    if (!lien) {
+      lien = document.createElement("a");
+      lien.id = "enrollmentAccueil"; lien.className = "btn-primary";
+      lien.style.cssText = "display:block;margin-top:16px;text-align:center;text-decoration:none;";
+      lien.href = "/abba-batisseur/?demande=formation"; lien.textContent = "Aller à l'accueil";
+      document.getElementById("enrollmentText").after(lien);
+    }
+  } else if (lien) lien.remove();
 }
 
 let ALL_ENROLLMENTS = [];

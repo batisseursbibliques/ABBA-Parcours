@@ -88,17 +88,7 @@ async function signUp(d) {
         updatedAt: serverTimestamp(),
       }, { merge: true });
     } catch (e) { console.error("signUp contact:", e); }
-    try {
-      // Demande d'accès au Parcours, avec ce dont le coordinateur a besoin pour décider
-      await setDoc(doc(db, "enrollments", uid + "_parcours"), {
-        uid, app: "parcours", nom: full, prenom: "", email,
-        telephone: (d.telephone || "").trim(), naissance: d.naissance || "", mineur,
-        tuteurNom: mineur ? (d.tuteurNom || "").trim() : "", tuteurTel: mineur ? (d.tuteurTel || "").trim() : "",
-        autorisationParentale: mineur ? true : false,
-        via: "inscription-parcours",
-        status: "pending", requestedAt: serverTimestamp(), reviewedBy: null, reviewedAt: null,
-      });
-    } catch (e) { console.error("signUp enrollment:", e); }
+    // Pas de demande d'accès créée ici : elle se fait volontairement depuis l'accueil ABBA Bâtisseur.
     return cred.user;
   })();
   pendingSignUp = run;
