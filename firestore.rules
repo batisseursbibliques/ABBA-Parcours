@@ -82,6 +82,18 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/mea_assignments/$(uid))
         && get(/databases/$(database)/documents/mea_assignments/$(uid)).data.get('mentorEmail', '') == request.auth.token.email.lower();
     }
+    // Plan de travail du projet personnel (mea_plan) : une fois le plan validé par le mentor (mea_confirmations.planValide.statut == 'valide'),
+    // le bâtisseur ne peut plus changer ses actions (ajouter, modifier, supprimer) : seul le champ « faits » (je l'ai fait + note) reste modifiable.
+    // Le mentor peut rouvrir le plan (planValide.statut == 'modifier'), ce qui le déverrouille.
+    function meaPlanVerrouille(buid) {
+      return exists(/databases/$(database)/documents/mea_confirmations/$(buid))
+        && get(/databases/$(database)/documents/mea_confirmations/$(buid)).data.get('planValide', {}).get('statut', '') == 'valide';
+    }
+    function meaPlanModifiable(buid) {
+      return !meaPlanVerrouille(buid)
+        || (resource != null && request.resource != null
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['faits', 'updatedAt']));
+    }
     // Dans le résumé d'un bâtisseur, le mentor affecté ne peut être changé que par le coordinateur (droit « corrections »)
     function meaMentorInchange() {
       return request.resource.data.get('mentorEmail', null) == (resource == null ? null : resource.data.get('mentorEmail', null))
@@ -113,7 +125,8 @@ service cloud.firestore {
       allow read: if hasDroit('suivi') || hasDroit('corrections') || hasDroit('presences') || hasDroit('binomes') || hasDroit('paiements');
 
       match /priv/{doc} {
-        allow read, write: if request.auth != null && request.auth.uid == uid;
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if request.auth != null && request.auth.uid == uid && (doc != "mea_plan" || meaPlanModifiable(uid));
         // Le coordinateur a besoin d'écrire ce repère précis quand il relie deux Bâtisseurs —
         // il ne touche à rien d'autre dans l'espace privé de la personne.
         allow write: if hasDroit('binomes') && doc == "binome";
