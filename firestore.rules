@@ -140,7 +140,8 @@ service cloud.firestore {
 
     match /config/{doc} {
       allow read: if request.auth != null && doc != 'solidarite';
-      allow write: if isAdmin() && doc != 'paiement' && doc != 'solidarite';
+      // La checklist spirituelle de Life ne se modifie que par le coordinateur principal (PPV)
+      allow write: if isAdmin() && doc != 'paiement' && doc != 'solidarite' && (doc != 'checklist' || isBootstrapAdmin());
     }
     // Fonds de solidarité (solde) : réservé au coordinateur principal et à la trésorière
     match /config/solidarite {
