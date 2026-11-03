@@ -809,7 +809,18 @@ const ajoutes = {
   reviewFiche: L(reviewFiche, "fiche_revue", (uid, mid, status) => [uid, mid + " : " + status]),
 };
 
+/* ---------- Versions de la Bible réservées (visibles aux Bâtisseurs seulement quand le PPV l'a décidé dans Gestion) ---------- */
+async function loadBibleMetas() {
+  const s = await getDocs(collection(db, "bibles_meta"));
+  return s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => String(a.nom).localeCompare(String(b.nom)));
+}
+async function loadBibleLivre(cle) {
+  const s = await getDoc(doc(db, "bibles_protegees", cle));
+  return s.exists() ? s.data() : null;
+}
+
 window.AbbaSync = {
+  loadBibleMetas, loadBibleLivre,
   isAdminEmail,
   logIn, logOut, signUp, resetPassword, watchAuth, getUserProfile,
   registerPush, pushSupported, getContact, saveProfil, changePassword, exportMyData, requestDeletion, getDeletionRequest, cancelDeletionRequest, loadDeletionRequests,
