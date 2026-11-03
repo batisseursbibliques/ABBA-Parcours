@@ -31,16 +31,9 @@ export function initReseau({ attendreEcritures, estHorsLigne, langue, doc }) {
   const d = doc || document;
   let barre = null, horsLigne = estHorsLigne(), enAttente = false, vientDeSynchroniser = false, minuteurOk = null, sonde = null;
 
+  // Silencieux : on n'affiche plus de bandeau. Firestore garde les modifications sur le téléphone et les envoie seul au retour du réseau.
   function dessiner() {
-    const e = etatAffiche({ horsLigne, enAttente, vientDeSynchroniser });
-    if (!e) { if (barre) { barre.remove(); barre = null; d.body.classList.remove("reseau-actif"); } return; }
-    if (!barre) {
-      barre = d.createElement("div"); barre.className = "reseau-bar"; barre.setAttribute("role", "status"); barre.setAttribute("aria-live", "polite");
-      d.body.insertBefore(barre, d.body.firstChild); d.body.classList.add("reseau-actif");
-    }
-    barre.dataset.niveau = e.niveau;
-    barre.textContent = (TEXTES[langue() === "en" ? "en" : "fr"])[e.cle];
-    d.body.style.setProperty("--reseau-h", barre.offsetHeight + "px");
+    if (barre) { barre.remove(); barre = null; d.body.classList.remove("reseau-actif"); }
   }
   function terminerOk() {
     vientDeSynchroniser = true; dessiner();
