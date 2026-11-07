@@ -1826,7 +1826,7 @@ const JOURNAL_LIBELLES = {
   compte_paiement_active: "Compte de paiement activé", tarif_modifie: "Tarif modifié", instructions_paiement_modifiees: "Instructions de paiement modifiées",
   don_confirme: "Don confirmé", don_refuse: "Don refusé", solidarite_affectee: "Solidarité affectée", correcteur_ajoute: "Correcteur ajouté",
   correcteur_retire: "Correcteur retiré", lien_correcteur_pose: "Correcteur attribué", lien_correcteur_retire: "Correcteur retiré d'un élève",
-  acquis_modifies: "Acquis modifiés", suivi_force: "Suivi forcé", fiche_revue: "Fiche corrigée", compte_supprime: "Compte supprimé (programme de suppression)", certificat_delivre: "Certificat de fin de formation délivré", certificat_manuel_delivre: "Certificat délivré à la main (sans compte)", certificat_revoque: "Certificat annulé",
+  acquis_modifies: "Acquis modifiés", parcours_libre: "Parcours libre modifié", suivi_force: "Suivi forcé", fiche_revue: "Fiche corrigée", compte_supprime: "Compte supprimé (programme de suppression)", certificat_delivre: "Certificat de fin de formation délivré", certificat_manuel_delivre: "Certificat délivré à la main (sans compte)", certificat_revoque: "Certificat annulé",
 };
 async function renderJournal() {
   const box = document.getElementById("journalBox"); if (!box) return;

@@ -667,6 +667,10 @@ function watchFormationMeta(uid, callback) {
     callback(snap.exists() ? snap.data() : {});
   }, (err) => { console.error("watchFormationMeta:", err); callback({}); });
 }
+// Parcours libre : l'élève n'est plus retenu par les exercices de plusieurs jours (réservé aux coordinateurs ayant le droit « suivi »)
+async function setRythmeLibre(uid, actif) {
+  await setDoc(doc(db, "formation", uid), { rythmeLibre: !!actif, updatedAt: serverTimestamp() }, { merge: true });
+}
 async function setAcquis(uid, acquis, extra) {
   await setDoc(doc(db, "formation", uid), { acquis, ...(extra || {}), updatedAt: serverTimestamp() }, { merge: true });
 }
@@ -805,6 +809,7 @@ const ajoutes = {
   setLien: L(setLien, "lien_correcteur_pose", (uid, data) => [uid, (data && data.correcteurEmail) || ""]),
   deleteLien: L(deleteLien, "lien_correcteur_retire", (uid) => [uid]),
   setAcquis: L(setAcquis, "acquis_modifies", (uid) => [uid]),
+  setRythmeLibre: L(setRythmeLibre, "parcours_libre", (uid, actif) => [uid, actif ? "Parcours libre accordé" : "Parcours libre retiré"]),
   setSuiviForce: L(setSuiviForce, "suivi_force", (uid, actif) => [uid, String(actif)]),
   reviewFiche: L(reviewFiche, "fiche_revue", (uid, mid, status) => [uid, mid + " : " + status]),
 };

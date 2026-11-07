@@ -51,6 +51,7 @@ const st = {
   cache: {}, msg: "",
   corr: { open: false, rows: null, loading: false },
   adm: { open: false, correcteurs: [], liens: [], students: [], loaded: false },
+  libre: { open: false, q: "", f: "tous", sel: new Set() },
   qcmDraft: {},
 };
 let unsubs = [];
@@ -61,7 +62,7 @@ function stop() {
   unsubs.forEach((f) => { try { f && f(); } catch (e) {} });
   unsubs = [];
   if (st.adm && st.adm.unsub) { try { st.adm.unsub(); } catch (e) {} }
-  st.adm = { open: false, correcteurs: [], liens: [], students: [], loaded: false };
+  st.adm = { open: false, correcteurs: [], liens: [], students: [], loaded: false }; st.libre = { open: false, q: "", f: "tous", sel: new Set() };
   st.user = null; st.meta = {}; st.prog = {}; st.suivis = {}; st.indispos = {}; st.indForm = false; st.rev = {}; st.rights = {}; st.zp.plan = {}; st.binome = { pair: null, last: "" }; st.loaded = { prog: false, meta: false }; st.parcours = []; st.lien = null;
   st.isAdmin = false; st.isCorrecteur = false; st.view = { mod: null, step: "lecture" };
   render(); renderIndispo();
@@ -155,7 +156,7 @@ function getVal(scope, fid, saved) {
 }
 function fieldDone(f, v, prefix) {
   if (f.type === "lienZones") return zonesEverComplete();
-  if (f.type === "suivi") return !!st.suivis[f.permanent ? DECL_KEY : `${prefix}_${f.id}`];
+  if (f.type === "suivi") return (rythmeLibre() && !f.permanent) || !!st.suivis[f.permanent ? DECL_KEY : `${prefix}_${f.id}`];
   if (f.type === "tableau") return f.required ? Object.values(v || {}).filter((x) => String(x == null ? "" : x).trim()).length >= (f.min || 1) : true;
   if (f.type === "cases") return f.required ? Object.values(v || {}).some(Boolean) : true;
   if (f.type === "check") return f.optional ? true : v === true;
@@ -524,6 +525,7 @@ function render() {
   else h += renderModuleList();
   if (st.isCorrecteur || can("corrections")) h += renderCorrCard();
   if (can("corrections")) h += renderAdminCard();
+  if (can("suivi")) h += renderLibreCard();
   root.innerHTML = h;
   ttsRestore();
   if (st.msg) { const m = root.querySelector(".fm-msg"); if (m) setTimeout(() => { st.msg = ""; if (m.parentNode) m.remove(); }, 4000); }
@@ -531,7 +533,7 @@ function render() {
   if (st.focus) { const el = document.getElementById("ex-" + st.focus); if (el) { st.focus = null; setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 60); } }
   ouvrirModuleDepuisLien();
   if (st.corr.open && st.corr.rows == null && !st.corr.loading) loadCorrections();
-  if (st.adm.open && !st.adm.loaded) loadAdmin();
+  if ((st.adm.open || st.libre.open) && !st.adm.loaded) loadAdmin();
 }
 
 function renderBlocked() {
@@ -547,6 +549,7 @@ function renderModuleList() {
   let h = st.msg ? `<p class="fm-msg">${esc(st.msg)}</p>` : "";
   h += `<div class="card"><p class="eyebrow">Ma formation</p>
     <p class="settings-hint">${faits}/${MODULES.length} modules validés. Pour passer au module suivant : lis le manuel, réponds aux questions, fais les exercices, puis envoie ta fiche. Ton correcteur la valide.</p>`;
+  if (rythmeLibre()) h += `<p class="settings-hint">🔓 <strong>Ton parcours est libre.</strong> Aucun délai minimum : lis, réponds aux questions, fais les exercices du jour, puis envoie ta fiche sans attendre. Les exercices sur plusieurs jours ne te retiennent pas ; ils restent utiles, fais-les à ton rythme.</p>`;
   if (st.lien && st.lien.correcteurNom) h += `<p class="settings-hint">Ton correcteur : <strong>${esc(st.lien.correcteurNom)}</strong></p>`;
   else if (!st.isAdmin) h += `<p class="settings-hint">Aucun correcteur ne t'est encore attribué. Tu peux lire et répondre, mais l'envoi de ta fiche attendra qu'un correcteur te soit lié.</p>`;
   if (!payOk("charte")) {
@@ -901,6 +904,10 @@ async function onClick(e) {
     if (act === "corr-refresh") { st.corr.rows = null; render(); return; }
     if (act === "corr-review") return reviewFromUi(b);
     if (act === "adm-toggle") { st.adm.open = !st.adm.open; render(); return; }
+    if (act === "libre-toggle") { st.libre.open = !st.libre.open; render(); return; }
+    if (act === "libre-pick") { if (b.checked) st.libre.sel.add(b.dataset.u); else st.libre.sel.delete(b.dataset.u); libreCompteur(); return; }
+    if (act === "libre-on") return libreAppliquer(true);
+    if (act === "libre-off") return libreAppliquer(false);
     if (act === "adm-addcorr") return admAddCorrecteur();
     if (act === "adm-delcorr") { await S().removeCorrecteur(b.dataset.e); await loadAdmin(); return; }
     if (act === "adm-setlien") return admSetLien(b.dataset.u);
@@ -1716,7 +1723,8 @@ async function loadCorrections() {
       let sv = {};
       try { mods = await S().loadStudentModules(l.uid || l.id); } catch (e) {}
       try { sv = await S().loadStudentSuivis(l.uid || l.id); } catch (e) {}
-      try { if (termineDe(mods, await metaOnce(l.uid || l.id))) continue; } catch (e) {}
+      let metaEleve = {};
+      try { metaEleve = (await metaOnce(l.uid || l.id)) || {}; if (termineDe(mods, metaEleve)) continue; } catch (e) {}
       try {   // dernière activité : modules, suivis quotidiens, lecture (même calcul que la vue du coordinateur)
         let lec = null; try { lec = await S().loadStudentLecture(l.uid || l.id); } catch (e) {}
         let last = toMs(lec && lec.updatedAt);
@@ -1737,7 +1745,7 @@ async function loadCorrections() {
       } catch (e) {}
       Object.keys(mods).forEach((mid) => {
         const d = mods[mid];
-        if (["submitted", "validated", "returned"].includes(d.ficheStatus)) rows.push({ uid: l.uid || l.id, nom: l.nom || l.email || "", mid, doc: d, suivis: sv, mine, correcteurNom: l.correcteurNom || l.correcteurEmail || "" });
+        if (["submitted", "validated", "returned"].includes(d.ficheStatus)) rows.push({ uid: l.uid || l.id, nom: l.nom || l.email || "", mid, doc: d, suivis: sv, mine, libre: !!metaEleve.rythmeLibre, correcteurNom: l.correcteurNom || l.correcteurEmail || "" });
       });
     }
     rows.sort((a, b) => (toMs(a.doc.submittedAt) || Infinity) - (toMs(b.doc.submittedAt) || Infinity));   // les fiches qui attendent depuis le plus longtemps d'abord
@@ -1768,7 +1776,8 @@ function renderCorrRow(r, i) {
       h += `<p><strong>${esc(ex.titre)}</strong></p>` + (ex.champs || []).filter((f) => !f.si || v[f.si.champ] === f.si.val).map((f) => readValue(f, v[f.id])).join("");
     });
     const prat = rythmeExercices(c, r.mid, r.suivis);
-    if (prat.length) h += `<p class="small"><strong>Pratique (minimum demandé : la moitié) :</strong><br>${prat.map((x) => esc(rythmeLigne(x))).join("<br>")}</p>`;
+    if (prat.length && r.libre) h += `<p class="small">🔓 <strong>Parcours libre :</strong> aucun minimum demandé sur les exercices de plusieurs jours (décision de la coordination).</p>`;
+    else if (prat.length) h += `<p class="small"><strong>Pratique (minimum demandé : la moitié) :</strong><br>${prat.map((x) => esc(rythmeLigne(x))).join("<br>")}</p>`;
     Object.values(r.suivis || {}).filter((s) => s.mid === r.mid).forEach((s) => {
       const tot = s.jours * (s.labels || [1]).length, nd = Object.values(s.done || {}).reduce((a, x) => a + x.length, 0);
       h += `<p class="small"><strong>Suivi « ${esc(s.titre)} » :</strong> ${nd}/${tot} faits (commencé le ${fmtDate(s.start, 1)})</p>`;
@@ -1882,6 +1891,53 @@ ${can("suivi") ? `      <label class="fm-check"><input type="checkbox" id="admAu
   });
   return h + "</div>";
 }
+/* ---------- Coordinateur : Parcours libre (leaders déjà formés) ---------- */
+const estLibre = (uid) => !!((st.adm.metas || {})[uid] || {}).rythmeLibre;
+function libreVisible(s) {
+  const mots = admNorm(st.libre.q || "").split(" ").filter(Boolean);
+  const hay = admNorm(`${s.nom || ""} ${s.email || ""}`);
+  if (!mots.every((m) => hay.includes(m))) return false;
+  if (st.libre.f === "libres") return estLibre(s.uid);
+  if (st.libre.f === "non") return !estLibre(s.uid);
+  return true;
+}
+function libreCompteur() {
+  const n = st.libre.sel.size, c = $("libreSel"); if (c) c.textContent = n ? `${n} élève${n > 1 ? "s" : ""} coché${n > 1 ? "s" : ""}` : "Aucun élève coché";
+  document.querySelectorAll("[data-act=libre-on],[data-act=libre-off]").forEach((x) => { x.disabled = !n; });
+}
+function libreFiltrer() {
+  let n = 0;
+  document.querySelectorAll(".fm-libre-etu").forEach((el) => {
+    const s = st.adm.students.find((x) => x.uid === el.dataset.uid), ok = !!s && libreVisible(s);
+    el.style.display = ok ? "" : "none"; if (ok) n++;
+  });
+  const c = $("libreCount"); if (c) c.textContent = `${n} élève${n > 1 ? "s" : ""} affiché${n > 1 ? "s" : ""}`;
+}
+function renderLibreCard() {
+  const nLibres = st.adm.loaded ? st.adm.students.filter((s) => estLibre(s.uid)).length : 0;
+  let h = `<div class="card"><button class="fm-acc" data-act="libre-toggle"><span class="eyebrow">🔓 Parcours libre (leaders déjà formés)${st.adm.loaded ? ` · ${nLibres}` : ""}</span><span>${st.libre.open ? "▾" : "▸"}</span></button>`;
+  if (!st.libre.open) return h + "</div>";
+  if (!st.adm.loaded) return h + '<p class="settings-hint">Chargement…</p></div>';
+  h += `<p class="settings-hint">Pour un leader qui a déjà suivi la formation autrement et qui la repasse dans l'application. Un élève en <strong>parcours libre</strong> n'est plus retenu par les exercices sur plusieurs jours : il lit, répond aux questions, fait les exercices du jour et envoie sa fiche tout de suite. Les exercices sur plusieurs jours ne sont plus demandés, même pas à lancer. Tu peux retirer le parcours libre à tout moment.</p>
+    <div class="pay-barre"><input id="libreQ" type="search" class="text-input" placeholder="Chercher un élève (nom, prénom, e-mail)" value="${esc(st.libre.q || "")}" autocomplete="off"><select id="libreF" class="text-input"><option value="tous"${st.libre.f === "tous" ? " selected" : ""}>Tous</option><option value="libres"${st.libre.f === "libres" ? " selected" : ""}>En parcours libre</option><option value="non"${st.libre.f === "non" ? " selected" : ""}>Pas encore libres</option></select></div>
+    <p class="small" id="libreCount"></p>`;
+  h += st.adm.students.map((s) => `<label class="fm-check fm-libre-etu" data-uid="${esc(s.uid)}"${libreVisible(s) ? "" : ' style="display:none"'}><input type="checkbox" data-act="libre-pick" data-u="${esc(s.uid)}" ${st.libre.sel.has(s.uid) ? "checked" : ""}><span><strong>${esc(s.nom || s.email)}</strong> <span class="small">${esc(s.email)}</span>${estLibre(s.uid) ? ' <span class="small">🔓 libre</span>' : ""}</span></label>`).join("");
+  h += `<p class="small" id="libreSel" style="margin-top:10px;"></p>
+    <button class="btn-primary" data-act="libre-on" disabled>🔓 Rendre libre les élèves cochés</button> <button class="btn-secondary" data-act="libre-off" disabled>🔒 Retirer le parcours libre</button></div>`;
+  setTimeout(() => { libreCompteur(); libreFiltrer(); }, 0);
+  return h;
+}
+async function libreAppliquer(actif) {
+  const uids = [...st.libre.sel];
+  if (!uids.length) { st.msg = "Coche d'abord au moins un élève."; render(); return; }
+  try {
+    await Promise.all(uids.map((u) => S().setRythmeLibre(u, actif)));
+    uids.forEach((u) => { st.adm.metas[u] = { ...(st.adm.metas[u] || {}), rythmeLibre: actif }; });
+    st.libre.sel = new Set();
+    st.msg = actif ? `Parcours libre accordé à ${uids.length} élève${uids.length > 1 ? "s" : ""}.` : `Parcours libre retiré à ${uids.length} élève${uids.length > 1 ? "s" : ""}.`;
+  } catch (e) { st.msg = "Enregistrement impossible : " + (e && e.message ? e.message : e); }
+  render();
+}
 async function admAddCorrecteur() {
   const nom = ($("admCorrNom") || {}).value || "", email = ($("admCorrEmail") || {}).value || "";
   if (!email.includes("@")) { st.msg = "Saisis un e-mail valide."; render(); return; }
@@ -1963,7 +2019,8 @@ function boot() {
       } catch (err) { /* la lecture se coche aussi dans le calendrier */ }
     });
   }
-  document.addEventListener("input", (e) => { if (e.target && e.target.id === "admQ") { st.adm.q = e.target.value; admFiltrer(); } });
+  document.addEventListener("input", (e) => { if (e.target && e.target.id === "admQ") { st.adm.q = e.target.value; admFiltrer(); } if (e.target && e.target.id === "libreQ") { st.libre.q = e.target.value; libreFiltrer(); } });
+  document.addEventListener("change", (e) => { if (e.target && e.target.id === "libreF") { st.libre.f = e.target.value; libreFiltrer(); } });
   document.addEventListener("change", (e) => { if (e.target && e.target.id === "admF") { st.adm.f = e.target.value; admFiltrer(); } });
   const atg = $("apercuToggle");
   if (atg) atg.addEventListener("change", () => { st.apercuOn = atg.checked; try { localStorage.setItem("abba_apercu", atg.checked ? "1" : "0"); } catch (e) {} render(); });
