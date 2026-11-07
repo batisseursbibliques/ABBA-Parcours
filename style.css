@@ -1082,3 +1082,12 @@ body.notes-ouvert{overflow:hidden;}
 .note-conf{margin-left:auto;font-size:14px;}
 @media (min-width:641px){#noteBtn{bottom:24px;}#noteSheet{bottom:86px;}}
 [data-theme="dark"] .note-carte,[data-theme="dark"] .note-filtre{background:var(--card,#241f19);}
+
+/* ===== Mode sombre : champs de saisie lisibles (fond sombre, texte clair, curseur visible) ===== */
+[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="button"]):not([type="submit"]),
+[data-theme="dark"] textarea,
+[data-theme="dark"] select{background-color:var(--card-bg);color:var(--ink);border-color:var(--line);caret-color:var(--ink);color-scheme:dark;}
+[data-theme="dark"] input::placeholder,[data-theme="dark"] textarea::placeholder{color:var(--ink-soft);opacity:.85;}
+[data-theme="dark"] select option{background:var(--card-bg);color:var(--ink);}
+[data-theme="dark"] input:-webkit-autofill,[data-theme="dark"] textarea:-webkit-autofill,[data-theme="dark"] select:-webkit-autofill{-webkit-text-fill-color:var(--ink);box-shadow:0 0 0 1000px var(--card-bg) inset;}
+[data-theme="dark"] .fm-tb-row{background:var(--card-bg);}
