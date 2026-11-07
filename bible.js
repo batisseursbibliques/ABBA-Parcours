@@ -836,7 +836,7 @@ async function ouvrirOnglet() {
 }
 
 window.addEventListener("abba:bible-ouvert", ouvrirOnglet);
-window.AbbaBible = { ouvrir: ouvrirOnglet, aller: (l, c, v) => { ouvrirOnglet().then(() => aller(l, c, v)); }, nom: (l) => nomLivre(l), lire: (l, c) => ouvrirOnglet().then(() => { S.vue = "lire"; majOnglets(); aller(l, c); }), plan: () => ouvrirOnglet().then(() => { S.vue = "plan"; majOnglets(); if (window.AbbaLecture) window.AbbaLecture.rendre($("bibPlan")); }) };
+window.AbbaBible = { contexte: () => (S.vue === "lire" && S.livre ? { l: S.livre, c: S.chap, v: S.verset || null, version: S.version, label: `${nomLivre(S.livre)} ${S.chap}${S.verset ? ":" + S.verset : ""}` } : { label: "Bible" }), ouvrir: ouvrirOnglet, aller: (l, c, v) => { ouvrirOnglet().then(() => aller(l, c, v)); }, nom: (l) => nomLivre(l), lire: (l, c) => ouvrirOnglet().then(() => { S.vue = "lire"; majOnglets(); aller(l, c); }), plan: () => ouvrirOnglet().then(() => { S.vue = "plan"; majOnglets(); if (window.AbbaLecture) window.AbbaLecture.rendre($("bibPlan")); }) };
 
 /* ============================================================
    FENÊTRE DE VERSETS (déclaration, leçons) : « 📎 » ou référence cliquée.

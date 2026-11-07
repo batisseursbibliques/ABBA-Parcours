@@ -2053,4 +2053,24 @@ async function coordAnalyse(uid) {
     termineLe: Math.max(0, ...rows.map((r) => r.validatedAt || 0)), suiviForce: !!meta.suiviForce,
   };
 }
-window.Formation = { start, stop, analyse: coordAnalyse };
+window.Formation = {
+  start, stop, analyse: coordAnalyse,
+  // Où en est l'élève (pour les notes personnelles) et retour à cet endroit
+  contexte: () => {
+    const m = st.view && MODULES.find((x) => x.id === st.view.mod);
+    if (!m) return { label: "Mon Parcours" };
+    const e = STEPS.find(([k]) => k === st.view.step);
+    return { label: modTitle(m) + (e ? " · " + e[1] : ""), mid: m.id, step: st.view.step };
+  },
+  aller: (mid, step) => {
+    const tab = document.querySelector('.tab[data-tab="parcours"]'); if (tab) tab.click();
+    const racine = () => document.getElementById("formationRoot");
+    const etape = () => { const sb = step && racine() && racine().querySelector('.fm-step[data-s="' + step + '"]'); if (sb) sb.click(); };
+    setTimeout(() => {
+      if (!racine()) return;
+      if (st.view.mod === mid) { etape(); return; }
+      const retour = st.view.mod && racine().querySelector('[data-act="back"]'); if (retour) retour.click();
+      setTimeout(() => { const b = racine().querySelector('.fm-mod[data-m="' + mid + '"]'); if (b && b.dataset.act === "open") { b.click(); setTimeout(etape, 500); } }, 200);
+    }, 120);
+  },
+};

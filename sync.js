@@ -819,7 +819,21 @@ async function loadBibleLivre(cle) {
   return s.exists() ? s.data() : null;
 }
 
+/* ---------- NOTES PERSONNELLES (users/{uid}/notes, lisibles par la personne seule) ---------- */
+function watchNotes(uid, callback) {
+  const q = query(collection(db, "users", uid, "notes"), orderBy("creeLe", "desc"));
+  return onSnapshot(q, (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))), (err) => console.error("watchNotes:", err));
+}
+async function addNote(uid, note) {
+  const ref = doc(collection(db, "users", uid, "notes"));
+  await setDoc(ref, { ...note, creeLe: serverTimestamp(), modifieLe: serverTimestamp() });
+  return ref.id;
+}
+async function updateNote(uid, id, champs) { await updateDoc(doc(db, "users", uid, "notes", id), { ...champs, modifieLe: serverTimestamp() }); }
+async function deleteNote(uid, id) { await deleteDoc(doc(db, "users", uid, "notes", id)); }
+
 window.AbbaSync = {
+  watchNotes, addNote, updateNote, deleteNote,
   loadBibleMetas, loadBibleLivre,
   isAdminEmail,
   logIn, logOut, signUp, resetPassword, watchAuth, getUserProfile,
