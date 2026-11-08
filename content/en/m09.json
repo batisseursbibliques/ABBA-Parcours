@@ -201,19 +201,6 @@
  ],
  "exercices": [
   {
-   "id": "plan",
-   "titre": "Presenting the plan of salvation",
-   "consigne": "With your partner, your neighbor or a trusted person, one plays the role of the evangelist, the other that of the non-believer. Present the 7 points in 5 minutes maximum. Then switch roles. If you are alone, present them aloud as if someone were listening.",
-   "champs": [
-    {
-     "id": "difficulte",
-     "type": "textarea",
-     "label": "What was difficult in my presentation and how I will improve it",
-     "required": true
-    }
-   ]
-  },
-  {
    "id": "temoignage",
    "titre": "My personal testimony",
    "consigne": "A good testimony has 3 parts. Write yours here; you will summarize it in the sheet (300 words maximum).",

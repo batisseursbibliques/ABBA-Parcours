@@ -201,19 +201,6 @@
  ],
  "exercices": [
   {
-   "id": "plan",
-   "titre": "Présentation du plan du salut",
-   "consigne": "Avec ton binôme, ton voisin ou une personne de confiance, l'un joue le rôle de l'évangélisateur, l'autre celui de la personne non croyante. Présente les 7 points en 5 minutes maximum. Puis inversez les rôles. Si tu es seul(e), présente-les à voix haute comme si quelqu'un t'écoutait.",
-   "champs": [
-    {
-     "id": "difficulte",
-     "type": "textarea",
-     "label": "Ce qui était difficile dans ma présentation et comment je vais l'améliorer",
-     "required": true
-    }
-   ]
-  },
-  {
    "id": "temoignage",
    "titre": "Mon témoignage personnel",
    "consigne": "Un bon témoignage a 3 parties. Rédige le tien ici ; tu le résumeras dans la fiche (300 mots maximum).",

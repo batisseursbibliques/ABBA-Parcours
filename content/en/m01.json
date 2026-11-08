@@ -446,7 +446,7 @@
    {
     "id": "revele",
     "type": "textarea",
-    "label": "What this session revealed to me about myself",
+    "label": "What the work on this module revealed to me about myself",
     "required": true
    },
    {

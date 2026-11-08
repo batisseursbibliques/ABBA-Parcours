@@ -446,7 +446,7 @@
    {
     "id": "revele",
     "type": "textarea",
-    "label": "Ce que cette séance m'a révélé sur moi-même",
+    "label": "Ce que le travail sur ce module m'a révélé sur moi-même",
     "required": true
    },
    {
