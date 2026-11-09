@@ -1,7 +1,7 @@
 // Parcours Bâtisseur — service worker
 // Principe : le réseau d'abord (toujours la dernière version quand il y a du réseau),
 // le cache en secours (lecture hors ligne). Plus de version « figée » sur le téléphone.
-const CACHE = "abba-parcours-v135";
+const CACHE = "abba-parcours-v136";
 // Mémoire des leçons : séparée et NON vidée à chaque mise à jour (≈ 1,4 Mo téléchargés une seule fois, pour ménager les forfaits mobiles).
 const CACHE_CONTENU = "abba-parcours-contenu";
 const CONTENU = ["autoeval", "charte", "declaration", "m01", "m02", "m03", "m04", "m05", "m06", "m07", "m08", "m09", "m10", "m11", "m12", "m13", "m14", "m14b", "mbti-profils", "zones-exercices", "plans/index", "plans/nt-180"].map((n) => "./content/" + n + ".json");

@@ -1139,20 +1139,6 @@
    ]
   },
   {
-   "id": "banque",
-   "titre": "My sheet: comparing two institutions",
-   "consigne": "This sheet is in the lesson “The bank and the account.” It is to be used when you go to choose where to open your account.",
-   "intro_html": "<p>Go and see two approved institutions (bank, microfinance or Mobile Money). Ask the questions on the sheet and write down the answers <strong>in your notebook</strong>. If you already have an account, compare it with another one.</p>",
-   "directIntro": true,
-   "champs": [
-    {
-     "id": "fait",
-     "type": "check",
-     "label": "I compared two institutions and filled in my sheet in my notebook."
-    }
-   ]
-  },
-  {
    "id": "calculs",
    "titre": "Understanding a loan: 6 calculations",
    "consigne": "Do each calculation on paper, then choose your answer. You will see right away whether it is right or wrong, and why. The goal: to know how to count before signing anything.",

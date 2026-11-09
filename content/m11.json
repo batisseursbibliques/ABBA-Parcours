@@ -1139,20 +1139,6 @@
    ]
   },
   {
-   "id": "banque",
-   "titre": "Ma fiche : comparer deux établissements",
-   "consigne": "Cette fiche est dans la leçon « La banque et le compte ». Elle est à utiliser quand tu iras choisir où ouvrir ton compte.",
-   "intro_html": "<p>Va voir deux établissements agréés (banque, microfinance ou Mobile Money). Pose les questions de la fiche et note les réponses <strong>dans ton cahier</strong>. Si tu as déjà un compte, compare-le avec un autre.</p>",
-   "directIntro": true,
-   "champs": [
-    {
-     "id": "fait",
-     "type": "check",
-     "label": "J'ai comparé deux établissements et rempli ma fiche dans mon cahier."
-    }
-   ]
-  },
-  {
    "id": "calculs",
    "titre": "Comprendre un prêt : 6 calculs",
    "consigne": "Fais chaque calcul sur un papier, puis choisis ta réponse. Tu verras tout de suite si elle est bonne ou mauvaise, et pourquoi. L'objectif : savoir compter avant de signer quoi que ce soit.",
