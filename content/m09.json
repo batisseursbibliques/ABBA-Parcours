@@ -248,7 +248,8 @@
      "label": "Ce que j'ai vécu pendant cet exercice de prière (facultatif)",
      "required": false
     }
-   ]
+   ],
+   "directIntro": true
   },
   {
    "id": "trois",

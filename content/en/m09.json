@@ -248,7 +248,8 @@
      "label": "What I experienced during this prayer exercise (optional)",
      "required": false
     }
-   ]
+   ],
+   "directIntro": true
   },
   {
    "id": "trois",

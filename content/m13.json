@@ -449,6 +449,47 @@
    ]
   },
   {
+   "id": "pratique",
+   "titre": "Je m’entraîne aux gestes avec un proche",
+   "consigne": "Regarde la vidéo, puis entraîne-toi pour de bon avec une personne qui est avec toi. Les gestes se retiennent avec les mains, pas seulement avec les yeux. Si tu vis seul(e), demande à un voisin, un ami ou un frère ou une sœur de l’Église de venir vingt minutes.",
+   "directIntro": true,
+   "intro_html": "<p><strong>La vidéo (environ 6 minutes) :</strong> <a href=\"https://youtu.be/yXsLB1hOpIM\" target=\"_blank\" rel=\"noopener\">▶ Regarder la vidéo en entier</a>. Elle consomme des données mobiles : regarde-la en Wi-Fi si tu peux. Tu peux aussi aller directement à un geste :</p><ul><li><a href=\"https://youtu.be/yXsLB1hOpIM?t=89\" target=\"_blank\" rel=\"noopener\">Étouffement : les manœuvres de désobstruction (1 min 29)</a></li><li><a href=\"https://youtu.be/yXsLB1hOpIM?t=181\" target=\"_blank\" rel=\"noopener\">Position latérale de sécurité (3 min 01)</a></li><li><a href=\"https://youtu.be/yXsLB1hOpIM?t=240\" target=\"_blank\" rel=\"noopener\">Massage cardiaque (4 min 00)</a></li><li><a href=\"https://youtu.be/yXsLB1hOpIM?t=310\" target=\"_blank\" rel=\"noopener\">Défibrillateur (5 min 10)</a></li></ul><p><strong>Comment t’entraîner, en sécurité :</strong></p><ul><li><strong>Étouffement :</strong> mime le geste sans appuyer. Place-toi derrière ton proche, mets ton poing et tes mains au bon endroit, et touche à peine son dos pour les cinq claques. Ne donne jamais de vraies compressions sur le ventre d’une personne en bonne santé.</li><li><strong>Position latérale de sécurité :</strong> fais-la pour de vrai, lentement, sur ton proche s’il est d’accord, sur une natte ou un tapis. Ne la fais pas sur une personne qui a mal au dos, à l’épaule ou à la hanche, ni sur une personne âgée ou fragile. Remets ensuite ton proche sur le dos.</li><li><strong>Massage cardiaque :</strong> jamais sur une personne vivante. Entraîne-toi sur un gros coussin posé par terre ou sur un sac bien rempli : mains l’une sur l’autre, bras tendus, de cent à cent vingt compressions par minute. Ton proche compte le rythme et te dit si tes bras restent tendus.</li><li><strong>Défibrillateur :</strong> regarde cette partie pour savoir comment l’appareil se présente et comment il te guide. Il n’y a rien à pratiquer.</li></ul><p>Cet entraînement ne remplace pas une vraie formation : si la Croix-Rouge, la Protection civile ou les sapeurs-pompiers organisent des séances près de chez toi, va y participer.</p>",
+   "champs": [
+    {
+     "id": "vue",
+     "type": "check",
+     "label": "J’ai regardé toute la vidéo."
+    },
+    {
+     "id": "avec",
+     "type": "text",
+     "label": "Avec qui je me suis entraîné(e) (prénom et lien avec moi)",
+     "required": true
+    },
+    {
+     "id": "etouffement",
+     "type": "check",
+     "label": "Étouffement : j’ai mimé les cinq claques dans le dos, puis la manœuvre de Heimlich, sans appuyer."
+    },
+    {
+     "id": "pls",
+     "type": "check",
+     "label": "Position latérale de sécurité : j’ai mis mon proche en position latérale de sécurité, doucement, puis je l’ai remis sur le dos."
+    },
+    {
+     "id": "massage",
+     "type": "check",
+     "label": "Massage cardiaque : j’ai fait les compressions sur un coussin, au bon rythme et les bras tendus."
+    },
+    {
+     "id": "retour",
+     "type": "textarea",
+     "label": "Ce que mon proche m’a fait remarquer, et ce que j’ai trouvé le plus difficile",
+     "required": true
+    }
+   ]
+  },
+  {
    "id": "faire",
    "titre": "Ce qu’on fait, ce qu’on ne fait jamais",
    "consigne": "Dix gestes : à faire ou à ne jamais faire ? Après chaque choix, tu vois l’explication.",

@@ -629,7 +629,8 @@
      "label": "What does this exercise reveal about you in conflicts?",
      "required": true
     }
-   ]
+   ],
+   "directIntro": true
   },
   {
    "id": "actes",

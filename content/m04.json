@@ -629,7 +629,8 @@
      "label": "Qu'est-ce que cet exercice révèle sur toi dans les conflits ?",
      "required": true
     }
-   ]
+   ],
+   "directIntro": true
   },
   {
    "id": "actes",

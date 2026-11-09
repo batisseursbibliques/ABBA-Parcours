@@ -449,6 +449,47 @@
    ]
   },
   {
+   "id": "pratique",
+   "titre": "I practice the gestures with a person close to me",
+   "consigne": "Watch the video, then really practice with someone who is with you. Gestures are remembered with the hands, not only with the eyes. If you live alone, ask a neighbor, a friend or a brother or sister from church to come for twenty minutes.",
+   "directIntro": true,
+   "intro_html": "<p><strong>The video (about 6 minutes):</strong> <a href=\"https://youtu.be/yXsLB1hOpIM\" target=\"_blank\" rel=\"noopener\">▶ Watch the whole video</a>. It uses mobile data: watch it on Wi-Fi if you can. You can also jump straight to a gesture:</p><ul><li><a href=\"https://youtu.be/yXsLB1hOpIM?t=89\" target=\"_blank\" rel=\"noopener\">Choking: the clearing maneuvers (1 min 29)</a></li><li><a href=\"https://youtu.be/yXsLB1hOpIM?t=181\" target=\"_blank\" rel=\"noopener\">Recovery position (3 min 01)</a></li><li><a href=\"https://youtu.be/yXsLB1hOpIM?t=240\" target=\"_blank\" rel=\"noopener\">Chest compressions (4 min 00)</a></li><li><a href=\"https://youtu.be/yXsLB1hOpIM?t=310\" target=\"_blank\" rel=\"noopener\">Defibrillator (5 min 10)</a></li></ul><p><strong>How to practice safely:</strong></p><ul><li><strong>Choking:</strong> mime the gesture without pressing. Stand behind your partner, put your fist and hands in the right place, and barely touch their back for the five blows. Never give real thrusts on the belly of a healthy person.</li><li><strong>Recovery position:</strong> do it for real, slowly, on your partner if they agree, on a mat or rug. Do not do it on a person with back, shoulder or hip pain, or on an elderly or frail person. Then put your partner back on their back.</li><li><strong>Chest compressions:</strong> never on a living person. Practice on a large cushion on the floor or a well-filled bag: hands one on top of the other, arms straight, one hundred to one hundred and twenty compressions per minute. Your partner counts the rhythm and tells you if your arms stay straight.</li><li><strong>Defibrillator:</strong> watch this part to know what the device looks like and how it guides you. There is nothing to practice.</li></ul><p>This practice does not replace real training: if the Red Cross, Civil Protection or the fire brigade run sessions near you, go and take part.</p>",
+   "champs": [
+    {
+     "id": "vue",
+     "type": "check",
+     "label": "I watched the whole video."
+    },
+    {
+     "id": "avec",
+     "type": "text",
+     "label": "Who I practiced with (first name and relation to me)",
+     "required": true
+    },
+    {
+     "id": "etouffement",
+     "type": "check",
+     "label": "Choking: I mimed the five back blows, then the Heimlich maneuver, without pressing."
+    },
+    {
+     "id": "pls",
+     "type": "check",
+     "label": "Recovery position: I put my partner in the recovery position, gently, then put them back on their back."
+    },
+    {
+     "id": "massage",
+     "type": "check",
+     "label": "Chest compressions: I did the compressions on a cushion, at the right rhythm and with straight arms."
+    },
+    {
+     "id": "retour",
+     "type": "textarea",
+     "label": "What my partner pointed out to me, and what I found hardest",
+     "required": true
+    }
+   ]
+  },
+  {
    "id": "faire",
    "titre": "What you do, what you never do",
    "consigne": "Ten actions: do or never do? After each choice, you see the explanation.",
