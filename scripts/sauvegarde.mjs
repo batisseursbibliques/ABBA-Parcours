@@ -32,7 +32,11 @@ async function main() {
       sortie.write(JSON.stringify({ path: ref.path, data: serialiser(snap.data()) }) + "\n");
       compteurs[racine] = (compteurs[racine] || 0) + 1; total++;
     }
-    for (const sub of await ref.listCollections()) await parcourirCollection(sub, racine);
+    for (const sub of await ref.listCollections()) {
+      // Les discussions privées des binômes ne sont jamais copiées dans la sauvegarde
+      if (sub.id === "messages" && ref.path.startsWith("binomes/")) continue;
+      await parcourirCollection(sub, racine);
+    }
   }
   async function parcourirCollection(col, racine) {
     const refs = await col.listDocuments();      // inclut les documents « vides » qui n'ont que des sous-collections

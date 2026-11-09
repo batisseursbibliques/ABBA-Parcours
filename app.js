@@ -90,6 +90,8 @@ const COORD_OPEN = new Set();
 let unsubModulesConfig = null;
 let unsubParcours = null;
 let unsubBinome = null;
+let unsubChat = null;
+let CHAT_MSGS = [];
 let unsubGeste = null;
 let MY_BINOME = null;
 let MY_GESTE = "";
@@ -280,6 +282,7 @@ async function onAuthChanged(user) {
   if (unsubModulesConfig) { unsubModulesConfig(); unsubModulesConfig = null; }
   if (unsubParcours) { unsubParcours(); unsubParcours = null; }
   if (unsubBinome) { unsubBinome(); unsubBinome = null; }
+  if (unsubChat) { unsubChat(); unsubChat = null; }
   if (unsubGeste) { unsubGeste(); unsubGeste = null; }
   if (unsubZonesConfig) { unsubZonesConfig(); unsubZonesConfig = null; }
   if (unsubMyZones) { unsubMyZones(); unsubMyZones = null; }
@@ -403,6 +406,10 @@ async function onAuthChanged(user) {
       unsubBinome = window.AbbaSync.watchBinome(pair.id, (data) => {
         MY_BINOME = data;
         renderBinome();
+      });
+      unsubChat = window.AbbaSync.watchBinomeMessages(pair.id, (msgs) => {
+        CHAT_MSGS = msgs || [];
+        renderChat();
       });
     } else {
       MY_BINOME = null;
@@ -887,6 +894,26 @@ function setupBinome() {
     }
   });
 
+  const sendBtn = document.getElementById("binomeChatSend");
+  if (sendBtn) sendBtn.addEventListener("click", async () => {
+    if (!MY_BINOME || !CURRENT_USER) return;
+    const input = document.getElementById("binomeChatInput");
+    const err = document.getElementById("binomeChatError");
+    const texte = input.value.trim();
+    if (!texte) return;
+    err.textContent = "";
+    sendBtn.disabled = true;
+    try {
+      await window.AbbaSync.sendBinomeMessage(MY_BINOME.id, CURRENT_USER.email, texte);
+      input.value = "";
+    } catch (e) {
+      console.error(e);
+      err.textContent = "Impossible d'envoyer le message. Vérifie ta connexion.";
+    } finally {
+      sendBtn.disabled = false;
+    }
+  });
+
   document.getElementById("saveGesteBtn").addEventListener("click", async () => {
     if (!CURRENT_USER) return;
     const geste = document.getElementById("binomeGeste").value;
@@ -913,17 +940,20 @@ function renderBinome() {
   const gesteCard = document.getElementById("binomeGesteCard");
   const partnerCard = document.getElementById("binomePartnerCard");
 
+  const chatCard = document.getElementById("binomeChatCard");
   if (!MY_BINOME) {
     noneCard.style.display = "";
     card.style.display = "none";
     gesteCard.style.display = "none";
     partnerCard.style.display = "none";
+    if (chatCard) chatCard.style.display = "none";
     return;
   }
   noneCard.style.display = "none";
   card.style.display = "";
   gesteCard.style.display = "";
   partnerCard.style.display = "";
+  if (chatCard) chatCard.style.display = "";
 
   const myEmail = CURRENT_USER.email.toLowerCase();
   const partnerEmail = partnerEmailOf(MY_BINOME, myEmail);
@@ -939,6 +969,8 @@ function renderBinome() {
   document.getElementById("binomeGestePartnerName").textContent = partnerEmail;
 
   document.getElementById("binomePartnerName").textContent = partnerEmail;
+  const chatName = document.getElementById("binomeChatName");
+  if (chatName) chatName.textContent = partnerEmail;
   const disp = document.getElementById("binomePartnerDisplay");
   const hasContent = partnerFiche.priereCible || partnerFiche.zoneCaractere || partnerFiche.exerciceDuMois;
   disp.innerHTML = hasContent ? `
@@ -946,6 +978,46 @@ function renderBinome() {
     <p class="settings-hint"><strong>Zone de caractère :</strong> ${escapeAttr(partnerFiche.zoneCaractere || "—")}</p>
     <p class="settings-hint"><strong>Exercice du mois :</strong> ${escapeAttr(partnerFiche.exerciceDuMois || "—")}</p>
   ` : `<p class="empty-hint" style="display:block;">${escapeAttr(partnerEmail)} n'a pas encore rempli sa fiche.</p>`;
+}
+
+/* ---------- Discussion avec mon binôme (privée) ---------- */
+function renderChat() {
+  const list = document.getElementById("binomeChatList");
+  if (!list) return;
+  const empty = document.getElementById("binomeChatEmpty");
+  const me = CURRENT_USER && CURRENT_USER.email ? CURRENT_USER.email.toLowerCase() : "";
+  const enLang = !!(window.I18N && window.I18N.lang === "en");
+  const enBas = list.scrollHeight - list.scrollTop - list.clientHeight < 80 || list.childNodes.length === 0;
+  list.textContent = "";
+  CHAT_MSGS.forEach((m) => {
+    const mine = m.de === me;
+    const box = document.createElement("div");
+    box.className = "bc-msg " + (mine ? "bc-me" : "bc-them");
+    const txt = document.createElement("div");
+    txt.textContent = m.texte || "";
+    box.appendChild(txt);
+    const meta = document.createElement("div");
+    meta.className = "bc-meta";
+    const d = m.creeLe && typeof m.creeLe.toDate === "function" ? m.creeLe.toDate() : null;
+    meta.textContent = d ? d.toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "…";
+    if (mine) {
+      const del = document.createElement("button");
+      del.type = "button";
+      del.className = "bc-del";
+      del.textContent = enLang ? "Delete" : "Supprimer";
+      del.addEventListener("click", async () => {
+        if (!confirm(enLang ? "Delete this message?" : "Supprimer ce message ?")) return;
+        try { await window.AbbaSync.deleteBinomeMessage(MY_BINOME.id, m.id); }
+        catch (err) { console.error(err); alert(enLang ? "Unable to delete." : "Impossible de supprimer."); }
+      });
+      meta.appendChild(document.createTextNode(" · "));
+      meta.appendChild(del);
+    }
+    box.appendChild(meta);
+    list.appendChild(box);
+  });
+  if (empty) empty.style.display = CHAT_MSGS.length ? "none" : "block";
+  if (enBas) list.scrollTop = list.scrollHeight;
 }
 
 function renderGeste() {

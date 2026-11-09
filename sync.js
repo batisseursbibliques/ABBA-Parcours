@@ -11,7 +11,7 @@ import {
   reauthenticateWithCredential, EmailAuthProvider, updatePassword,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, doc, getDoc, setDoc as _setDoc, deleteDoc as _deleteDoc, onSnapshot, serverTimestamp,
+  getFirestore, doc, getDoc, setDoc as _setDoc, addDoc as _addDoc, deleteDoc as _deleteDoc, onSnapshot, serverTimestamp,
   enableIndexedDbPersistence, collection, getDocs, query, where, updateDoc as _updateDoc, writeBatch as _writeBatch, increment, arrayUnion, orderBy, limit, waitForPendingWrites } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig, ADMIN_EMAILS } from "./firebase-config.js";
 import { nouveauNumero } from "./attestation.js";
@@ -28,6 +28,7 @@ try { enableIndexedDbPersistence(db); } catch (e) { /* déjà activé dans un au
 const _delai = (ms) => new Promise((ok) => setTimeout(ok, ms));
 const horsLigne = (p) => { if (typeof navigator !== "undefined" && navigator.onLine === false) { p.catch(() => {}); return Promise.race([p, _delai(1500)]); } return p; };
 const setDoc = (...a) => horsLigne(_setDoc(...a));
+const addDoc = (...a) => horsLigne(_addDoc(...a));
 const updateDoc = (...a) => horsLigne(_updateDoc(...a));
 const deleteDoc = (...a) => horsLigne(_deleteDoc(...a));
 const writeBatch = (d) => { const b = _writeBatch(d); const c = b.commit.bind(b); b.commit = () => horsLigne(c()); return b; };
@@ -425,6 +426,22 @@ async function saveMyProgress(pairId, myEmail, data) {
   await setDoc(doc(db, "binomes", pairId), {
     progress: { [key]: { ...data, updatedAt: serverTimestamp() } },
   }, { merge: true });
+}
+
+/* ---------- DISCUSSION DU BINÔME (privée : les règles Firestore n'ouvrent la lecture qu'aux deux membres) ---------- */
+function watchBinomeMessages(pairId, callback) {
+  const q = query(collection(db, "binomes", pairId, "messages"), orderBy("creeLe", "desc"), limit(150));
+  return onSnapshot(q, (snap) => {
+    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })).reverse());
+  }, (err) => { console.error("watchBinomeMessages:", err); callback(null); });
+}
+async function sendBinomeMessage(pairId, myEmail, texte) {
+  const t = String(texte || "").trim().slice(0, 1000);
+  if (!t) return;
+  await addDoc(collection(db, "binomes", pairId, "messages"), { de: myEmail.trim().toLowerCase(), texte: t, creeLe: serverTimestamp() });
+}
+async function deleteBinomeMessage(pairId, msgId) {
+  await deleteDoc(doc(db, "binomes", pairId, "messages", msgId));
 }
 
 /* ---------- GESTE DU MOIS (strictement privé — jamais visible par le binôme) ---------- */
@@ -848,6 +865,7 @@ window.AbbaSync = {
   watchParcours, saveParcours,
   loadAllSummaries, saveModulesSummary,
   createBinome, deleteBinome, loadAllBinomes, findMyBinome, watchBinome, saveMyFiche,
+  watchBinomeMessages, sendBinomeMessage, deleteBinomeMessage,
   watchMyGeste, saveMyGeste,
   watchZonesConfig, saveZonesConfig, watchMyZones, saveMyZonesMonth,
   watchMyDimension, saveMyDimensionMonth,

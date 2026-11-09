@@ -824,5 +824,11 @@
 "Traité": "Done",
 "📍 Fiche de contact": "📍 Contact sheet",
 "📍 Fiche": "📍 Sheet",
-"Impossible de mettre à jour : {0}": "Unable to update: {0}"
+"Impossible de mettre à jour : {0}": "Unable to update: {0}",
+"💬 Discussion avec": "💬 Chat with",
+"🔒 Cette discussion est privée : seuls toi et ton binôme pouvez la lire. Les coordinateurs et les correcteurs n'ont pas accès à cette discussion dans l'application.": "🔒 This chat is private: only you and your partner can read it. Coordinators and correctors have no access to this chat in the app.",
+"Aucun message pour l'instant. Écris le premier.": "No messages yet. Write the first one.",
+"Écris ton message…": "Write your message…",
+"Impossible d'envoyer le message. Vérifie ta connexion.": "Unable to send the message. Check your connection.",
+"⚠️ Si ton binôme commence à te harceler (demandes d'argent, de dons ou de cadeaux, avances, ou tout propos qui te met mal à l'aise) : ne réponds plus, fais une capture d'écran de la conversation et envoie-la par WhatsApp à ton coordinateur ou à ton correcteur. Ta discussion reste privée tant qu'il n'y a aucun problème. Mais si tu ne dis rien, l'Alliance ne peut pas intervenir : fais entendre ta voix.": "⚠️ If your partner starts to harass you (requests for money, gifts or donations, advances, or anything that makes you uncomfortable): stop replying, take a screenshot of the conversation and send it by WhatsApp to your coordinator or your corrector. Your chat stays private as long as there is no problem. But if you say nothing, the Alliance cannot step in: make your voice heard."
 }

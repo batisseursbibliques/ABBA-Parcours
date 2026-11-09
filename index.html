@@ -272,6 +272,17 @@
         <p class="settings-hint">Lecture seule — pour prier pour lui/elle et l'accompagner.</p>
         <div id="binomePartnerDisplay"></div>
       </div>
+
+      <div class="card" id="binomeChatCard" style="display:none;">
+        <p class="eyebrow">💬 Discussion avec <span id="binomeChatName"></span></p>
+        <p class="settings-hint">🔒 Cette discussion est privée : seuls toi et ton binôme pouvez la lire. Les coordinateurs et les correcteurs n'ont pas accès à cette discussion dans l'application.</p>
+        <div id="binomeChatList" class="binome-chat no-i18n" aria-live="polite"></div>
+        <p class="empty-hint" id="binomeChatEmpty" style="display:none;">Aucun message pour l'instant. Écris le premier.</p>
+        <textarea id="binomeChatInput" class="text-input" rows="2" maxlength="1000" placeholder="Écris ton message…"></textarea>
+        <button class="btn-primary" id="binomeChatSend" type="button" style="margin-top:10px;">Envoyer</button>
+        <p class="auth-error" id="binomeChatError"></p>
+        <p class="settings-hint" style="margin-top:14px;">⚠️ Si ton binôme commence à te harceler (demandes d'argent, de dons ou de cadeaux, avances, ou tout propos qui te met mal à l'aise) : ne réponds plus, fais une capture d'écran de la conversation et envoie-la par WhatsApp à ton coordinateur ou à ton correcteur. Ta discussion reste privée tant qu'il n'y a aucun problème. Mais si tu ne dis rien, l'Alliance ne peut pas intervenir : fais entendre ta voix.</p>
+      </div>
     </section>
 
     <!-- ================= ZONES DE CARACTÈRE ================= -->

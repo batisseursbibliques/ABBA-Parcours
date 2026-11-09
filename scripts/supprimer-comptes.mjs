@@ -139,7 +139,7 @@ async function traiter(uid) {
   // --- 2. Effacement
   for (const ref of Object.values(cibles)) await db.recursiveDelete(ref);
   for (const id of enrIds) await db.doc(`enrollments/${id}`).delete();
-  for (const ref of binomes.values()) await ref.delete();
+  for (const ref of binomes.values()) await db.recursiveDelete(ref);   // supprime aussi la discussion du binôme (sous-collection)
   for (const d of dons.docs) await d.ref.delete();
   for (const ref of seancesTouchees) await ref.update(new FieldPath("presences", uid), FieldValue.delete());
   for (const ref of rapportsTouches) await ref.update(new FieldPath("lignes", uid), FieldValue.delete());

@@ -246,6 +246,26 @@ service cloud.firestore {
       allow update: if hasDroit('binomes') || (request.auth != null && request.auth.token.email.lower() in [resource.data.membre1, resource.data.membre2]);
     }
 
+    // Discussion du binôme : seuls les deux membres de la paire lisent et écrivent.
+    // Aucun coordinateur ni correcteur n'y a accès (voulu : la discussion reste privée).
+    // Chacun ne peut supprimer que ses propres messages ; un message ne se modifie pas.
+    match /binomes/{pairId}/messages/{msgId} {
+      function pairData() { return get(/databases/$(database)/documents/binomes/$(pairId)).data; }
+      function estMembreDeLaPaire() {
+        return request.auth != null && request.auth.token.email.lower() in [pairData().membre1, pairData().membre2];
+      }
+      allow read: if estMembreDeLaPaire();
+      allow create: if estMembreDeLaPaire()
+        && request.resource.data.keys().hasOnly(['de', 'texte', 'creeLe'])
+        && request.resource.data.de == request.auth.token.email.lower()
+        && request.resource.data.texte is string
+        && request.resource.data.texte.size() > 0
+        && request.resource.data.texte.size() <= 1000
+        && request.resource.data.creeLe == request.time;
+      allow update: if false;
+      allow delete: if estMembreDeLaPaire() && resource.data.de == request.auth.token.email.lower();
+    }
+
     // Séances et présence — chacun voit son propre suivi, seul le coordinateur marque la présence.
     match /seances/{seanceId} {
       allow read: if request.auth != null;
