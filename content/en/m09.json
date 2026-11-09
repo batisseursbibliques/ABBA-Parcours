@@ -228,8 +228,15 @@
   {
    "id": "malades",
    "titre": "Praying for the sick",
-   "consigne": "Go and see a sick person and pray for them following the four steps of the lesson (go in pairs if possible). If you do not know anyone who is sick, ask around you or in your church: you will easily find someone.",
+   "consigne": "Go and see a sick person and pray for them following the four steps of the lesson. You must go in pairs: never alone. If you do not know anyone who is sick, ask around you or in your church: you will easily find someone.",
+   "intro_html": "<p><strong>For your safety and the safety of the person:</strong></p><ul><li>Always go in pairs, never alone. Choose someone you trust: a brother or sister from church, a relative, your partner.</li><li>Avoid being alone in the room with a person of the opposite sex: ask a member of their family to stay present.</li><li>Tell a leader or a relative where you are going and at what time.</li><li>Go to someone whom your church or your family knows, with their agreement, without imposing yourself.</li><li>Prayer never replaces the doctor: encourage the person to keep up their treatment.</li></ul><p>If you cannot go in pairs, pray with the person by phone or video call, or meet them at church.</p>",
    "champs": [
+    {
+     "id": "avec",
+     "type": "text",
+     "label": "Who I went with (first name and relation to me), or “remote” if I prayed by phone, video call or at church",
+     "required": true
+    },
     {
      "id": "faite",
      "type": "check",

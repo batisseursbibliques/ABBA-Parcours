@@ -228,8 +228,15 @@
   {
    "id": "malades",
    "titre": "Prière pour les malades",
-   "consigne": "Va voir une personne malade et prie pour elle en suivant les quatre étapes de la leçon (aller à deux si possible). Si tu ne connais personne de malade, demande dans ton entourage ou dans ton église : tu trouveras facilement.",
+   "consigne": "Va voir une personne malade et prie pour elle en suivant les quatre étapes de la leçon. Tu y vas obligatoirement à deux : jamais seul(e). Si tu ne connais personne de malade, demande dans ton entourage ou dans ton église : tu trouveras facilement.",
+   "intro_html": "<p><strong>Pour ta sécurité et celle de la personne :</strong></p><ul><li>Va toujours à deux, jamais seul(e). Choisis quelqu’un de confiance : un frère ou une sœur de l’Église, un proche, ton binôme.</li><li>Évite de te retrouver seul(e) dans la pièce avec une personne de l’autre sexe : demande qu’un membre de sa famille reste présent.</li><li>Préviens un responsable ou un proche de l’endroit où tu vas et de l’heure.</li><li>Va chez quelqu’un que ton Église ou ta famille connaît, avec son accord, sans t’imposer.</li><li>La prière ne remplace jamais le médecin : encourage la personne à continuer ses soins.</li></ul><p>Si tu ne peux pas y aller à deux, prie avec la personne par téléphone ou en appel vidéo, ou rencontre-la à l’église.</p>",
    "champs": [
+    {
+     "id": "avec",
+     "type": "text",
+     "label": "Avec qui j’y suis allé(e) (prénom et lien avec moi), ou « à distance » si j’ai prié par téléphone, appel vidéo ou à l’église",
+     "required": true
+    },
     {
      "id": "faite",
      "type": "check",

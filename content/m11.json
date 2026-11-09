@@ -1142,7 +1142,7 @@
    "id": "banque",
    "titre": "Ma fiche : comparer deux établissements",
    "consigne": "Cette fiche est dans la leçon « La banque et le compte ». Elle est à utiliser quand tu iras choisir où ouvrir ton compte.",
-   "intro_html": "<p>Va voir deux établissements agréés (banque, microfinance ou Mobile Money). Pose les questions de la fiche et note les réponses <strong>dans ton cahier</strong>. Si tu as déjà un compte, compare-le avec un autre.</p><p><strong>Attention :</strong> ton formateur peut te demander une photo de ta fiche remplie, pour voir que tu as vraiment fait le travail.</p>",
+   "intro_html": "<p>Va voir deux établissements agréés (banque, microfinance ou Mobile Money). Pose les questions de la fiche et note les réponses <strong>dans ton cahier</strong>. Si tu as déjà un compte, compare-le avec un autre.</p>",
    "directIntro": true,
    "champs": [
     {
@@ -1249,7 +1249,7 @@
    "id": "epargne",
    "titre": "Mon plan d'épargne et de protection",
    "consigne": "Cette fiche est dans la leçon « L'épargne et la protection ». On commence par l'épargne d'urgence, et on assure ce qu'on ne pourrait pas remplacer avec son épargne.",
-   "intro_html": "<p>Décide maintenant, quand tu es calme : donne un but, un montant et une date à chaque épargne, et regarde quelles assurances tu as ou te manquent. Remplis la fiche <strong>dans ton cahier</strong>.</p><p><strong>Attention :</strong> ton formateur peut te demander une photo de ta fiche remplie.</p>",
+   "intro_html": "<p>Décide maintenant, quand tu es calme : donne un but, un montant et une date à chaque épargne, et regarde quelles assurances tu as ou te manquent. Remplis la fiche <strong>dans ton cahier</strong>.</p>",
    "directIntro": true,
    "champs": [
     {

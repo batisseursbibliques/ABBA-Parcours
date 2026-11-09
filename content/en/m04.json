@@ -315,19 +315,312 @@
   {
    "id": "mise",
    "titre": "Role play — a conflict at home",
-   "consigne": "This exercise is done in pairs: with your partner, your spouse or a trusted person. If you are alone, act out the scene aloud, playing both roles.",
-   "intro_html": "<p>Choose together a common conflict situation in a household:</p><p>• Disagreement over managing the month’s money</p><p>• Tension over raising a child</p><p>• Frustration over a lack of time spent together</p><p><strong>First run (2 minutes)</strong>: react as you would naturally, without thinking about it.</p><p><strong>Second run (3 minutes)</strong>: replay the same scene applying the 3 steps (listen to understand, express without accusing, commit to a concrete action) and the characteristics of love from 1 Corinthians 13.</p><p>Then answer in writing:</p>",
+   "consigne": "Here, the app plays the person in front of you. It says a sentence, you choose what you answer, and you see how it reacts. You do not need anyone else for this exercise.",
+   "intro_html": "<p>First choose who you are playing the scene with: your wife, your husband, or a family member if you are not married.</p><p><strong>First round:</strong> choose the answer closest to what you would really say, without thinking, even if it is not the best one.</p><p><strong>Second round:</strong> replay the same scene applying the 3 steps of the lesson “Love in the home”: listen to understand, express without accusing, commit to a concrete action.</p><p>Then answer the three questions in writing.</p>",
    "champs": [
+    {
+     "id": "avec",
+     "type": "select",
+     "label": "Who I am playing this scene with",
+     "options": [
+      "My wife (I am a married man)",
+      "My husband (I am a married woman)",
+      "A member of my family: parent, brother or sister"
+     ],
+     "required": true
+    },
+    {
+     "id": "ep_p1",
+     "type": "select",
+     "si": {
+      "champ": "avec",
+      "val": "My wife (I am a married man)"
+     },
+     "label": "FIRST ROUND (spontaneous) · Your wife says to you one evening: “You come home late almost every evening. We hardly talk anymore. I feel alone in this home.” What do you answer? Choose what you would really say, not what you should say.",
+     "options": [
+      "I say nothing and leave the room.",
+      "“I work for us, and you never understand anything.”",
+      "“Tell me what you feel, I am listening.”",
+      "“And you? You complain all the time.”"
+     ],
+     "required": true,
+     "retours": {
+      "I say nothing and leave the room.": "She says behind you: “You are leaving again. We never settle anything.” The problem stays whole and the distance grows.",
+      "“I work for us, and you never understand anything.”": "She raises her voice: “There you go, defending yourself again. I don’t matter to you.” The talk turns into a quarrel.",
+      "“Tell me what you feel, I am listening.”": "She takes a breath, then answers softly: “I feel alone when you come home late. I’m afraid we are drifting apart.” The door is open.",
+      "“And you? You complain all the time.”": "She is silent for a moment, then says coldly: “Fine. Forget it.” She walks away, and the hurt stays."
+     }
+    },
+    {
+     "id": "ep_e1",
+     "type": "select",
+     "si": {
+      "champ": "avec",
+      "val": "My wife (I am a married man)"
+     },
+     "label": "SECOND ROUND · Step 1, listen to understand. Your wife says calmly again: “I feel alone when you come home late. I’m afraid we are drifting apart.” What do you do?",
+     "options": [
+      "“I understand, but I have no choice: work is hard.”",
+      "“What I hear is that you feel alone and that you are afraid we are drifting apart. Is that right?”",
+      "“All right, all right. Can we talk about something else?”",
+      "“You are exaggerating, it is not that serious.”"
+     ],
+     "required": true,
+     "bonne": "“What I hear is that you feel alone and that you are afraid we are drifting apart. Is that right?”",
+     "explication": "You restate what you understood, without defending yourself, then you ask one question and wait for the answer. That is step 1.",
+     "retours": {
+      "“I understand, but I have no choice: work is hard.”": "She sighs: “You say you understand, but you answer me with an excuse.”",
+      "“What I hear is that you feel alone and that you are afraid we are drifting apart. Is that right?”": "“Yes, that is exactly it.” You have just shown that you understood.",
+      "“All right, all right. Can we talk about something else?”": "She lowers her head: “You always want to avoid the subject.”",
+      "“You are exaggerating, it is not that serious.”": "She closes up: “For you, nothing is ever serious.”"
+     }
+    },
+    {
+     "id": "ep_e2",
+     "type": "select",
+     "si": {
+      "champ": "avec",
+      "val": "My wife (I am a married man)"
+     },
+     "label": "SECOND ROUND · Step 2, express without accusing. Your wife says: “Thank you for listening. And you, how are you living all this?” What do you answer?",
+     "options": [
+      "“You never see everything I do for us.”",
+      "“With the tiredness from work, I did not see how much you were suffering. Please forgive me.”",
+      "“I have nothing to say.”",
+      "“You are always accusing me.”"
+     ],
+     "required": true,
+     "bonne": "“With the tiredness from work, I did not see how much you were suffering. Please forgive me.”",
+     "explication": "You speak with “I”, you say what you lived and what you acknowledge, without accusing. “I did not see” opens the conversation; “you never see” opens a war. That is step 2.",
+     "retours": {
+      "“You never see everything I do for us.”": "She tenses up: “There it is, it is my fault again.” The quarrel starts again.",
+      "“With the tiredness from work, I did not see how much you were suffering. Please forgive me.”": "She looks at you for a moment: “Thank you. It does me good to hear you say that.”",
+      "“I have nothing to say.”": "She waits a moment, then says sadly: “Then I am talking into the void.”",
+      "“You are always accusing me.”": "She answers sharply: “I am not accusing you, I am talking to you.” The conversation closes."
+     }
+    },
+    {
+     "id": "ep_e3",
+     "type": "select",
+     "si": {
+      "champ": "avec",
+      "val": "My wife (I am a married man)"
+     },
+     "label": "SECOND ROUND · Step 3, commit to a concrete action. Your wife asks: “So, what do we do differently from now on?” What do you propose?",
+     "options": [
+      "“I will change when you have changed.”",
+      "“We will try to do better.”",
+      "“Two evenings a week, I will be home before 7 pm and we will eat together. We start this Tuesday, and we talk again on Sunday.”",
+      "“We will see about that another day.”"
+     ],
+     "required": true,
+     "bonne": "“Two evenings a week, I will be home before 7 pm and we will eat together. We start this Tuesday, and we talk again on Sunday.”",
+     "explication": "One thing, concrete, with a date. A vague promise, or one put off until later, changes nothing. That is step 3.",
+     "retours": {
+      "“I will change when you have changed.”": "She answers: “So nothing moves as long as the other does not move.”",
+      "“We will try to do better.”": "She hesitates: “Try how? When? We have already said that.”",
+      "“Two evenings a week, I will be home before 7 pm and we will eat together. We start this Tuesday, and we talk again on Sunday.”": "She smiles: “All right. Tuesday, 7 pm. I am counting on you, and I will do my part too.”",
+      "“We will see about that another day.”": "She sighs: “Another day… it is always another day.”"
+     }
+    },
+    {
+     "id": "ma_p1",
+     "type": "select",
+     "si": {
+      "champ": "avec",
+      "val": "My husband (I am a married woman)"
+     },
+     "label": "FIRST ROUND (spontaneous) · Your husband says to you one evening: “You come home late almost every evening. We hardly talk anymore. I feel alone in this home.” What do you answer? Choose what you would really say, not what you should say.",
+     "options": [
+      "I say nothing and leave the room.",
+      "“I work for us, and you never understand anything.”",
+      "“Tell me what you feel, I am listening.”",
+      "“And you? You complain all the time.”"
+     ],
+     "required": true,
+     "retours": {
+      "I say nothing and leave the room.": "He says behind you: “You are leaving again. We never settle anything.” The problem stays whole and the distance grows.",
+      "“I work for us, and you never understand anything.”": "He raises his voice: “There you go, defending yourself again. I don’t matter to you.” The talk turns into a quarrel.",
+      "“Tell me what you feel, I am listening.”": "He takes a breath, then answers softly: “I feel alone when you come home late. I’m afraid we are drifting apart.” The door is open.",
+      "“And you? You complain all the time.”": "He is silent for a moment, then says coldly: “Fine. Forget it.” He walks away, and the hurt stays."
+     }
+    },
+    {
+     "id": "ma_e1",
+     "type": "select",
+     "si": {
+      "champ": "avec",
+      "val": "My husband (I am a married woman)"
+     },
+     "label": "SECOND ROUND · Step 1, listen to understand. Your husband says calmly again: “I feel alone when you come home late. I’m afraid we are drifting apart.” What do you do?",
+     "options": [
+      "“I understand, but I have no choice: work is hard.”",
+      "“What I hear is that you feel alone and that you are afraid we are drifting apart. Is that right?”",
+      "“All right, all right. Can we talk about something else?”",
+      "“You are exaggerating, it is not that serious.”"
+     ],
+     "required": true,
+     "bonne": "“What I hear is that you feel alone and that you are afraid we are drifting apart. Is that right?”",
+     "explication": "You restate what you understood, without defending yourself, then you ask one question and wait for the answer. That is step 1.",
+     "retours": {
+      "“I understand, but I have no choice: work is hard.”": "He sighs: “You say you understand, but you answer me with an excuse.”",
+      "“What I hear is that you feel alone and that you are afraid we are drifting apart. Is that right?”": "“Yes, that is exactly it.” You have just shown that you understood.",
+      "“All right, all right. Can we talk about something else?”": "He lowers his head: “You always want to avoid the subject.”",
+      "“You are exaggerating, it is not that serious.”": "He closes up: “For you, nothing is ever serious.”"
+     }
+    },
+    {
+     "id": "ma_e2",
+     "type": "select",
+     "si": {
+      "champ": "avec",
+      "val": "My husband (I am a married woman)"
+     },
+     "label": "SECOND ROUND · Step 2, express without accusing. Your husband says: “Thank you for listening. And you, how are you living all this?” What do you answer?",
+     "options": [
+      "“You never see everything I do for us.”",
+      "“With the tiredness from work, I did not see how much you were suffering. Please forgive me.”",
+      "“I have nothing to say.”",
+      "“You are always accusing me.”"
+     ],
+     "required": true,
+     "bonne": "“With the tiredness from work, I did not see how much you were suffering. Please forgive me.”",
+     "explication": "You speak with “I”, you say what you lived and what you acknowledge, without accusing. “I did not see” opens the conversation; “you never see” opens a war. That is step 2.",
+     "retours": {
+      "“You never see everything I do for us.”": "He tenses up: “There it is, it is my fault again.” The quarrel starts again.",
+      "“With the tiredness from work, I did not see how much you were suffering. Please forgive me.”": "He looks at you for a moment: “Thank you. It does me good to hear you say that.”",
+      "“I have nothing to say.”": "He waits a moment, then says sadly: “Then I am talking into the void.”",
+      "“You are always accusing me.”": "He answers sharply: “I am not accusing you, I am talking to you.” The conversation closes."
+     }
+    },
+    {
+     "id": "ma_e3",
+     "type": "select",
+     "si": {
+      "champ": "avec",
+      "val": "My husband (I am a married woman)"
+     },
+     "label": "SECOND ROUND · Step 3, commit to a concrete action. Your husband asks: “So, what do we do differently from now on?” What do you propose?",
+     "options": [
+      "“I will change when you have changed.”",
+      "“We will try to do better.”",
+      "“Two evenings a week, I will be home before 7 pm and we will eat together. We start this Tuesday, and we talk again on Sunday.”",
+      "“We will see about that another day.”"
+     ],
+     "required": true,
+     "bonne": "“Two evenings a week, I will be home before 7 pm and we will eat together. We start this Tuesday, and we talk again on Sunday.”",
+     "explication": "One thing, concrete, with a date. A vague promise, or one put off until later, changes nothing. That is step 3.",
+     "retours": {
+      "“I will change when you have changed.”": "He answers: “So nothing moves as long as the other does not move.”",
+      "“We will try to do better.”": "He hesitates: “Try how? When? We have already said that.”",
+      "“Two evenings a week, I will be home before 7 pm and we will eat together. We start this Tuesday, and we talk again on Sunday.”": "He smiles: “All right. Tuesday, 7 pm. I am counting on you, and I will do my part too.”",
+      "“We will see about that another day.”": "He sighs: “Another day… it is always another day.”"
+     }
+    },
+    {
+     "id": "pr_p1",
+     "type": "select",
+     "si": {
+      "champ": "avec",
+      "val": "A member of my family: parent, brother or sister"
+     },
+     "label": "FIRST ROUND (spontaneous) · Your relative says to you one evening: “You no longer come to see us and you no longer answer my calls. I feel that I no longer matter to you.” What do you answer? Choose what you would really say, not what you should say.",
+     "options": [
+      "I say nothing and leave the room.",
+      "“I have a lot to deal with, and you never understand anything.”",
+      "“Tell me what you feel, I am listening.”",
+      "“And you? You complain all the time.”"
+     ],
+     "required": true,
+     "retours": {
+      "I say nothing and leave the room.": "Your relative says behind you: “You are leaving again. We never settle anything.” The problem stays whole and the distance grows.",
+      "“I have a lot to deal with, and you never understand anything.”": "Your relative raises their voice: “There you go, defending yourself again. I don’t matter to you.” The talk turns into a quarrel.",
+      "“Tell me what you feel, I am listening.”": "Your relative takes a breath, then answers softly: “When you give no news, I feel that I no longer matter to you. I’m afraid we are drifting apart.” The door is open.",
+      "“And you? You complain all the time.”": "Your relative is silent for a moment, then says coldly: “Fine. Forget it.” Your relative walks away, and the hurt stays."
+     }
+    },
+    {
+     "id": "pr_e1",
+     "type": "select",
+     "si": {
+      "champ": "avec",
+      "val": "A member of my family: parent, brother or sister"
+     },
+     "label": "SECOND ROUND · Step 1, listen to understand. Your relative says calmly again: “When you give no news, I feel that I no longer matter to you. I’m afraid we are drifting apart.” What do you do?",
+     "options": [
+      "“I understand, but I have no choice: I have too much to do.”",
+      "“What I hear is that, without news from me, you feel that you no longer matter to me, and you are afraid we are drifting apart. Is that right?”",
+      "“All right, all right. Can we talk about something else?”",
+      "“You are exaggerating, it is not that serious.”"
+     ],
+     "required": true,
+     "bonne": "“What I hear is that, without news from me, you feel that you no longer matter to me, and you are afraid we are drifting apart. Is that right?”",
+     "explication": "You restate what you understood, without defending yourself, then you ask one question and wait for the answer. That is step 1.",
+     "retours": {
+      "“I understand, but I have no choice: I have too much to do.”": "Your relative sighs: “You say you understand, but you answer me with an excuse.”",
+      "“What I hear is that, without news from me, you feel that you no longer matter to me, and you are afraid we are drifting apart. Is that right?”": "“Yes, that is exactly it.” You have just shown that you understood.",
+      "“All right, all right. Can we talk about something else?”": "Your relative lowers their head: “You always want to avoid the subject.”",
+      "“You are exaggerating, it is not that serious.”": "Your relative closes up: “For you, nothing is ever serious.”"
+     }
+    },
+    {
+     "id": "pr_e2",
+     "type": "select",
+     "si": {
+      "champ": "avec",
+      "val": "A member of my family: parent, brother or sister"
+     },
+     "label": "SECOND ROUND · Step 2, express without accusing. Your relative says: “Thank you for listening. And you, how are you living all this?” What do you answer?",
+     "options": [
+      "“You never see everything I do.”",
+      "“With everything I have to deal with, I did not think of you as I should have. Please forgive me.”",
+      "“I have nothing to say.”",
+      "“You are always accusing me.”"
+     ],
+     "required": true,
+     "bonne": "“With everything I have to deal with, I did not think of you as I should have. Please forgive me.”",
+     "explication": "You speak with “I”, you say what you lived and what you acknowledge, without accusing. “I did not see” opens the conversation; “you never see” opens a war. That is step 2.",
+     "retours": {
+      "“You never see everything I do.”": "Your relative tenses up: “There it is, it is my fault again.” The quarrel starts again.",
+      "“With everything I have to deal with, I did not think of you as I should have. Please forgive me.”": "Your relative looks at you for a moment: “Thank you. It does me good to hear you say that.”",
+      "“I have nothing to say.”": "Your relative waits a moment, then says sadly: “Then I am talking into the void.”",
+      "“You are always accusing me.”": "Your relative answers sharply: “I am not accusing you, I am talking to you.” The conversation closes."
+     }
+    },
+    {
+     "id": "pr_e3",
+     "type": "select",
+     "si": {
+      "champ": "avec",
+      "val": "A member of my family: parent, brother or sister"
+     },
+     "label": "SECOND ROUND · Step 3, commit to a concrete action. Your relative asks: “So, what do we do differently from now on?” What do you propose?",
+     "options": [
+      "“I will change when you have changed.”",
+      "“We will try to do better.”",
+      "“Every Sunday, I will call you or come by for an hour. We start next Sunday, and we review how it goes in a month.”",
+      "“We will see about that another day.”"
+     ],
+     "required": true,
+     "bonne": "“Every Sunday, I will call you or come by for an hour. We start next Sunday, and we review how it goes in a month.”",
+     "explication": "One thing, concrete, with a date. A vague promise, or one put off until later, changes nothing. That is step 3.",
+     "retours": {
+      "“I will change when you have changed.”": "Your relative answers: “So nothing moves as long as the other does not move.”",
+      "“We will try to do better.”": "Your relative hesitates: “Try how? When? We have already said that.”",
+      "“Every Sunday, I will call you or come by for an hour. We start next Sunday, and we review how it goes in a month.”": "Your relative smiles: “All right. Next Sunday. I will be waiting, and I will take a step toward you too.”",
+      "“We will see about that another day.”": "Your relative sighs: “Another day… it is always another day.”"
+     }
+    },
     {
      "id": "q1",
      "type": "textarea",
-     "label": "What concretely changed between the first and the second run?",
+     "label": "What changed concretely between the first and the second round?",
      "required": true
     },
     {
      "id": "q2",
      "type": "textarea",
-     "label": "What is the hardest thing you said or did in the first run?",
+     "label": "What is the hardest thing you said or did in the first round?",
      "required": true
     },
     {

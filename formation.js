@@ -235,7 +235,8 @@ function renderField(f, scope, saved, readonly) {
   }
   if (f.type === "select") {
     const fb = f.bonne && v ? (v === f.bonne ? `<p class="fm-fb ok">✓ Bonne réponse. ${esc(f.explication || "")}</p>` : `<p class="fm-fb ko">Réponse attendue : <strong>${esc(f.bonne)}</strong>. ${esc(f.explication || "")}</p>`) : "";
-    return `<div class="field"><label><span>${esc(f.label)}</span><select class="text-input" data-f="${key}" data-t="text" ${dis}><option value="">—</option>${(f.options || []).map((o) => `<option ${v === o ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></label>${fb}</div>`;
+    const rt = f.retours && v && f.retours[v] ? `<p class="fm-fb partner">${esc(f.retours[v])}</p>` : "";
+    return `<div class="field"><label><span>${esc(f.label)}</span><select class="text-input" data-f="${key}" data-t="text" ${dis}><option value="">—</option>${(f.options || []).map((o) => `<option ${v === o ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></label>${rt}${fb}</div>`;
   }
   if (f.type === "cases") {
     const ans = v || {};
@@ -815,7 +816,7 @@ function onFieldInput(el) {
     cur[el.dataset.i] = el.value;
     st.cache[k] = cur;
     if (Object.keys(cur).length >= 1) rerenderKeepScroll();
-  } else { st.cache[k] = el.value; if (t === "text" && (el.tagName === "SELECT" || el.type === "radio") && el.closest(".field") && el.dataset.f) { const [sc, ...rest] = k.split(":"); const fid = rest[rest.length - 1]; const mm = st.content[st.view.mod]; const has = mm && (mm.exercices || []).some((ex) => (ex.champs || []).some((fd) => (fd.id === fid && fd.bonne) || (fd.si && fd.si.champ === fid))); if (has) rerenderKeepScroll(); } }
+  } else { st.cache[k] = el.value; if (t === "text" && (el.tagName === "SELECT" || el.type === "radio") && el.closest(".field") && el.dataset.f) { const [sc, ...rest] = k.split(":"); const fid = rest[rest.length - 1]; const mm = st.content[st.view.mod]; const has = mm && (mm.exercices || []).some((ex) => (ex.champs || []).some((fd) => (fd.id === fid && (fd.bonne || fd.retours)) || (fd.si && fd.si.champ === fid))); if (has) rerenderKeepScroll(); } }
 }
 function currentSaved(k) {
   const [scope, ...rest] = k.split(":");

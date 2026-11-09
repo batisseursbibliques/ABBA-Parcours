@@ -777,6 +777,7 @@ details.fm-ex>summary .fm-ex-t{flex:1;}
 .fm-fb{font-size:13px;margin:6px 0 0;padding:8px 10px;border-radius:8px;}
 .fm-fb.ok{background:var(--sage-soft);color:var(--sage);}
 .fm-fb.ko{background:#FFF4E5;color:#8A5200;}
+.fm-fb.partner{background:#EEF2FA;color:#2B4A7A;border-left:3px solid #7C95C4;}
 
 .bm-n.bm-wide{width:150px;white-space:normal;font-size:13px;line-height:1.2;}
 .fm-advice{background:var(--card-bg);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;margin:10px 0;}
@@ -1091,3 +1092,11 @@ body.notes-ouvert{overflow:hidden;}
 [data-theme="dark"] select option{background:var(--card-bg);color:var(--ink);}
 [data-theme="dark"] input:-webkit-autofill,[data-theme="dark"] textarea:-webkit-autofill,[data-theme="dark"] select:-webkit-autofill{-webkit-text-fill-color:var(--ink);box-shadow:0 0 0 1000px var(--card-bg) inset;}
 [data-theme="dark"] .fm-tb-row{background:var(--card-bg);}
+
+/* Discussion du binôme */
+.binome-chat{max-height:50vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin:10px 0;padding:4px;}
+.bc-msg{max-width:85%;padding:8px 10px;border-radius:12px;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere;}
+.bc-me{align-self:flex-end;background:var(--sage-soft);}
+.bc-them{align-self:flex-start;background:#F1EEE8;}
+.bc-meta{font-size:11px;opacity:.7;margin-top:3px;}
+.bc-del{background:none;border:0;padding:0;font-size:11px;color:inherit;text-decoration:underline;cursor:pointer;}

@@ -315,9 +315,302 @@
   {
    "id": "mise",
    "titre": "Mise en situation — un conflit au foyer",
-   "consigne": "Cet exercice se fait en binôme : avec ton binôme, ton conjoint ou une personne de confiance. Si tu es seul(e), joue la scène à voix haute en tenant les deux rôles.",
-   "intro_html": "<p>Choisissez ensemble une situation de conflit courant dans un foyer :</p><p>• Désaccord sur la gestion de l'argent du mois</p><p>• Tension sur l'éducation d'un enfant</p><p>• Frustration liée au manque de temps passé ensemble</p><p><strong>Premier passage (2 minutes)</strong> : réagis comme tu réagirais naturellement, sans y réfléchir.</p><p><strong>Second passage (3 minutes)</strong> : rejoue la même scène en appliquant les 3 étapes (écouter pour comprendre, exprimer sans accuser, s'engager sur une action concrète) et les caractéristiques de l'amour de 1 Corinthiens 13.</p><p>Ensuite, réponds par écrit :</p>",
+   "consigne": "Ici, l’application joue la personne en face de toi. Elle te dit une phrase, tu choisis ce que tu réponds, et tu vois comment elle réagit. Tu n’as besoin de personne d’autre pour cet exercice.",
+   "intro_html": "<p>Choisis d’abord avec qui tu joues la scène : ton épouse, ton mari, ou un proche de ta famille si tu n’es pas marié(e).</p><p><strong>Premier passage :</strong> choisis la réponse la plus proche de ce que tu dirais vraiment, sans réfléchir, même si ce n’est pas la meilleure.</p><p><strong>Second passage :</strong> reprends la même scène en appliquant les 3 étapes de la leçon « L’amour dans le foyer » : écouter pour comprendre, exprimer sans accuser, s’engager sur une action concrète.</p><p>Ensuite, réponds par écrit aux trois questions.</p>",
    "champs": [
+    {
+     "id": "avec",
+     "type": "select",
+     "label": "Avec qui je joue cette scène",
+     "options": [
+      "Mon épouse (je suis un homme marié)",
+      "Mon mari (je suis une femme mariée)",
+      "Un proche de ma famille : parent, frère ou sœur"
+     ],
+     "required": true
+    },
+    {
+     "id": "ep_p1",
+     "type": "select",
+     "si": {
+      "champ": "avec",
+      "val": "Mon épouse (je suis un homme marié)"
+     },
+     "label": "PREMIER PASSAGE (spontané) · Ton épouse te dit, un soir : « Tu rentres tard presque tous les soirs. On ne se parle presque plus. Je me sens seule dans ce foyer. » Que réponds-tu ? Choisis ce que tu dirais vraiment, pas ce qu’il faudrait dire.",
+     "options": [
+      "Je ne dis rien et je quitte la pièce.",
+      "« Je travaille pour nous, et toi tu ne comprends jamais rien. »",
+      "« Dis-moi ce que tu ressens, je t’écoute. »",
+      "« Et toi alors ? Tu te plains tout le temps. »"
+     ],
+     "required": true,
+     "retours": {
+      "Je ne dis rien et je quitte la pièce.": "Elle dit derrière toi : « Tu pars encore. On ne règle jamais rien. » Le problème reste entier et la distance grandit.",
+      "« Je travaille pour nous, et toi tu ne comprends jamais rien. »": "Elle hausse le ton : « Voilà, tu te défends toujours. Je ne compte pas pour toi. » La discussion devient une dispute.",
+      "« Dis-moi ce que tu ressens, je t’écoute. »": "Elle respire, puis répond doucement : « Je me sens seule quand tu rentres tard. J’ai peur qu’on s’éloigne. » La porte est ouverte.",
+      "« Et toi alors ? Tu te plains tout le temps. »": "Elle se tait un moment, puis dit froidement : « D’accord. Laisse tomber. » Elle s’éloigne, et la blessure reste là."
+     }
+    },
+    {
+     "id": "ep_e1",
+     "type": "select",
+     "si": {
+      "champ": "avec",
+      "val": "Mon épouse (je suis un homme marié)"
+     },
+     "label": "SECOND PASSAGE · Étape 1, écouter pour comprendre. Ton épouse redit calmement : « Je me sens seule quand tu rentres tard. J’ai peur qu’on s’éloigne. » Que fais-tu ?",
+     "options": [
+      "« Je comprends, mais je n’ai pas le choix : le travail est dur. »",
+      "« Ce que j’entends, c’est que tu te sens seule et que tu as peur qu’on s’éloigne. C’est bien ça ? »",
+      "« D’accord, d’accord. On peut parler d’autre chose ? »",
+      "« Tu exagères, ce n’est pas si grave. »"
+     ],
+     "required": true,
+     "bonne": "« Ce que j’entends, c’est que tu te sens seule et que tu as peur qu’on s’éloigne. C’est bien ça ? »",
+     "explication": "Tu reformules ce que tu as compris, sans te défendre, puis tu poses une seule question et tu attends la réponse. C’est l’étape 1.",
+     "retours": {
+      "« Je comprends, mais je n’ai pas le choix : le travail est dur. »": "Elle soupire : « Tu dis que tu comprends, mais tu me réponds avec une excuse. »",
+      "« Ce que j’entends, c’est que tu te sens seule et que tu as peur qu’on s’éloigne. C’est bien ça ? »": "« Oui, c’est exactement ça. » Tu viens de montrer que tu as compris.",
+      "« D’accord, d’accord. On peut parler d’autre chose ? »": "Elle baisse la tête : « Tu veux toujours éviter le sujet. »",
+      "« Tu exagères, ce n’est pas si grave. »": "Elle se ferme : « Pour toi, rien n’est jamais grave. »"
+     }
+    },
+    {
+     "id": "ep_e2",
+     "type": "select",
+     "si": {
+      "champ": "avec",
+      "val": "Mon épouse (je suis un homme marié)"
+     },
+     "label": "SECOND PASSAGE · Étape 2, exprimer sans accuser. Ton épouse dit : « Merci de m’écouter. Et toi, comment tu vis tout ça ? » Que réponds-tu ?",
+     "options": [
+      "« C’est toi qui ne vois jamais tout ce que je fais pour nous. »",
+      "« Avec la fatigue du travail, je n’ai pas vu à quel point tu souffrais. Je te demande pardon. »",
+      "« Je n’ai rien à dire. »",
+      "« Tu es toujours en train de m’accuser. »"
+     ],
+     "required": true,
+     "bonne": "« Avec la fatigue du travail, je n’ai pas vu à quel point tu souffrais. Je te demande pardon. »",
+     "explication": "Tu parles avec « je », tu dis ce que tu as vécu et ce que tu reconnais, sans accuser. « Je n’ai pas vu » ouvre la conversation ; « tu ne vois jamais » ouvre une guerre. C’est l’étape 2.",
+     "retours": {
+      "« C’est toi qui ne vois jamais tout ce que je fais pour nous. »": "Elle se crispe : « Voilà, c’est encore ma faute. » La dispute reprend.",
+      "« Avec la fatigue du travail, je n’ai pas vu à quel point tu souffrais. Je te demande pardon. »": "Elle te regarde un instant : « Merci. Ça me fait du bien de t’entendre dire ça. »",
+      "« Je n’ai rien à dire. »": "Elle attend un moment, puis dit tristement : « Alors je parle dans le vide. »",
+      "« Tu es toujours en train de m’accuser. »": "Elle répond sèchement : « Je ne t’accuse pas, je te parle. » La conversation se ferme."
+     }
+    },
+    {
+     "id": "ep_e3",
+     "type": "select",
+     "si": {
+      "champ": "avec",
+      "val": "Mon épouse (je suis un homme marié)"
+     },
+     "label": "SECOND PASSAGE · Étape 3, s’engager sur une action concrète. Ton épouse demande : « Alors, qu’est-ce qu’on fait différemment à partir de maintenant ? » Que proposes-tu ?",
+     "options": [
+      "« Moi, je changerai quand toi, tu auras changé. »",
+      "« On va essayer de mieux faire. »",
+      "« Deux soirs par semaine, je rentre avant 19 h et nous mangeons ensemble. On commence ce mardi, et on en reparle dimanche. »",
+      "« On verra ça un autre jour. »"
+     ],
+     "required": true,
+     "bonne": "« Deux soirs par semaine, je rentre avant 19 h et nous mangeons ensemble. On commence ce mardi, et on en reparle dimanche. »",
+     "explication": "Une seule chose, concrète, avec une date. Une promesse vague ou remise à plus tard ne change rien. C’est l’étape 3.",
+     "retours": {
+      "« Moi, je changerai quand toi, tu auras changé. »": "Elle répond : « Donc rien ne bouge tant que l’autre ne bouge pas. »",
+      "« On va essayer de mieux faire. »": "Elle hésite : « Essayer comment ? Quand ? On a déjà dit ça. »",
+      "« Deux soirs par semaine, je rentre avant 19 h et nous mangeons ensemble. On commence ce mardi, et on en reparle dimanche. »": "Elle sourit : « D’accord. Mardi, 19 h. Je compte sur toi, et moi aussi je ferai ma part. »",
+      "« On verra ça un autre jour. »": "Elle soupire : « Un autre jour… c’est toujours un autre jour. »"
+     }
+    },
+    {
+     "id": "ma_p1",
+     "type": "select",
+     "si": {
+      "champ": "avec",
+      "val": "Mon mari (je suis une femme mariée)"
+     },
+     "label": "PREMIER PASSAGE (spontané) · Ton mari te dit, un soir : « Tu rentres tard presque tous les soirs. On ne se parle presque plus. Je me sens seul dans ce foyer. » Que réponds-tu ? Choisis ce que tu dirais vraiment, pas ce qu’il faudrait dire.",
+     "options": [
+      "Je ne dis rien et je quitte la pièce.",
+      "« Je travaille pour nous, et toi tu ne comprends jamais rien. »",
+      "« Dis-moi ce que tu ressens, je t’écoute. »",
+      "« Et toi alors ? Tu te plains tout le temps. »"
+     ],
+     "required": true,
+     "retours": {
+      "Je ne dis rien et je quitte la pièce.": "Il dit derrière toi : « Tu pars encore. On ne règle jamais rien. » Le problème reste entier et la distance grandit.",
+      "« Je travaille pour nous, et toi tu ne comprends jamais rien. »": "Il hausse le ton : « Voilà, tu te défends toujours. Je ne compte pas pour toi. » La discussion devient une dispute.",
+      "« Dis-moi ce que tu ressens, je t’écoute. »": "Il respire, puis répond doucement : « Je me sens seul quand tu rentres tard. J’ai peur qu’on s’éloigne. » La porte est ouverte.",
+      "« Et toi alors ? Tu te plains tout le temps. »": "Il se tait un moment, puis dit froidement : « D’accord. Laisse tomber. » Il s’éloigne, et la blessure reste là."
+     }
+    },
+    {
+     "id": "ma_e1",
+     "type": "select",
+     "si": {
+      "champ": "avec",
+      "val": "Mon mari (je suis une femme mariée)"
+     },
+     "label": "SECOND PASSAGE · Étape 1, écouter pour comprendre. Ton mari redit calmement : « Je me sens seul quand tu rentres tard. J’ai peur qu’on s’éloigne. » Que fais-tu ?",
+     "options": [
+      "« Je comprends, mais je n’ai pas le choix : le travail est dur. »",
+      "« Ce que j’entends, c’est que tu te sens seul et que tu as peur qu’on s’éloigne. C’est bien ça ? »",
+      "« D’accord, d’accord. On peut parler d’autre chose ? »",
+      "« Tu exagères, ce n’est pas si grave. »"
+     ],
+     "required": true,
+     "bonne": "« Ce que j’entends, c’est que tu te sens seul et que tu as peur qu’on s’éloigne. C’est bien ça ? »",
+     "explication": "Tu reformules ce que tu as compris, sans te défendre, puis tu poses une seule question et tu attends la réponse. C’est l’étape 1.",
+     "retours": {
+      "« Je comprends, mais je n’ai pas le choix : le travail est dur. »": "Il soupire : « Tu dis que tu comprends, mais tu me réponds avec une excuse. »",
+      "« Ce que j’entends, c’est que tu te sens seul et que tu as peur qu’on s’éloigne. C’est bien ça ? »": "« Oui, c’est exactement ça. » Tu viens de montrer que tu as compris.",
+      "« D’accord, d’accord. On peut parler d’autre chose ? »": "Il baisse la tête : « Tu veux toujours éviter le sujet. »",
+      "« Tu exagères, ce n’est pas si grave. »": "Il se ferme : « Pour toi, rien n’est jamais grave. »"
+     }
+    },
+    {
+     "id": "ma_e2",
+     "type": "select",
+     "si": {
+      "champ": "avec",
+      "val": "Mon mari (je suis une femme mariée)"
+     },
+     "label": "SECOND PASSAGE · Étape 2, exprimer sans accuser. Ton mari dit : « Merci de m’écouter. Et toi, comment tu vis tout ça ? » Que réponds-tu ?",
+     "options": [
+      "« C’est toi qui ne vois jamais tout ce que je fais pour nous. »",
+      "« Avec la fatigue du travail, je n’ai pas vu à quel point tu souffrais. Je te demande pardon. »",
+      "« Je n’ai rien à dire. »",
+      "« Tu es toujours en train de m’accuser. »"
+     ],
+     "required": true,
+     "bonne": "« Avec la fatigue du travail, je n’ai pas vu à quel point tu souffrais. Je te demande pardon. »",
+     "explication": "Tu parles avec « je », tu dis ce que tu as vécu et ce que tu reconnais, sans accuser. « Je n’ai pas vu » ouvre la conversation ; « tu ne vois jamais » ouvre une guerre. C’est l’étape 2.",
+     "retours": {
+      "« C’est toi qui ne vois jamais tout ce que je fais pour nous. »": "Il se crispe : « Voilà, c’est encore ma faute. » La dispute reprend.",
+      "« Avec la fatigue du travail, je n’ai pas vu à quel point tu souffrais. Je te demande pardon. »": "Il te regarde un instant : « Merci. Ça me fait du bien de t’entendre dire ça. »",
+      "« Je n’ai rien à dire. »": "Il attend un moment, puis dit tristement : « Alors je parle dans le vide. »",
+      "« Tu es toujours en train de m’accuser. »": "Il répond sèchement : « Je ne t’accuse pas, je te parle. » La conversation se ferme."
+     }
+    },
+    {
+     "id": "ma_e3",
+     "type": "select",
+     "si": {
+      "champ": "avec",
+      "val": "Mon mari (je suis une femme mariée)"
+     },
+     "label": "SECOND PASSAGE · Étape 3, s’engager sur une action concrète. Ton mari demande : « Alors, qu’est-ce qu’on fait différemment à partir de maintenant ? » Que proposes-tu ?",
+     "options": [
+      "« Moi, je changerai quand toi, tu auras changé. »",
+      "« On va essayer de mieux faire. »",
+      "« Deux soirs par semaine, je rentre avant 19 h et nous mangeons ensemble. On commence ce mardi, et on en reparle dimanche. »",
+      "« On verra ça un autre jour. »"
+     ],
+     "required": true,
+     "bonne": "« Deux soirs par semaine, je rentre avant 19 h et nous mangeons ensemble. On commence ce mardi, et on en reparle dimanche. »",
+     "explication": "Une seule chose, concrète, avec une date. Une promesse vague ou remise à plus tard ne change rien. C’est l’étape 3.",
+     "retours": {
+      "« Moi, je changerai quand toi, tu auras changé. »": "Il répond : « Donc rien ne bouge tant que l’autre ne bouge pas. »",
+      "« On va essayer de mieux faire. »": "Il hésite : « Essayer comment ? Quand ? On a déjà dit ça. »",
+      "« Deux soirs par semaine, je rentre avant 19 h et nous mangeons ensemble. On commence ce mardi, et on en reparle dimanche. »": "Il sourit : « D’accord. Mardi, 19 h. Je compte sur toi, et moi aussi je ferai ma part. »",
+      "« On verra ça un autre jour. »": "Il soupire : « Un autre jour… c’est toujours un autre jour. »"
+     }
+    },
+    {
+     "id": "pr_p1",
+     "type": "select",
+     "si": {
+      "champ": "avec",
+      "val": "Un proche de ma famille : parent, frère ou sœur"
+     },
+     "label": "PREMIER PASSAGE (spontané) · Ton proche te dit, un soir : « Tu ne viens plus nous voir et tu ne réponds plus à mes appels. J’ai l’impression que je ne compte plus pour toi. » Que réponds-tu ? Choisis ce que tu dirais vraiment, pas ce qu’il faudrait dire.",
+     "options": [
+      "Je ne dis rien et je quitte la pièce.",
+      "« J’ai beaucoup de choses à gérer, et toi tu ne comprends jamais rien. »",
+      "« Dis-moi ce que tu ressens, je t’écoute. »",
+      "« Et toi alors ? Tu te plains tout le temps. »"
+     ],
+     "required": true,
+     "retours": {
+      "Je ne dis rien et je quitte la pièce.": "Ton proche dit derrière toi : « Tu pars encore. On ne règle jamais rien. » Le problème reste entier et la distance grandit.",
+      "« J’ai beaucoup de choses à gérer, et toi tu ne comprends jamais rien. »": "Ton proche hausse le ton : « Voilà, tu te défends toujours. Je ne compte pas pour toi. » La discussion devient une dispute.",
+      "« Dis-moi ce que tu ressens, je t’écoute. »": "Ton proche respire, puis répond doucement : « Quand tu ne donnes pas de nouvelles, j’ai l’impression de ne plus compter pour toi. J’ai peur qu’on s’éloigne. » La porte est ouverte.",
+      "« Et toi alors ? Tu te plains tout le temps. »": "Ton proche se tait un moment, puis dit froidement : « D’accord. Laisse tomber. » Ton proche s’éloigne, et la blessure reste là."
+     }
+    },
+    {
+     "id": "pr_e1",
+     "type": "select",
+     "si": {
+      "champ": "avec",
+      "val": "Un proche de ma famille : parent, frère ou sœur"
+     },
+     "label": "SECOND PASSAGE · Étape 1, écouter pour comprendre. Ton proche redit calmement : « Quand tu ne donnes pas de nouvelles, j’ai l’impression de ne plus compter pour toi. J’ai peur qu’on s’éloigne. » Que fais-tu ?",
+     "options": [
+      "« Je comprends, mais je n’ai pas le choix : j’ai trop à faire. »",
+      "« Ce que j’entends, c’est que, sans nouvelles de moi, tu as l’impression de ne plus compter pour moi et tu as peur qu’on s’éloigne. C’est bien ça ? »",
+      "« D’accord, d’accord. On peut parler d’autre chose ? »",
+      "« Tu exagères, ce n’est pas si grave. »"
+     ],
+     "required": true,
+     "bonne": "« Ce que j’entends, c’est que, sans nouvelles de moi, tu as l’impression de ne plus compter pour moi et tu as peur qu’on s’éloigne. C’est bien ça ? »",
+     "explication": "Tu reformules ce que tu as compris, sans te défendre, puis tu poses une seule question et tu attends la réponse. C’est l’étape 1.",
+     "retours": {
+      "« Je comprends, mais je n’ai pas le choix : j’ai trop à faire. »": "Ton proche soupire : « Tu dis que tu comprends, mais tu me réponds avec une excuse. »",
+      "« Ce que j’entends, c’est que, sans nouvelles de moi, tu as l’impression de ne plus compter pour moi et tu as peur qu’on s’éloigne. C’est bien ça ? »": "« Oui, c’est exactement ça. » Tu viens de montrer que tu as compris.",
+      "« D’accord, d’accord. On peut parler d’autre chose ? »": "Ton proche baisse la tête : « Tu veux toujours éviter le sujet. »",
+      "« Tu exagères, ce n’est pas si grave. »": "Ton proche se ferme : « Pour toi, rien n’est jamais grave. »"
+     }
+    },
+    {
+     "id": "pr_e2",
+     "type": "select",
+     "si": {
+      "champ": "avec",
+      "val": "Un proche de ma famille : parent, frère ou sœur"
+     },
+     "label": "SECOND PASSAGE · Étape 2, exprimer sans accuser. Ton proche dit : « Merci de m’écouter. Et toi, comment tu vis tout ça ? » Que réponds-tu ?",
+     "options": [
+      "« C’est toi qui ne vois jamais tout ce que je fais. »",
+      "« Avec tout ce que j’ai à gérer, je n’ai pas pensé à toi comme j’aurais dû. Je te demande pardon. »",
+      "« Je n’ai rien à dire. »",
+      "« Tu es toujours en train de m’accuser. »"
+     ],
+     "required": true,
+     "bonne": "« Avec tout ce que j’ai à gérer, je n’ai pas pensé à toi comme j’aurais dû. Je te demande pardon. »",
+     "explication": "Tu parles avec « je », tu dis ce que tu as vécu et ce que tu reconnais, sans accuser. « Je n’ai pas vu » ouvre la conversation ; « tu ne vois jamais » ouvre une guerre. C’est l’étape 2.",
+     "retours": {
+      "« C’est toi qui ne vois jamais tout ce que je fais. »": "Ton proche se crispe : « Voilà, c’est encore ma faute. » La dispute reprend.",
+      "« Avec tout ce que j’ai à gérer, je n’ai pas pensé à toi comme j’aurais dû. Je te demande pardon. »": "Ton proche te regarde un instant : « Merci. Ça me fait du bien de t’entendre dire ça. »",
+      "« Je n’ai rien à dire. »": "Ton proche attend un moment, puis dit tristement : « Alors je parle dans le vide. »",
+      "« Tu es toujours en train de m’accuser. »": "Ton proche répond sèchement : « Je ne t’accuse pas, je te parle. » La conversation se ferme."
+     }
+    },
+    {
+     "id": "pr_e3",
+     "type": "select",
+     "si": {
+      "champ": "avec",
+      "val": "Un proche de ma famille : parent, frère ou sœur"
+     },
+     "label": "SECOND PASSAGE · Étape 3, s’engager sur une action concrète. Ton proche demande : « Alors, qu’est-ce qu’on fait différemment à partir de maintenant ? » Que proposes-tu ?",
+     "options": [
+      "« Moi, je changerai quand toi, tu auras changé. »",
+      "« On va essayer de mieux faire. »",
+      "« Chaque dimanche, je t’appelle ou je passe te voir une heure. On commence dimanche prochain, et on fait le point dans un mois. »",
+      "« On verra ça un autre jour. »"
+     ],
+     "required": true,
+     "bonne": "« Chaque dimanche, je t’appelle ou je passe te voir une heure. On commence dimanche prochain, et on fait le point dans un mois. »",
+     "explication": "Une seule chose, concrète, avec une date. Une promesse vague ou remise à plus tard ne change rien. C’est l’étape 3.",
+     "retours": {
+      "« Moi, je changerai quand toi, tu auras changé. »": "Ton proche répond : « Donc rien ne bouge tant que l’autre ne bouge pas. »",
+      "« On va essayer de mieux faire. »": "Ton proche hésite : « Essayer comment ? Quand ? On a déjà dit ça. »",
+      "« Chaque dimanche, je t’appelle ou je passe te voir une heure. On commence dimanche prochain, et on fait le point dans un mois. »": "Ton proche sourit : « D’accord. Dimanche prochain. Je t’attends, et moi aussi je ferai un pas vers toi. »",
+      "« On verra ça un autre jour. »": "Ton proche soupire : « Un autre jour… c’est toujours un autre jour. »"
+     }
+    },
     {
      "id": "q1",
      "type": "textarea",

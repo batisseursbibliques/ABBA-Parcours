@@ -1142,7 +1142,7 @@
    "id": "banque",
    "titre": "My sheet: comparing two institutions",
    "consigne": "This sheet is in the lesson “The bank and the account.” It is to be used when you go to choose where to open your account.",
-   "intro_html": "<p>Go and see two approved institutions (bank, microfinance or Mobile Money). Ask the questions on the sheet and write down the answers <strong>in your notebook</strong>. If you already have an account, compare it with another one.</p><p><strong>Warning:</strong> your trainer may ask you for a photo of your filled-in sheet, to see that you really did the work.</p>",
+   "intro_html": "<p>Go and see two approved institutions (bank, microfinance or Mobile Money). Ask the questions on the sheet and write down the answers <strong>in your notebook</strong>. If you already have an account, compare it with another one.</p>",
    "directIntro": true,
    "champs": [
     {
@@ -1249,7 +1249,7 @@
    "id": "epargne",
    "titre": "My savings and protection plan",
    "consigne": "This sheet is in the lesson “Savings and protection.” We start with emergency savings, and we insure what we could not replace with our savings.",
-   "intro_html": "<p>Decide now, while you are calm: give a goal, an amount and a date to each savings, and look at which insurances you have or are missing. Fill in the sheet <strong>in your notebook</strong>.</p><p><strong>Warning:</strong> your trainer may ask you for a photo of your filled-in sheet.</p>",
+   "intro_html": "<p>Decide now, while you are calm: give a goal, an amount and a date to each savings, and look at which insurances you have or are missing. Fill in the sheet <strong>in your notebook</strong>.</p>",
    "directIntro": true,
    "champs": [
     {
