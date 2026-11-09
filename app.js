@@ -1932,6 +1932,7 @@ function renderEnrollmentsAdmin() {
   const pending = ALL_ENROLLMENTS.filter(e => e.status === "pending");
   const active  = ALL_ENROLLMENTS.filter(e => e.status === "active");
   const refused = ALL_ENROLLMENTS.filter(e => e.status === "refused");
+  if (!ACC_CACHE.demande && active.length) accRefreshCache();
   const cEl = document.getElementById("coordDemandesCount"); if (cEl) cEl.textContent = pending.length ? "(" + pending.length + " en attente)" : "";
 
   const row = (e, mode) => {
@@ -1940,17 +1941,18 @@ function renderEnrollmentsAdmin() {
     const date = e.requestedAt?.toDate ? e.requestedAt.toDate().toLocaleDateString(window.I18N && window.I18N.lang === "en" ? "en-US" : "fr-FR") : "—";
     const actions = mode === "pending"
       ? `<div class="enrollment-actions">
-           <button class="btn-small btn-approve" onclick="approveEnrollment('${uidS}')">✓ Approuver</button>
+           <button class="btn-small btn-approve" onclick="openAccueil('${uidS}')">✓ Approuver…</button>
            <button class="btn-small btn-refuse"  onclick="refuseEnrollment('${uidS}')">✕ Refuser</button>
          </div>`
       : mode === "refused"
       ? `<div class="enrollment-actions">
            <span class="enrollment-status-badge refused">✕ Refusé</span>
-           <button class="btn-small btn-approve" onclick="approveEnrollment('${uidS}')" title="Réactiver">↩ Réactiver</button>
+           <button class="btn-small btn-approve" onclick="openAccueil('${uidS}')" title="Réactiver">↩ Réactiver…</button>
            <button class="btn-small btn-refuse" onclick="radierEnrollment('${uidS}')" title="Radier définitivement">⊗ Radier</button>
          </div>`
       : `<div class="enrollment-actions">
            <span class="enrollment-status-badge active">✓ Actif</span>
+           <button class="btn-small btn-approve" onclick="openAccueil('${uidS}')" title="Correcteur, paiement, binôme">⚙ Compléter</button>
            <button class="btn-small btn-refuse" onclick="radierEnrollment('${uidS}')" title="Sortir du parcours">⊗ Sortir</button>
          </div>`;
     return `<div class="enrollment-row">
@@ -1961,6 +1963,7 @@ function renderEnrollmentsAdmin() {
         ${e.telephone ? `<span class="enrollment-email">Tél : ${escC(e.telephone)}</span>` : ""}
         ${e.naissance ? `<span class="enrollment-email">Né(e) le ${escC(e.naissance)}${ageFromBirth(e.naissance) !== null ? " · " + ageFromBirth(e.naissance) + " ans" : ""}</span>` : ""}
         ${e.mineur ? `<span class="enrollment-email" style="color:var(--brick);font-weight:600;">Mineur(e) : autorisation parentale déclarée — ${escC(e.tuteurNom || "?")}, ${escC(e.tuteurTel || "?")}</span>` : ""}
+        ${mode === "active" && accManques(e).length ? `<span class="enrollment-email" style="color:var(--brick);font-weight:600;">⚠ À compléter : ${accManques(e).join(", ")}</span>` : ""}
       </div>
       ${actions}
     </div>`;
@@ -1997,6 +2000,189 @@ window.refuseEnrollment = async (uid) => {
 window.radierEnrollment = async (uid) => {
   if (!confirm("Sortir définitivement ce Bâtisseur du Parcours ? Son nom disparaîtra des listes.")) return;
   await window.AbbaSync.reviewEnrollment(uid, "parcours", "radie", CURRENT_USER.email);
+};
+
+/* ============================================================
+   ACCUEIL D'UN NOUVEAU BÂTISSEUR
+   À l'approbation, la coordination règle tout d'un coup : correcteur, tarif / versement, binôme, options de parcours.
+   Chaque partie n'apparaît que si le coordinateur a le droit correspondant (corrections, paiements, binomes, suivi).
+   ============================================================ */
+let ACC = null;
+const ACC_CACHE = { liens: null, binomes: null, demande: false };
+const accLc = (s) => String(s || "").trim().toLowerCase();
+const accNom = (e) => `${e.prenom || ""} ${e.nom || ""}`.trim() || e.email || "—";
+const accFmt = (n) => new Intl.NumberFormat("fr-FR").format(Math.round(Number(n) || 0)).replace(/[\u202f\u00a0]/g, " ") + " F";
+const accToday = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+
+async function accRefreshCache() {
+  ACC_CACHE.demande = true;
+  try { ACC_CACHE.liens = (RIGHTS.corrections || RIGHTS.suivi) ? await window.AbbaSync.loadAllLiens() : null; } catch (e) { ACC_CACHE.liens = null; }
+  try { ACC_CACHE.binomes = RIGHTS.binomes ? await window.AbbaSync.loadAllBinomes() : null; } catch (e) { ACC_CACHE.binomes = null; }
+  renderEnrollmentsAdmin();
+}
+// Ce qui manque encore à un étudiant actif (affiché en rouge dans la liste)
+function accManques(e) {
+  const m = [], mail = accLc(e.email), uid = String(e.uid || "");
+  if (ACC_CACHE.liens && !ACC_CACHE.liens.some((l) => (l.uid || l.id) === uid)) m.push("sans correcteur");
+  if (ACC_CACHE.binomes && !ACC_CACHE.binomes.some((b) => b.membre1 === mail || b.membre2 === mail)) m.push("sans binôme");
+  return m;
+}
+function accOverlay() {
+  let o = document.getElementById("accOverlay");
+  if (!o) { o = document.createElement("div"); o.id = "accOverlay"; o.className = "modal-overlay"; o.innerHTML = '<div class="modal" id="accModal"></div>'; document.body.appendChild(o); }
+  return o;
+}
+window.accFermer = () => { const o = document.getElementById("accOverlay"); if (o) o.classList.remove("open"); ACC = null; };
+const accOneShot = (watch) => new Promise((res) => { let u = null; let fini = false; u = watch((v) => { if (fini) return; fini = true; try { if (u) u(); } catch (e) {} res(v); }); });
+
+window.openAccueil = async (uid) => {
+  const e = ALL_ENROLLMENTS.find((x) => String(x.uid) === String(uid));
+  if (!e) return;
+  const S = window.AbbaSync;
+  ACC = { uid: String(e.uid), e, status: e.status, correcteurs: [], compte: null, lien: null, meta: {}, binome: null, partenaires: [], busy: false };
+  const o = accOverlay(), box = document.getElementById("accModal");
+  box.innerHTML = '<p class="settings-hint">Chargement…</p>'; o.classList.add("open");
+  try {
+    if (RIGHTS.corrections) {
+      ACC.correcteurs = (await accOneShot((cb) => S.watchCorrecteurs(cb))) || [];
+      try { ACC.lien = await S.getMyLien(ACC.uid); } catch (err) { ACC.lien = null; }
+    }
+    if (RIGHTS.paiements || RIGHTS.suivi) { try { ACC.compte = await S.loadCompte(ACC.uid); } catch (err) { ACC.compte = null; } }
+    if (RIGHTS.suivi) { try { ACC.meta = (await accOneShot((cb) => S.watchFormationMeta(ACC.uid, cb))) || {}; } catch (err) { ACC.meta = {}; } }
+    if (RIGHTS.binomes) {
+      const bs = await S.loadAllBinomes(); ACC_CACHE.binomes = bs;
+      const pris = new Set(); bs.forEach((b) => { pris.add(b.membre1); pris.add(b.membre2); });
+      const moi = accLc(e.email);
+      ACC.binome = bs.find((b) => b.membre1 === moi || b.membre2 === moi) || null;
+      ACC.partenaires = ALL_ENROLLMENTS.filter((x) => x.status === "active" && String(x.uid) !== ACC.uid && x.email && !pris.has(accLc(x.email)));
+    }
+  } catch (err) { console.error("openAccueil:", err); ACC.erreurChargement = err.code || err.message || "erreur"; }
+  accRendre();
+};
+
+function accRendre() {
+  if (!ACC) return;
+  const e = ACC.e, box = document.getElementById("accModal"), nouveau = ACC.status !== "active";
+  const c = ACC.compte, total = c ? Number(c.total ?? 5000) : 5000;
+  let h = `<div class="modal-head"><h2>${nouveau ? "Accueillir" : "Compléter"} ${escC(accNom(e))}</h2><button type="button" class="modal-close" onclick="accFermer()" aria-label="Fermer">×</button></div>`;
+  h += `<p class="small">${escC(e.email)}${e.telephone ? " · " + escC(e.telephone) : ""}${e.mineur ? ' · <strong style="color:var(--brick);">mineur(e)</strong>' : ""}</p>`;
+  if (ACC.erreurChargement) h += `<p class="ind-err">Certaines informations n'ont pas pu être chargées (${escC(ACC.erreurChargement)}). Réessaie ou ferme.</p>`;
+  if (RIGHTS.corrections) {
+    const cur = ACC.lien ? ACC.lien.correcteurEmail : "";
+    h += `<p class="eyebrow" style="margin-top:14px;">Correcteur</p>`;
+    h += ACC.correcteurs.length
+      ? `<select class="text-input" id="accCorr"><option value="">— aucun pour l'instant —</option>${ACC.correcteurs.map((k) => `<option value="${escC(k.email)}" ${cur === k.email ? "selected" : ""}>${escC(k.nom || k.email)}</option>`).join("")}</select>`
+      : `<p class="settings-hint">Aucun correcteur n'existe encore : ajoutes-en un dans Parcours, « Gestion des correcteurs et des étudiants ».</p>`;
+  }
+  if (RIGHTS.paiements && (nouveau || c)) {
+    const mode = c && total === 0 ? "zero" : c && total < 5000 ? "reduit" : "normal";
+    ACC.modeInitial = mode;
+    h += `<p class="eyebrow" style="margin-top:14px;">Paiement</p>`;
+    if (c && Number(c.paye || 0) > 0) h += `<p class="small">Déjà enregistré : <strong>${accFmt(c.paye)}</strong> sur ${accFmt(total)}.</p>`;
+    h += `<select class="text-input" id="accTarif" onchange="accTarifChange()"><option value="normal" ${mode === "normal" ? "selected" : ""}>Tarif normal : 5 000 F</option><option value="reduit" ${mode === "reduit" ? "selected" : ""}>Tarif réduit (un autre montant)</option><option value="zero" ${mode === "zero" ? "selected" : ""}>Dispensé : 0 F (il travaille tout de suite)</option></select>`;
+    h += `<div id="accReduit" style="display:${mode === "reduit" ? "block" : "none"};"><label class="field"><span>Montant total à payer (F)</span><input class="text-input" id="accTotal" type="number" inputmode="numeric" min="500" max="4500" step="500" value="${mode === "reduit" ? total : 2500}"></label></div>`;
+    h += `<div id="accRaisonBox" style="display:${mode === "normal" ? "none" : "block"};"><label class="field"><span>Raison (obligatoire si le tarif est réduit ou nul)</span><input class="text-input" id="accRaison" type="text" maxlength="200" value="${escC((c && c.note) || "")}"></label></div>`;
+    h += `<div id="accVerseBox" style="display:${mode === "zero" ? "none" : "block"};"><label class="field"><span>Déjà versé par cette personne (F), si elle a déjà payé quelque chose</span><input class="text-input" id="accVerse" type="number" inputmode="numeric" min="100" step="100" placeholder="ex. 3000"></label><label class="field"><span>Moyen de paiement</span><select class="text-input" id="accMode"><option value="mobile-money">Mobile Money</option><option value="especes">Espèces</option><option value="virement">Virement</option><option value="autre">Autre</option></select></label><p class="settings-hint">Ce montant est enregistré comme un versement d'aujourd'hui. L'étudiant verra seulement ce qu'il lui reste à payer, et les modules se débloquent selon ce qui est déjà versé.</p></div>`;
+  } else if (!RIGHTS.paiements) {
+    h += `<p class="settings-hint" style="margin-top:14px;">💰 Le tarif et les versements sont réglés par la personne qui a le droit « paiements » (Paiements des étudiants).</p>`;
+  }
+  if (RIGHTS.binomes) {
+    h += `<p class="eyebrow" style="margin-top:14px;">Binôme</p>`;
+    if (ACC.binome) {
+      const autre = ACC.binome.membre1 === accLc(e.email) ? ACC.binome.membre2 : ACC.binome.membre1;
+      const x = ALL_ENROLLMENTS.find((y) => accLc(y.email) === autre);
+      h += `<p class="small">🤝 Déjà en binôme avec <strong>${escC(x ? accNom(x) : autre)}</strong>.</p>`;
+    } else {
+      h += `<select class="text-input" id="accBinome"><option value="">— à choisir plus tard —</option>${ACC.partenaires.map((x) => `<option value="${escC(String(x.uid))}">${escC(accNom(x))}</option>`).join("")}</select><p class="settings-hint">On ne peut choisir qu'un Bâtisseur déjà approuvé et sans binôme. Si son binôme est encore en attente, approuve-le d'abord : il apparaîtra ensuite dans cette liste.</p>`;
+    }
+  }
+  if (RIGHTS.suivi) {
+    h += `<details style="margin-top:14px;"><summary class="small"><strong>Options pour un étudiant déjà avancé</strong></summary><label class="fm-check"><input type="checkbox" id="accAuto" ${ACC.meta.autoevalFaite ? "checked" : ""}><span>Auto-évaluation déjà faite (dispensée)</span></label><label class="fm-check"><input type="checkbox" id="accLibre" ${ACC.meta.rythmeLibre ? "checked" : ""}><span>Rythme libre : aucun délai minimum pour envoyer les fiches</span></label><p class="settings-hint">Les modules déjà faits en séance se cochent dans Parcours, « Gestion des correcteurs et des étudiants ».</p></details>`;
+  }
+  h += `<p class="ind-err" id="accMsg"></p>`;
+  h += `<button type="button" class="btn-primary full" id="accOk" onclick="accValider(false)" style="margin-top:12px;">${nouveau ? "✓ Approuver et tout enregistrer" : "Enregistrer"}</button>`;
+  if (nouveau) h += `<button type="button" class="btn-secondary full" onclick="accValider(true)" style="margin-top:8px;">Approuver seulement (je réglerai le reste plus tard)</button>`;
+  h += `<button type="button" class="btn-secondary full" onclick="accFermer()" style="margin-top:8px;">Annuler</button>`;
+  box.innerHTML = h;
+}
+window.accTarifChange = () => {
+  const v = (document.getElementById("accTarif") || {}).value;
+  const set = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? "block" : "none"; };
+  set("accReduit", v === "reduit"); set("accRaisonBox", v !== "normal"); set("accVerseBox", v !== "zero");
+};
+
+window.accValider = async (seulement) => {
+  if (!ACC || ACC.busy) return;
+  const S = window.AbbaSync, me = CURRENT_USER.email, u = ACC.uid, e = ACC.e, nouveau = ACC.status !== "active";
+  const val = (id) => { const el = document.getElementById(id); return el ? el.value : ""; };
+  const err = (m) => { const el = document.getElementById("accMsg"); if (el) el.textContent = m; };
+  err("");
+  // 1) Vérifications, AVANT d'écrire quoi que ce soit
+  let plan = {};
+  if (!seulement) {
+    if (RIGHTS.paiements && document.getElementById("accTarif")) {
+      const t = val("accTarif"), raison = val("accRaison").trim();
+      let total = 5000;
+      if (t === "zero") total = 0;
+      if (t === "reduit") {
+        total = Math.round(Number(val("accTotal")));
+        if (!Number.isFinite(total) || total < 500 || total >= 5000) return err("Tarif réduit : choisis un montant entre 500 et 4 500 F.");
+      }
+      if (total < 5000 && !raison) return err("Écris la raison du tarif réduit ou de la dispense.");
+      let verse = 0;
+      const vs = val("accVerse").trim();
+      if (t !== "zero" && vs) {
+        verse = Math.round(Number(vs));
+        if (!Number.isFinite(verse) || verse < 100 || verse > 100000) return err("Montant déjà versé invalide (au moins 100 F).");
+        const dejaPaye = ACC.compte ? Number(ACC.compte.paye || 0) : 0;
+        if (dejaPaye + verse > total) return err(`Ce versement dépasse le tarif (${accFmt(total)}).`);
+      }
+      plan.paiement = { total, raison, verse, mode: val("accMode") || "mobile-money" };
+    }
+    if (RIGHTS.corrections && document.getElementById("accCorr")) plan.corr = val("accCorr");
+    if (RIGHTS.binomes && document.getElementById("accBinome")) plan.binome = val("accBinome");
+    if (RIGHTS.suivi && document.getElementById("accAuto")) plan.suivi = { autoevalFaite: !!document.getElementById("accAuto").checked, rythmeLibre: !!document.getElementById("accLibre").checked };
+  }
+  ACC.busy = true;
+  const bouton = document.getElementById("accOk"); if (bouton) bouton.disabled = true;
+  const ok = [], ko = [];
+  const etape = async (libelle, fn) => { try { await fn(); ok.push(libelle); } catch (x) { console.error(libelle, x); ko.push(`${libelle} : ${x.code || x.message || "erreur"}`); } };
+  // 2) Approbation (si nécessaire) — si elle échoue, on s'arrête là
+  if (nouveau) {
+    try { await S.reviewEnrollment(u, "parcours", "active", me); ok.push("Accès accordé"); }
+    catch (x) { console.error(x); ACC.busy = false; if (bouton) bouton.disabled = false; return err("Impossible d'approuver : " + (x.code || x.message || "erreur")); }
+    if (RIGHTS.paiements && !seulement) await etape("Compte de paiement", () => S.activerCompte(u));
+  }
+  // 3) Le reste, étape par étape : une étape qui échoue n'empêche pas les autres
+  if (plan.paiement) {
+    const p = plan.paiement, cur = ACC.compte ? Number(ACC.compte.total ?? 5000) : 5000, noteCur = (ACC.compte && ACC.compte.note) || "";
+    const inchange = ACC.modeInitial === "normal" && val("accTarif") === "normal";   // tarif normal laissé tel quel : on ne touche pas au montant déjà enregistré
+    if (!inchange && (p.total !== cur || (p.total < 5000 && p.raison !== noteCur))) await etape(p.total === 0 ? "Dispensé de paiement (0 F)" : p.total < 5000 ? `Tarif réduit : ${accFmt(p.total)}` : "Tarif normal", () => S.setTarif(u, p.total, p.total < 5000 ? p.raison : "", me));
+    if (p.verse > 0) await etape(`Versement de ${accFmt(p.verse)}`, () => S.enregistrerPaiement(u, { montant: p.verse, mode: p.mode, reference: "", date: accToday(), note: "Versé avant l'approbation", parEmail: me }, null));
+  }
+  if (plan.corr !== undefined) {
+    const cur = ACC.lien ? ACC.lien.correcteurEmail : "";
+    if (plan.corr && plan.corr !== cur) {
+      const k = ACC.correcteurs.find((x) => x.email === plan.corr);
+      await etape(`Correcteur : ${k ? k.nom || k.email : plan.corr}`, () => S.setLien(u, { nom: accNom(e), email: e.email, correcteurEmail: plan.corr, correcteurNom: k ? k.nom || k.email : plan.corr }));
+    } else if (!plan.corr && cur) await etape("Correcteur retiré", () => S.deleteLien(u));
+  }
+  if (plan.binome) {
+    const x = ALL_ENROLLMENTS.find((y) => String(y.uid) === plan.binome);
+    if (x) await etape(`Binôme : ${accNom(x)}`, async () => {
+      const bs = await S.loadAllBinomes(), pris = new Set(); bs.forEach((b) => { pris.add(b.membre1); pris.add(b.membre2); });
+      if (pris.has(accLc(e.email)) || pris.has(accLc(x.email))) throw new Error("l'un des deux a déjà un binôme");
+      await S.createBinome({ email: e.email, uid: u }, { email: x.email, uid: String(x.uid) }, me);
+    });
+  }
+  if (plan.suivi && (!!ACC.meta.autoevalFaite !== plan.suivi.autoevalFaite || !!ACC.meta.rythmeLibre !== plan.suivi.rythmeLibre)) {
+    await etape("Options de parcours", () => S.setAcquis(u, Array.isArray(ACC.meta.acquis) ? ACC.meta.acquis : [], plan.suivi));
+  }
+  // 4) Compte rendu
+  const box = document.getElementById("accModal");
+  box.innerHTML = `<div class="modal-head"><h2>${ko.length ? "Presque terminé" : "C'est fait"}</h2><button type="button" class="modal-close" onclick="accFermer()" aria-label="Fermer">×</button></div><p><strong>${escC(accNom(e))}</strong></p>${ok.map((t) => `<p class="small">✓ ${escC(t)}</p>`).join("")}${ko.map((t) => `<p class="small" style="color:var(--brick);font-weight:600;">✗ ${escC(t)}</p>`).join("")}${ko.length ? '<p class="settings-hint">Ce qui a échoué peut se refaire avec le bouton « ⚙ Compléter » de cette personne.</p>' : ""}<button type="button" class="btn-primary full" onclick="accFermer()" style="margin-top:12px;">Fermer</button>`;
+  ACC.busy = false;
+  accRefreshCache();
 };
 
 /* ============================================================
