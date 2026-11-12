@@ -1100,3 +1100,15 @@ body.notes-ouvert{overflow:hidden;}
 .bc-them{align-self:flex-start;background:#F1EEE8;}
 .bc-meta{font-size:11px;opacity:.7;margin-top:3px;}
 .bc-del{background:none;border:0;padding:0;font-size:11px;color:inherit;text-decoration:underline;cursor:pointer;}
+
+/* Programmes à venir (Présence) */
+.prog-ligne{display:block;width:100%;text-align:left;background:none;border:none;padding:2px 4px 8px;margin:0;font:inherit;font-size:12.5px;color:var(--ink-soft);cursor:pointer;line-height:1.35;}
+.prog-ligne b{color:var(--navy);font-weight:600;}
+.prog-item{padding:9px 0;border-bottom:1px solid var(--line);}
+.prog-item:last-child{border-bottom:none;}
+.prog-item .prog-t{font-weight:600;}
+.prog-item .prog-m{font-size:13px;color:var(--ink-soft);}
+.prog-item.passe{opacity:.55;}
+.prog-compte{font-family:var(--font-display);font-size:26px;color:var(--navy);text-align:center;margin:6px 0 2px;letter-spacing:.5px;font-variant-numeric:tabular-nums;}
+.prog-pop-titre{font-weight:600;text-align:center;margin:12px 0 0;}
+.prog-pop-date{font-size:13px;color:var(--ink-soft);text-align:center;margin:0;}

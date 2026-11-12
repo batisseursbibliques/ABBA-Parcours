@@ -46,6 +46,8 @@ let unsubDimensions = {};
 let MY_DIMENSIONS = {};
 let unsubSeances = null;
 let SEANCES = [];
+let PROGRAMMES = [];
+let progPopupFait = false;
 let unsubProfilFormation = null;
 let MY_PROFIL = {};
 let LAST_COORD_ROWS = [];
@@ -300,6 +302,7 @@ async function onAuthChanged(user) {
     MY_ZONES = {};
     MY_DIMENSIONS = {};
     SEANCES = [];
+    PROGRAMMES = []; progPopupFait = false; fermerPopupProgrammes();
     MY_PROFIL = {};
     if (allerALAccueil()) return;
     document.getElementById("authScreen").style.display = "flex";
@@ -377,7 +380,11 @@ async function onAuthChanged(user) {
   });
 
   unsubSeances = window.AbbaSync.watchSeances((list) => {
-    SEANCES = list || [];
+    list = list || [];
+    PROGRAMMES = list.filter(s => s.programme === true);
+    SEANCES = list.filter(s => s.programme !== true);
+    renderProgrammes();
+    if (!progPopupFait) montrerPopupProgrammes();
     renderPresence();
     if (IS_ADMIN) renderSeancesAdmin();
   });
@@ -1347,6 +1354,22 @@ function renderDimensionsHistory() {
    PRÉSENCE AUX SÉANCES (marquée par le coordinateur)
    ============================================================ */
 function setupSeances() {
+  const fp = document.getElementById("addProgrammeForm");
+  if (fp) fp.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const titre = document.getElementById("progTitre").value.trim();
+    const date = document.getElementById("progDate").value;
+    const heure = document.getElementById("progHeure").value;
+    const note = document.getElementById("progNote").value.trim();
+    if (!titre || !date || !heure) return;
+    try {
+      await window.AbbaSync.createProgramme(titre, date, heure, note, CURRENT_USER.email);
+      fp.reset();
+    } catch (err) {
+      alert("Impossible d'ajouter le programme. Vérifie ta connexion.");
+      console.error(err);
+    }
+  });
   document.getElementById("addSeanceForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const titre = document.getElementById("seanceTitre").value.trim();
@@ -1361,6 +1384,111 @@ function setupSeances() {
     }
   });
 }
+
+/* ---------- Programmes à venir (rappel d'une ligne sur l'accueil, fenêtre avec compte à rebours à une semaine) ----------
+   Stockés dans la collection « seances » avec programme:true : ils ne comptent jamais dans la présence.
+   L'heure saisie est celle du Bénin (UTC+1, sans changement d'heure). */
+const PROG_SEMAINE = 7 * 24 * 3600 * 1000;
+let progTimer = null;
+const TP = (fr, en) => (window.I18N && window.I18N.lang === "en" ? en : fr);
+function progCible(p) {
+  const d = String(p.date || "").split("-").map(Number), h = String(p.heure || "00:00").split(":").map(Number);
+  if (!d[0] || !d[1] || !d[2]) return null;
+  return new Date(Date.UTC(d[0], d[1] - 1, d[2], (h[0] || 0) - 1, h[1] || 0, 0));
+}
+function progListe() { return PROGRAMMES.map(p => ({ p, t: progCible(p) })).filter(x => x.t).sort((a, b) => a.t - b.t); }
+function progAVenir() { const n = Date.now(); return progListe().filter(x => x.t.getTime() > n); }
+function progQuand(x) {
+  const loc = window.I18N && window.I18N.lang === "en" ? "en-GB" : "fr-FR";
+  const j = x.t.toLocaleDateString(loc, { weekday: "long", day: "numeric", month: "long", timeZone: "Africa/Porto-Novo" });
+  const h = String(x.p.heure || "").replace(":", " h ").replace(/ h 00$/, " h");
+  return j + (x.p.heure ? " · " + (TP(h, x.p.heure)) + " " + TP("(heure du Bénin)", "(Benin time)") : "");
+}
+function progReste(ms) {
+  if (ms < 0) ms = 0;
+  const j = Math.floor(ms / 864e5), h = Math.floor(ms % 864e5 / 36e5), m = Math.floor(ms % 36e5 / 6e4), s = Math.floor(ms % 6e4 / 1e3);
+  return { j, h, m, s };
+}
+function progDans(ms) {
+  const r = progReste(ms);
+  if (r.j >= 2) return TP("dans " + r.j + " jours", "in " + r.j + " days");
+  if (r.j === 1) return TP("dans 1 jour", "in 1 day");
+  if (r.h >= 1) return TP("dans " + r.h + " h", "in " + r.h + " h");
+  return TP("dans " + Math.max(r.m, 1) + " min", "in " + Math.max(r.m, 1) + " min");
+}
+function progNoteHtml(note) {
+  if (!note) return "";
+  const n = String(note).trim();
+  if (/^https?:\/\//i.test(n)) return `<a href="${escapeAttr(n)}" target="_blank" rel="noopener">${escapeAttr(n)}</a>`;
+  return escapeAttr(n);
+}
+function renderProgrammes() {
+  const prochains = progAVenir();
+  // 1) une ligne discrète sur l'accueil
+  const ligne = document.getElementById("dashProgramme");
+  if (ligne) {
+    if (!CURRENT_USER || !prochains.length) ligne.style.display = "none";
+    else {
+      const x = prochains[0];
+      ligne.innerHTML = `📅 ${TP("Prochain programme", "Next event")} : <b>${escapeAttr(x.p.titre)}</b> · ${escapeAttr(progDans(x.t - Date.now()))}`;
+      ligne.style.display = "block";
+    }
+  }
+  // 2) la carte dans Présence
+  const carte = document.getElementById("progCard");
+  if (carte) {
+    if (!prochains.length) carte.style.display = "none";
+    else {
+      carte.style.display = "block";
+      carte.innerHTML = `<p class="eyebrow">${TP("Programmes à venir", "Upcoming events")}</p>` + prochains.map(x =>
+        `<div class="prog-item"><div class="prog-t">${escapeAttr(x.p.titre)}</div><div class="prog-m">${escapeAttr(progQuand(x))} — ${escapeAttr(progDans(x.t - Date.now()))}</div>${x.p.note ? `<div class="prog-m">${progNoteHtml(x.p.note)}</div>` : ""}</div>`).join("");
+    }
+  }
+  // 3) la liste des coordinateurs (tous les programmes, avec suppression)
+  const adm = document.getElementById("progAdminList");
+  if (adm) {
+    const tous = progListe(), n = Date.now();
+    adm.innerHTML = tous.length ? tous.map(x =>
+      `<div class="prog-item${x.t.getTime() <= n ? " passe" : ""}" style="display:flex;gap:8px;align-items:center;"><div style="flex:1;"><div class="prog-t">${escapeAttr(x.p.titre)}</div><div class="prog-m">${escapeAttr(progQuand(x))}${x.t.getTime() <= n ? " · passé" : ""}</div></div><button type="button" class="editor-del-cat" title="Supprimer" data-prog-del="${escC(x.p.id)}">🗑</button></div>`).join("")
+      : `<p class="empty-hint">Aucun programme.</p>`;
+    adm.querySelectorAll("[data-prog-del]").forEach(b => b.addEventListener("click", async () => {
+      if (!confirm("Supprimer ce programme ?")) return;
+      try { await window.AbbaSync.deleteSeance(b.dataset.progDel); } catch (err) { alert("Impossible de supprimer."); console.error(err); }
+    }));
+  }
+  if (!progTimer) progTimer = setInterval(() => { if (CURRENT_USER) renderProgrammes(); }, 60000);
+}
+function fermerPopupProgrammes() {
+  const o = document.getElementById("progPopup"); if (o) o.remove();
+  if (window._progPopTimer) { clearInterval(window._progPopTimer); window._progPopTimer = null; }
+}
+function montrerPopupProgrammes() {
+  if (!CURRENT_USER || document.getElementById("progPopup")) return;
+  const proches = progAVenir().filter(x => x.t.getTime() - Date.now() <= PROG_SEMAINE).slice(0, 3);
+  if (!proches.length) return;
+  progPopupFait = true;
+  const o = document.createElement("div"); o.id = "progPopup"; o.className = "fiche-overlay";
+  o.innerHTML = `<div class="fiche-box" role="dialog" aria-modal="true">
+    <h3>📅 ${TP("Programme à venir", "Upcoming event")}</h3>
+    ${proches.map((x, i) => `<p class="prog-pop-titre">${escapeAttr(x.p.titre)}</p><p class="prog-pop-date">${escapeAttr(progQuand(x))}</p><div class="prog-compte" data-i="${i}"></div>${x.p.note ? `<p class="prog-pop-date">${progNoteHtml(x.p.note)}</p>` : ""}`).join("")}
+    <div style="text-align:center;margin-top:16px;"><button type="button" class="btn-primary" id="progPopFermer">${TP("Fermer", "Close")}</button></div></div>`;
+  document.body.appendChild(o);
+  const maj = () => {
+    o.querySelectorAll(".prog-compte").forEach(el => {
+      const x = proches[Number(el.dataset.i)], r = progReste(x.t - Date.now());
+      el.textContent = TP(`${r.j} j ${r.h} h ${String(r.m).padStart(2, "0")} min ${String(r.s).padStart(2, "0")} s`, `${r.j}d ${r.h}h ${String(r.m).padStart(2, "0")}m ${String(r.s).padStart(2, "0")}s`);
+    });
+  };
+  maj(); window._progPopTimer = setInterval(maj, 1000);
+  document.getElementById("progPopFermer").addEventListener("click", fermerPopupProgrammes);
+  o.addEventListener("click", (e) => { if (e.target === o) fermerPopupProgrammes(); });
+}
+// l'application revient au premier plan après une longue pause : même fenêtre qu'à l'ouverture
+let progVuLe = Date.now();
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) { progVuLe = Date.now(); return; }
+  if (CURRENT_USER && Date.now() - progVuLe > 30 * 60 * 1000) { progPopupFait = false; renderProgrammes(); montrerPopupProgrammes(); }
+});
 
 /* ---------- Vue personnelle : mon suivi de présence ---------- */
 function renderPresence() {

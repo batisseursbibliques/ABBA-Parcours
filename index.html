@@ -111,6 +111,7 @@
 
     <!-- ================= ACCUEIL ================= -->
     <section class="panel active" id="panel-accueil">
+      <button type="button" class="prog-ligne" id="dashProgramme" data-goto="presence" style="display:none;"></button>
       <div class="abba-invite-card">
         <div class="abba-invite-glow"></div>
         <div class="abba-invite-content">
@@ -154,7 +155,7 @@
               </ul>
             </details>
             <details class="g-sec"><summary>Chaque jour</summary>
-              <p>Quelques gestes se font tous les jours, sans exception : dire ta déclaration matin et soir, prier trois fois, lire ta Bible, faire ton bilan du soir. Tu les coches dans <strong>Ma journée</strong> ; c’est ce que ton correcteur voit de ton suivi. Chaque lundi, de 23 h à minuit, tous les bâtisseurs prient ensemble en ligne.</p>
+              <p>Quelques gestes se font tous les jours, sans exception : dire ta déclaration matin et soir, prier trois fois, lire ta Bible, faire ton bilan du soir. Tu les coches dans <strong>Ma journée</strong> ; c’est ce que ton correcteur voit de ton suivi. Chaque lundi, de 22 h à 23 h, tous les bâtisseurs prient ensemble en ligne.</p>
               <p>Les détails et les raisons sont dans la Charte.</p>
             </details>
             <details class="g-sec"><summary>À ton rythme</summary>
@@ -329,6 +330,8 @@
         <h1>Présence</h1>
       </div>
 
+      <div class="card" id="progCard" style="display:none;"></div>
+
       <div class="card">
         <p class="eyebrow">Mon taux de présence</p>
         <p class="settings-hint" id="presenceTauxHint"></p>
@@ -344,6 +347,19 @@
           <button class="btn-primary" type="submit">Créer cette séance</button>
         </form>
         <div id="seancesAdminList"></div>
+      </div>
+
+      <div class="card admin-only" id="progAdminCard" data-droit="presences" style="display:none;">
+        <p class="eyebrow">Programmes à venir (coordinateurs)</p>
+        <p class="settings-hint">Les Bâtisseurs voient une ligne discrète sur l'accueil. Une semaine avant, une fenêtre avec compte à rebours s'ouvre à chaque ouverture de l'application. L'heure est celle du Bénin.</p>
+        <form id="addProgrammeForm" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">
+          <input type="text" id="progTitre" class="text-input" placeholder="Ex. Rencontre en ligne — Modules M4 à M6" required>
+          <input type="date" id="progDate" class="text-input" required>
+          <input type="time" id="progHeure" class="text-input" required>
+          <input type="text" id="progNote" class="text-input" placeholder="Lien ou lieu (facultatif)">
+          <button class="btn-primary" type="submit">Ajouter ce programme</button>
+        </form>
+        <div id="progAdminList"></div>
       </div>
     </section>
 

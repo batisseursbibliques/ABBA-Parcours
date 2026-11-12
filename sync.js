@@ -513,6 +513,10 @@ async function createSeance(titre, date, createdByEmail) {
   const ref = doc(collection(db, "seances"));
   await setDoc(ref, { titre, date, createdBy: createdByEmail, createdAt: serverTimestamp(), presences: {} });
 }
+async function createProgramme(titre, date, heure, note, createdByEmail) {
+  const ref = doc(collection(db, "seances"));
+  await setDoc(ref, { programme: true, titre, date, heure, note: note || "", createdBy: createdByEmail, createdAt: serverTimestamp(), presences: {} });
+}
 async function deleteSeance(seanceId) {
   await deleteDoc(doc(db, "seances", seanceId));
 }
@@ -869,7 +873,7 @@ window.AbbaSync = {
   watchMyGeste, saveMyGeste,
   watchZonesConfig, saveZonesConfig, watchMyZones, saveMyZonesMonth,
   watchMyDimension, saveMyDimensionMonth,
-  watchSeances, createSeance, deleteSeance, markPresence,
+  watchSeances, createSeance, createProgramme, deleteSeance, markPresence,
   watchMyProfilFormation, saveMyProfilFormation,
   getMyEnrollment, requestEnrollment, watchAllEnrollments, reviewEnrollment,
   watchCorrecteurs, addCorrecteur, removeCorrecteur, amICorrecteur,
