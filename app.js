@@ -115,6 +115,13 @@ document.addEventListener("DOMContentLoaded", () => {
   setupResume();
 
   if ("serviceWorker" in navigator) {
+    // À chaque ouverture avec réseau (et quand le réseau revient) : tout est téléchargé / remis à jour pour fonctionner sans connexion.
+    const toutTelecharger = () => {
+      if (navigator.onLine === false) return;
+      navigator.serviceWorker.ready.then((r) => { if (r.active) r.active.postMessage({ type: "tout-telecharger", anglais: !!(window.I18N && window.I18N.lang === "en") }); }).catch(() => {});
+    };
+    window.addEventListener("online", toutTelecharger);
+    setTimeout(toutTelecharger, 3000);
     navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
       reg.update().catch(() => {});
     }).catch(() => {});
@@ -407,9 +414,14 @@ async function onAuthChanged(user) {
   });
 
   // Cherche si je fais partie d'un binôme, puis écoute son contenu en direct
+  demarrerBinome(user);
+}
+// Sans connexion au démarrage : on relance la recherche dès que le réseau revient (le chat et la fiche se remettent à jour)
+async function demarrerBinome(user) {
+  if (!user || unsubBinome) return;
   try {
     const pair = await window.AbbaSync.findMyBinome(user.uid);
-    if (pair) {
+    if (pair && !unsubBinome) {
       unsubBinome = window.AbbaSync.watchBinome(pair.id, (data) => {
         MY_BINOME = data;
         renderBinome();
@@ -418,7 +430,7 @@ async function onAuthChanged(user) {
         CHAT_MSGS = msgs || [];
         renderChat();
       });
-    } else {
+    } else if (!pair) {
       MY_BINOME = null;
     }
     renderBinome();
@@ -430,6 +442,7 @@ async function onAuthChanged(user) {
     if (errEl) errEl.textContent = "Erreur technique : " + (err && err.message ? err.message : String(err));
   }
 }
+window.addEventListener("online", () => { if (CURRENT_USER && !unsubBinome) demarrerBinome(CURRENT_USER); });
 
 function pushModulesSummary() {
   if (!CURRENT_USER) return;

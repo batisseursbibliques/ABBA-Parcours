@@ -1,7 +1,7 @@
 // Parcours Bâtisseur — service worker
 // Principe : le réseau d'abord (toujours la dernière version quand il y a du réseau),
 // le cache en secours (lecture hors ligne). Plus de version « figée » sur le téléphone.
-const CACHE = "abba-parcours-v142";
+const CACHE = "abba-parcours-v143";
 // Mémoire des leçons : séparée et NON vidée à chaque mise à jour (≈ 1,4 Mo téléchargés une seule fois, pour ménager les forfaits mobiles).
 const CACHE_CONTENU = "abba-parcours-contenu";
 const CONTENU = ["autoeval", "charte", "declaration", "m01", "m02", "m03", "m04", "m05", "m06", "m07", "m08", "m09", "m10", "m11", "m12", "m13", "m14", "m14b", "mbti-profils", "zones-exercices", "plans/index", "plans/nt-180"].map((n) => "./content/" + n + ".json");
@@ -15,6 +15,9 @@ const ASSETS = [
   "./", "./index.html", "./style.css", "./app.js", "./sync.js", "./formation.js", "./bible.js", "./lecture.js", "./notes.js", "./paiements.js", "./profil.js", "./geo.js", "./voixNative.js",
   "./firebase-config.js", "./attestation.js", "./coordinateurs.js", "./reseau.js", "./i18n.js", "./lang/en.json", "./manifest.json", "./confidentialite.html", "./logo.png",
   "./icon-192.png", "./icon-512.png",
+  // Tout le reste de l'application (certificats, exports, réponses, images, bibliothèques PDF) : rien ne doit manquer hors connexion.
+  "./livraison.js", "./reponses.js", "./reponses.html", "./certificat.html", "./export.html", "./verifier.html", "./installer.html",
+  "./vendor/jspdf.umd.min.js", "./vendor/qrcode.js", "./cachet.png", "./signature.png", "./fond.jpg", "./fond-certificat.jpg", "/bible/index.json",
   "/abba-batisseur/habillage.css", "/abba-batisseur/habillage.js", "/abba-batisseur/barre.js", "/abba-batisseur/fond-accueil.webp",
   // La bibliothèque Firebase elle-même (fichiers versionnés) : indispensable pour que l'app puisse démarrer SANS connexion.
   ...SDK,
@@ -52,6 +55,21 @@ function reseauPuisCache(req, nomCache) {
   const delai = new Promise((resolve) => setTimeout(() => resolve(secours()), 6000));
   return Promise.race([reseau.catch(secours), delai]);
 }
+
+/* « Tout télécharger » : demandé par l'application à chaque ouverture avec réseau.
+   On revalide chaque fichier (très léger si rien n'a changé) et on récupère ce qui manque, y compris les leçons en anglais. */
+const revalider = (c, u) => fetch(new Request(u, { cache: "no-cache" })).then((r) => (r.ok && r.type !== "opaque" ? c.put(u, r) : null)).catch(() => null);
+async function toutPrendre(anglais) {
+  const [c, k] = await Promise.all([caches.open(CACHE), caches.open(CACHE_CONTENU)]);
+  const contenus = CONTENU.concat(anglais ? CONTENU.map((u) => u.replace("./content/", "./content/en/")) : []);
+  const lots = [[k, contenus], [c, ASSETS.filter((u) => !u.startsWith("https://"))]];
+  for (const [cache, liste] of lots) {
+    for (let i = 0; i < liste.length; i += 6) await Promise.all(liste.slice(i, i + 6).map((u) => revalider(cache, u)));
+  }
+}
+self.addEventListener("message", (e) => {
+  if (e.data && e.data.type === "tout-telecharger") e.waitUntil(toutPrendre(!!e.data.anglais));
+});
 
 self.addEventListener("fetch", (e) => {
   const req = e.request;

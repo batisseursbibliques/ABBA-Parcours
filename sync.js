@@ -12,7 +12,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, setDoc as _setDoc, addDoc as _addDoc, deleteDoc as _deleteDoc, onSnapshot, serverTimestamp,
-  enableIndexedDbPersistence, collection, getDocs, query, where, updateDoc as _updateDoc, writeBatch as _writeBatch, increment, arrayUnion, orderBy, limit, waitForPendingWrites } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  enableIndexedDbPersistence, getDocFromCache, getDocsFromCache, collection, getDocs, query, where, updateDoc as _updateDoc, writeBatch as _writeBatch, increment, arrayUnion, orderBy, limit, waitForPendingWrites } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig, ADMIN_EMAILS } from "./firebase-config.js";
 import { nouveauNumero } from "./attestation.js";
 import { initReseau } from "./reseau.js";
@@ -37,6 +37,23 @@ const writeBatch = (d) => { const b = _writeBatch(d); const c = b.commit.bind(b)
 if (typeof document !== "undefined") {
   const lancer = () => initReseau({ attendreEcritures: () => waitForPendingWrites(db), estHorsLigne: () => navigator.onLine === false, langue: () => (window.I18N && window.I18N.lang) || "fr" });
   if (document.body) lancer(); else document.addEventListener("DOMContentLoaded", lancer);
+}
+
+/* Lecture ponctuelle qui ne casse pas hors connexion : on essaie d'abord le réseau, puis la copie gardée sur le téléphone ;
+   s'il n'y a rien, on rend « rien trouvé » plutôt qu'une erreur. Les vraies erreurs (droits refusés…) restent des erreurs. */
+const _horsReseau = (e) => (typeof navigator !== "undefined" && navigator.onLine === false) || /unavailable|offline|network|failed-precondition/i.test(String((e && (e.code || e.message)) || ""));
+const _docVide = (ref) => ({ exists: () => false, data: () => undefined, id: ref.id, ref, metadata: { fromCache: true } });
+async function lireDoc(ref) {
+  try { return await getDoc(ref); } catch (e) {
+    if (!_horsReseau(e)) throw e;
+    try { return await getDocFromCache(ref); } catch (e2) { return _docVide(ref); }
+  }
+}
+async function lireDocs(q) {
+  try { return await getDocs(q); } catch (e) {
+    if (!_horsReseau(e)) throw e;
+    return await getDocsFromCache(q);
+  }
 }
 
 function isAdminEmail(email) {
@@ -102,7 +119,7 @@ async function resetPassword(email) { await sendPasswordResetEmail(auth, (email 
    Naissance, adresse, WhatsApp, contact d'urgence… : `users/{uid}/priv/contact`
    (lisible par la personne, par les coordinateurs avec le droit « suivi » et par son correcteur). */
 async function getContact(uid) {
-  const snap = await getDoc(doc(db, "users", uid, "priv", "contact"));
+  const snap = await lireDoc(doc(db, "users", uid, "priv", "contact"));
   return snap.exists() ? snap.data() : {};
 }
 async function saveProfil(uid, identite, contact) {
@@ -227,7 +244,7 @@ async function verifierAttestation(numero) {
 }
 /* ---------- AVIS SUR LES MODULES (questionnaire de satisfaction) ---------- */
 async function loadAvisDe(uid) {
-  const snap = await getDocs(collection(db, "formation", uid, "avis"));
+  const snap = await lireDocs(collection(db, "formation", uid, "avis"));
   return snap.docs.map((d) => ({ mid: d.id, ...d.data() }));
 }
 async function saveAvis(uid, mid, a) {
@@ -235,7 +252,7 @@ async function saveAvis(uid, mid, a) {
 }
 /* ---------- ÉCHANGES étudiant ↔ correcteur (par module) ---------- */
 async function loadEchanges(uid) {
-  const snap = await getDocs(query(collection(db, "formation", uid, "echanges"), orderBy("date", "asc")));
+  const snap = await lireDocs(query(collection(db, "formation", uid, "echanges"), orderBy("date", "asc")));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 async function addEchange(uid, mid, de, texte) {
@@ -297,7 +314,7 @@ async function registerPush(uid, opts) {
 }
 
 async function getUserProfile(uid) {
-  const snap = await getDoc(doc(db, "users", uid));
+  const snap = await lireDoc(doc(db, "users", uid));
   return snap.exists() ? snap.data() : null;
 }
 
@@ -401,11 +418,19 @@ async function loadAllBinomes() {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 async function findMyBinome(myUid) {
-  const ptrSnap = await getDoc(doc(db, "users", myUid, "priv", "binome"));
-  if (!ptrSnap.exists() || !ptrSnap.data().pairId) return null;
-  const pairId = ptrSnap.data().pairId;
-  const pairSnap = await getDoc(doc(db, "binomes", pairId));
-  return pairSnap.exists() ? { id: pairSnap.id, ...pairSnap.data() } : null;
+  // L'identifiant du binôme est aussi gardé sur le téléphone : le chat s'ouvre même sans connexion.
+  const cle = "abba_binome_" + myUid;
+  let pairId = null;
+  try {
+    const p = await lireDoc(doc(db, "users", myUid, "priv", "binome"));
+    if (p.exists() && p.data().pairId) pairId = p.data().pairId;
+    else if (!(p.metadata && p.metadata.fromCache && typeof navigator !== "undefined" && navigator.onLine === false)) { try { localStorage.removeItem(cle); } catch (e) {} return null; }
+  } catch (e) { /* on retombe sur la copie du téléphone */ }
+  if (!pairId) { try { pairId = localStorage.getItem(cle) || null; } catch (e) {} }
+  if (!pairId) return null;
+  try { localStorage.setItem(cle, pairId); } catch (e) {}
+  const pairSnap = await lireDoc(doc(db, "binomes", pairId));
+  return { id: pairId, ...(pairSnap.exists() ? pairSnap.data() : {}) };
 }
 function watchBinome(pairId, callback) {
   return onSnapshot(doc(db, "binomes", pairId), (snap) => {
@@ -542,8 +567,15 @@ async function saveMyProfilFormation(uid, data) {
    Clé Firestore : /enrollments/{uid}_{app}
    status : "pending" | "active" | "refused"             */
 async function getMyEnrollment(uid, app) {
-  const snap = await getDoc(doc(db, "enrollments", uid + "_" + app));
-  return snap.exists() ? snap.data() : null;
+  // Le dernier état connu est gardé sur le téléphone : hors connexion, un étudiant validé n'est jamais renvoyé vers la demande d'accès.
+  const cle = "abba_acces_" + uid + "_" + app;
+  const snap = await lireDoc(doc(db, "enrollments", uid + "_" + app));
+  if (snap.exists()) { try { localStorage.setItem(cle, String(snap.data().status || "")); } catch (e) {} return snap.data(); }
+  if (snap.metadata && snap.metadata.fromCache) {
+    let connu = ""; try { connu = localStorage.getItem(cle) || ""; } catch (e) {}
+    if (connu) return { status: connu };
+  }
+  return null;
 }
 async function requestEnrollment(uid, app, nom, prenom, email) {
   const key = uid + "_" + app;
@@ -581,9 +613,9 @@ function watchCompte(uid, cb) { return onSnapshot(compteRef(uid), (s) => cb(s.ex
 function watchPaiements(uid, cb) { return onSnapshot(collection(db, "formation", uid, "paiements"), (s) => cb(listeDe(s)), (e) => console.error("watchPaiements:", e)); }
 function watchDeclarations(uid, cb) { return onSnapshot(collection(db, "formation", uid, "declarations"), (s) => cb(listeDe(s)), (e) => console.error("watchDeclarations:", e)); }
 function watchConfigPaiement(cb) { return onSnapshot(doc(db, "config", "paiement"), (s) => cb(s.exists() ? s.data() : null), () => cb(null)); }
-async function loadCompte(uid) { const s = await getDoc(compteRef(uid)); return s.exists() ? s.data() : null; }
-async function loadPaiements(uid) { return listeDe(await getDocs(collection(db, "formation", uid, "paiements"))); }
-async function loadDeclarations(uid) { return listeDe(await getDocs(collection(db, "formation", uid, "declarations"))); }
+async function loadCompte(uid) { const s = await lireDoc(compteRef(uid)); return s.exists() ? s.data() : null; }
+async function loadPaiements(uid) { return listeDe(await lireDocs(collection(db, "formation", uid, "paiements"))); }
+async function loadDeclarations(uid) { return listeDe(await lireDocs(collection(db, "formation", uid, "declarations"))); }
 async function addDeclaration(uid, data) {
   await setDoc(doc(collection(db, "formation", uid, "declarations")), { montant: data.montant, mode: data.mode, reference: data.reference || "", statut: "attente", creeLe: data.creeLe, updatedAt: serverTimestamp() });
 }
@@ -620,9 +652,9 @@ const fondsRef = () => doc(db, "config", "solidarite");
 async function addDon(uid, d) {
   await setDoc(doc(collection(db, "solidarite")), { uid, nom: d.nom || "", montant: d.montant, mode: d.mode, reference: d.reference || "", statut: "attente", creeLe: d.creeLe, updatedAt: serverTimestamp() });
 }
-async function loadMesDons(uid) { return listeDe(await getDocs(query(collection(db, "solidarite"), where("uid", "==", uid)))); }
+async function loadMesDons(uid) { return listeDe(await lireDocs(query(collection(db, "solidarite"), where("uid", "==", uid)))); }
 async function loadDonsAttente() { return listeDe(await getDocs(query(collection(db, "solidarite"), where("statut", "==", "attente")))); }
-async function loadFonds() { const s = await getDoc(fondsRef()); return s.exists() ? s.data() : { solde: 0, totalRecu: 0, totalAffecte: 0 }; }
+async function loadFonds() { const s = await lireDoc(fondsRef()); return s.exists() ? s.data() : { solde: 0, totalRecu: 0, totalAffecte: 0 }; }
 async function confirmerDon(did, montant, par) {
   const batch = writeBatch(db), iso = new Date().toISOString();
   batch.update(doc(db, "solidarite", did), { statut: "valide", traitePar: lc(par), traiteLe: iso, recuNum: "DON-" + iso.slice(0, 10).replace(/-/g, "") + "-" + did.slice(0, 4).toUpperCase(), updatedAt: serverTimestamp() });
@@ -675,7 +707,7 @@ async function loadAllLiens() {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 async function getMyLien(uid) {
-  try { const s = await getDoc(doc(db, "liens", uid)); return s.exists() ? s.data() : null; } catch (e) { return null; }
+  try { const s = await lireDoc(doc(db, "liens", uid)); return s.exists() ? s.data() : null; } catch (e) { return null; }
 }
 async function loadMyStudents(email) {
   const snap = await getDocs(query(collection(db, "liens"), where("correcteurEmail", "==", lc(email))));
@@ -706,7 +738,7 @@ async function saveModulePart(uid, mid, partial) {
   await setDoc(doc(db, "formation", uid, "modules", mid), { ...partial, updatedAt: serverTimestamp() }, { merge: true });
 }
 async function loadStudentModules(uid) {
-  const snap = await getDocs(collection(db, "formation", uid, "modules"));
+  const snap = await lireDocs(collection(db, "formation", uid, "modules"));
   const map = {};
   snap.docs.forEach(d => { map[d.id] = d.data(); });
   return map;
@@ -727,7 +759,7 @@ function watchSuivis(uid, callback) {
 }
 async function startSuivi(uid, id, data) {
   const ref = doc(db, "formation", uid, "suivis", id);
-  const snap = await getDoc(ref);
+  const snap = await lireDoc(ref);
   if (snap.exists()) return;
   await setDoc(ref, { ...data, done: {}, notes: {}, updatedAt: serverTimestamp() });
 }
@@ -770,17 +802,17 @@ async function saveLecture(uid, planId, data) {
   await setDoc(doc(db, "formation", uid, "lecture", planId), { ...data, updatedAt: serverTimestamp() });
 }
 async function loadStudentLecture(uid, planId = "nt-180") {
-  const snap = await getDoc(doc(db, "formation", uid, "lecture", planId));
+  const snap = await lireDoc(doc(db, "formation", uid, "lecture", planId));
   return snap.exists() ? snap.data() : null;
 }
 async function loadStudentIndispos(uid) {
-  const snap = await getDocs(collection(db, "formation", uid, "indispos"));
+  const snap = await lireDocs(collection(db, "formation", uid, "indispos"));
   const map = {};
   snap.docs.forEach(d => { map[d.id] = d.data(); });
   return map;
 }
 async function loadStudentSuivis(uid) {
-  const snap = await getDocs(collection(db, "formation", uid, "suivis"));
+  const snap = await lireDocs(collection(db, "formation", uid, "suivis"));
   const map = {};
   snap.docs.forEach(d => { map[d.id] = d.data(); });
   return map;
@@ -837,7 +869,7 @@ const ajoutes = {
 
 /* ---------- Versions de la Bible réservées (visibles aux Bâtisseurs seulement quand le PPV l'a décidé dans Gestion) ---------- */
 async function loadBibleMetas() {
-  const s = await getDocs(collection(db, "bibles_meta"));
+  const s = await lireDocs(collection(db, "bibles_meta"));
   return s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => String(a.nom).localeCompare(String(b.nom)));
 }
 async function loadBibleLivre(cle) {
